@@ -17,6 +17,34 @@ function hash(value: string): number // 문자열 해시
     return [...value].reduce((total, character) => (total * 31 + character.charCodeAt(0)) >>> 0, 0); // 해시 반환
 } // 함수 종료
 
+function createAbortError(): DOMException // 중단 오류 생성
+{ // 함수 시작
+    return new DOMException("응답이 중단되었습니다.", "AbortError"); // 중단 오류 반환
+} // 함수 종료
+
+async function waitForChunk(delayMs: number, signal?: AbortSignal): Promise<void> // 응답 조각 대기
+{ // 함수 시작
+    if (signal?.aborted) // 사전 중단 판정
+    { // 조건 시작
+        throw createAbortError(); // 중단 오류 발생
+    } // 조건 종료
+    await new Promise<void>((resolve, reject) => // 중단 가능 대기
+    { // 약속 시작
+        const finish = () => // 정상 완료 처리
+        { // 처리 시작
+            signal?.removeEventListener("abort", cancel); // 중단 감지 해제
+            resolve(); // 대기 완료
+        }; // 처리 종료
+        const timeout = setTimeout(finish, delayMs); // 완료 예약
+        const cancel = () => // 중단 처리
+        { // 처리 시작
+            clearTimeout(timeout); // 완료 예약 해제
+            reject(createAbortError()); // 중단 오류 반환
+        }; // 처리 종료
+        signal?.addEventListener("abort", cancel, { once: true }); // 중단 감지 등록
+    }); // 약속 종료
+} // 함수 종료
+
 export class MockLLMAdapter implements LLMAdapter // Mock 대화 어댑터
 { // 클래스 시작
     private readonly delayMs: number; // 조각 지연
@@ -28,7 +56,7 @@ export class MockLLMAdapter implements LLMAdapter // Mock 대화 어댑터
         this.seed = options.seed ?? 1; // 시드 설정
     } // 생성자 종료
 
-    public async *streamReply(input: LLMInput): AsyncIterable<string> // 응답 스트림
+    public async *streamReply(input: LLMInput, signal?: AbortSignal): AsyncIterable<string> // 응답 스트림
     { // 함수 시작
         const lastMessage = input.messages.at(-1)?.content.trim().toLowerCase() ?? ""; // 최근 입력
         const key = `${input.character.id}|${input.conversation.emotion}|${input.conversation.relationshipStage}|${lastMessage}|${this.seed}`; // 결정 키
@@ -38,7 +66,11 @@ export class MockLLMAdapter implements LLMAdapter // Mock 대화 어댑터
         { // 순회 시작
             if (this.delayMs > 0) // 지연 판정
             { // 조건 시작
-                await new Promise((resolve) => setTimeout(resolve, this.delayMs)); // 조각 지연
+                await waitForChunk(this.delayMs, signal); // 중단 가능 조각 지연
+            } // 조건 종료
+            if (signal?.aborted) // 중단 판정
+            { // 조건 시작
+                throw createAbortError(); // 중단 오류 발생
             } // 조건 종료
             yield index === words.length - 1 ? word : `${word} `; // 단어 반환
         } // 순회 종료

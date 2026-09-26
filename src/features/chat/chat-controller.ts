@@ -1,11 +1,30 @@
-import type { AppState, Message } from "@/features/core/types"; // 앱 타입
+import type { AppState, Character, Conversation, Message } from "@/features/core/types"; // 앱 타입
 import type { ImageGenerationAdapter } from "@/lib/adapters/image-generation-adapter"; // 이미지 계약
 import type { LLMAdapter } from "@/lib/adapters/llm-adapter"; // 대화 계약
 import { evaluateStory } from "@/lib/story/story-engine"; // 스토리 판정
 import { trySpend } from "@/lib/story/token-policy"; // 토큰 정책
 
-export type SendResult = { ok: true } | { ok: false; reason: "empty" | "busy" | "insufficient-token" | "missing-conversation" }; // 전송 결과
+export type SendResult = { ok: true } | { ok: false; reason: "empty" | "busy" | "cancelled" | "insufficient-token" | "missing-conversation" | "missing-message" }; // 전송 결과
 export type SceneResult = { ok: true; path: string } | { ok: false; reason: "busy" | "insufficient-token" | "missing-conversation" }; // 장면 결과
+export type ChatProgressPhase = "user" | "assistant" | "complete"; // 진행 단계
+
+export interface ChatProgress // 채팅 진행 상태
+{ // 구조 시작
+    state: AppState; // 진행 앱 상태
+    phase: ChatProgressPhase; // 진행 단계
+    messageId: string; // 대상 메시지 식별자
+} // 구조 종료
+
+export type ChatProgressHandler = (progress: ChatProgress) => void; // 진행 상태 처리기
+
+type AttemptStatus = "pending" | "failed" | "cancelled" | "complete"; // 요청 상태
+
+interface ChatAttempt // 채팅 요청 정보
+{ // 구조 시작
+    userMessageId: string; // 사용자 메시지 식별자
+    assistantMessageId: string; // 응답 메시지 식별자
+    status: AttemptStatus; // 요청 상태
+} // 구조 종료
 
 interface ChatControllerOptions // 제어기 설정
 { // 구조 시작
@@ -20,6 +39,8 @@ export class ChatController // 채팅 제어기
     private state: AppState; // 현재 상태
     private busy = false; // 응답 상태
     private sequence = 0; // 메시지 순서
+    private activeAbortController: AbortController | null = null; // 활성 중단 제어기
+    private lastAttempt: ChatAttempt | null = null; // 최근 요청 정보
 
     public constructor(private readonly options: ChatControllerOptions) // 생성자
     { // 생성자 시작
@@ -47,7 +68,153 @@ export class ChatController // 채팅 제어기
         return `${this.options.conversationId}-${role}-${this.sequence}`; // 식별자 반환
     } // 함수 종료
 
-    public async sendMessage(text: string): Promise<SendResult> // 메시지 전송
+    private reportProgress(handler: ChatProgressHandler | undefined, phase: ChatProgressPhase, messageId: string): void // 진행 상태 전달
+    { // 함수 시작
+        handler?.({ state: this.snapshot(), phase, messageId }); // 복사 상태 전달
+    } // 함수 종료
+
+    public cancelReply(): boolean // 응답 중단
+    { // 함수 시작
+        if (!this.busy || this.activeAbortController === null) // 중단 불가 판정
+        { // 조건 시작
+            return false; // 중단 실패 반환
+        } // 조건 종료
+        this.activeAbortController.abort(); // 활성 응답 중단
+        return true; // 중단 성공 반환
+    } // 함수 종료
+
+    private async nextChunk(iterator: AsyncIterator<string>, signal: AbortSignal): Promise<IteratorResult<string>> // 다음 조각 대기
+    { // 함수 시작
+        if (signal.aborted) // 사전 중단 판정
+        { // 조건 시작
+            throw new DOMException("응답이 중단되었습니다.", "AbortError"); // 중단 오류 발생
+        } // 조건 종료
+        return await new Promise<IteratorResult<string>>((resolve, reject) => // 조각과 중단 경쟁
+        { // 약속 시작
+            const cancel = () => // 중단 처리
+            { // 처리 시작
+                reject(new DOMException("응답이 중단되었습니다.", "AbortError")); // 중단 오류 반환
+            }; // 처리 종료
+            signal.addEventListener("abort", cancel, { once: true }); // 중단 감지 등록
+            void iterator.next().then((result) => // 다음 조각 처리
+            { // 성공 시작
+                signal.removeEventListener("abort", cancel); // 중단 감지 해제
+                resolve(result); // 조각 반환
+            }, (error: unknown) => // 스트림 오류 처리
+            { // 실패 시작
+                signal.removeEventListener("abort", cancel); // 중단 감지 해제
+                reject(error); // 오류 반환
+            }); // 조각 요청 종료
+        }); // 약속 종료
+    } // 함수 종료
+
+    private closeIterator(iterator: AsyncIterator<string>): void // 반복기 정리
+    { // 함수 시작
+        try // 정리 시도
+        { // 시도 시작
+            const closing = iterator.return?.(); // 종료 요청
+            if (closing !== undefined) // 종료 약속 판정
+            { // 조건 시작
+                void Promise.resolve(closing).catch(() => undefined); // 종료 오류 무시
+            } // 조건 종료
+        } // 시도 종료
+        catch // 동기 종료 오류 처리
+        { // 실패 시작
+            return; // 정리 종료
+        } // 실패 종료
+    } // 함수 종료
+
+    private async generateReply(conversation: Conversation, character: Character, userMessage: Message, assistantMessageId: string, onProgress: ChatProgressHandler | undefined, applyStory: boolean): Promise<SendResult> // 응답 생성
+    { // 함수 시작
+        const now = new Date().toISOString(); // 생성 시각
+        const previousAssistant = this.state.messages.find((message) => message.id === assistantMessageId); // 기존 응답 조회
+        const promptMessages = this.getMessages().filter((message) => message.id !== assistantMessageId); // 응답 입력 메시지
+        const pendingAssistantMessage: Message = { id: assistantMessageId, conversationId: conversation.id, role: "assistant", content: "", emotion: previousAssistant?.emotion ?? null, sceneEvent: previousAssistant?.sceneEvent ?? null, createdAt: now }; // 임시 응답 메시지
+        const hasAssistant = this.state.messages.some((message) => message.id === assistantMessageId); // 기존 응답 존재 여부
+        const messages = hasAssistant ? this.state.messages.map((message) => message.id === assistantMessageId ? pendingAssistantMessage : message) : [...this.state.messages, pendingAssistantMessage]; // 임시 응답 목록
+        this.state = { ...this.state, messages }; // 임시 응답 반영
+        this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "pending" }; // 최근 요청 기록
+        this.reportProgress(onProgress, "assistant", assistantMessageId); // 빈 응답 진행 전달
+        const abortController = new AbortController(); // 요청 중단 제어기
+        this.activeAbortController = abortController; // 활성 제어기 저장
+        let reply = ""; // 응답 누적
+        const iterator = this.options.llm.streamReply({ character, conversation, messages: promptMessages }, abortController.signal)[Symbol.asyncIterator](); // 응답 반복기
+        try // 스트림 처리 시도
+        { // 시도 시작
+            while (true) // 응답 조각 순회
+            { // 순회 시작
+                const result = await this.nextChunk(iterator, abortController.signal); // 다음 조각 대기
+                if (result.done) // 스트림 완료 판정
+                { // 조건 시작
+                    break; // 순회 종료
+                } // 조건 종료
+                if (abortController.signal.aborted) // 조각 반영 전 중단 판정
+                { // 조건 시작
+                    throw new DOMException("응답이 중단되었습니다.", "AbortError"); // 중단 오류 발생
+                } // 조건 종료
+                const chunk = result.value; // 응답 조각 조회
+                reply += chunk; // 응답 누적
+                this.state = { ...this.state, messages: this.state.messages.map((message) => message.id === assistantMessageId ? { ...message, content: reply } : message) }; // 부분 응답 반영
+                this.reportProgress(onProgress, "assistant", assistantMessageId); // 부분 응답 전달
+            } // 순회 종료
+        } // 시도 종료
+        catch (error) // 스트림 오류 처리
+        { // 실패 시작
+            if (abortController.signal.aborted) // 사용자 중단 판정
+            { // 조건 시작
+                this.closeIterator(iterator); // 스트림 반복기 정리
+                this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "cancelled" }; // 중단 상태 기록
+                return { ok: false, reason: "cancelled" }; // 중단 결과 반환
+            } // 조건 종료
+            this.closeIterator(iterator); // 오류 반복기 정리
+            this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "failed" }; // 실패 상태 기록
+            throw error; // 원래 오류 전달
+        } // 실패 종료
+        if (abortController.signal.aborted) // 후처리 전 중단 판정
+        { // 조건 시작
+            this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "cancelled" }; // 중단 상태 기록
+            return { ok: false, reason: "cancelled" }; // 중단 결과 반환
+        } // 조건 종료
+        let relationshipLevel = conversation.relationshipLevel; // 관계 수치
+        let relationshipStage = conversation.relationshipStage; // 관계 단계
+        let emotion = previousAssistant?.emotion ?? conversation.emotion; // 응답 감정
+        let currentScene = conversation.currentScene; // 현재 장면
+        let sceneEvent = previousAssistant?.sceneEvent ?? null; // 장면 사건
+        if (applyStory) // 스토리 갱신 판정
+        { // 조건 시작
+            const userMessageCount = this.getMessages().filter((message) => message.role === "user").length; // 사용자 메시지 수
+            const story = evaluateStory({ conversation, userMessage: userMessage.content, userMessageCount }); // 스토리 판정
+            relationshipLevel = story.relationshipLevel; // 관계 수치 반영
+            relationshipStage = story.relationshipStage; // 관계 단계 반영
+            emotion = story.emotion; // 감정 반영
+            sceneEvent = null; // 장면 사건 초기화
+            if (story.importantEvent) // 중요 사건 판정
+            { // 중요 사건 시작
+                const imageSpending = trySpend(this.state.wallet, "auto-image"); // 이미지 토큰 차감
+                if (imageSpending.ok) // 이미지 생성 가능
+                { // 가능 시작
+                    const scene = await this.options.images.generateScene({ sceneId: story.sceneId }); // Mock 장면 생성
+                    if (abortController.signal.aborted) // 이미지 생성 중 중단 판정
+                    { // 조건 시작
+                        this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "cancelled" }; // 중단 상태 기록
+                        return { ok: false, reason: "cancelled" }; // 중단 결과 반환
+                    } // 조건 종료
+                    this.state = { ...this.state, wallet: imageSpending.wallet }; // 이미지 토큰 반영
+                    currentScene = scene.path; // 장면 경로 반영
+                    sceneEvent = story.sceneId; // 사건 기록
+                } // 가능 종료
+            } // 중요 사건 종료
+        } // 조건 종료
+        const createdAt = new Date().toISOString(); // 완료 시각
+        const assistantMessage: Message = { id: assistantMessageId, conversationId: conversation.id, role: "assistant", content: reply, emotion, sceneEvent, createdAt }; // 캐릭터 메시지
+        const updatedConversation = { ...conversation, relationshipLevel, relationshipStage, emotion, currentScene, lastMessage: reply, updatedAt: createdAt }; // 대화 갱신
+        this.state = { ...this.state, messages: this.state.messages.map((message) => message.id === assistantMessageId ? assistantMessage : message), conversations: this.state.conversations.map((item) => item.id === conversation.id ? updatedConversation : item) }; // 응답 상태 반영
+        this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "complete" }; // 완료 상태 기록
+        this.reportProgress(onProgress, "complete", assistantMessageId); // 완료 상태 전달
+        return { ok: true }; // 성공 반환
+    } // 함수 종료
+
+    public async sendMessage(text: string, onProgress?: ChatProgressHandler): Promise<SendResult> // 메시지 전송
     { // 함수 시작
         const content = text.trim(); // 입력 정리
         if (content.length === 0) // 빈 입력 판정
@@ -63,6 +230,11 @@ export class ChatController // 채팅 제어기
         { // 조건 시작
             return { ok: false, reason: "missing-conversation" }; // 대화 오류
         } // 조건 종료
+        const character = this.state.characters.find((item) => item.id === conversation.characterId); // 캐릭터 조회
+        if (character === undefined) // 캐릭터 부재 판정
+        { // 조건 시작
+            return { ok: false, reason: "missing-conversation" }; // 연결 오류 반환
+        } // 조건 종료
         const spending = trySpend(this.state.wallet, "chat"); // 토큰 차감 시도
         if (!spending.ok) // 잔액 부족 판정
         { // 조건 시작
@@ -74,38 +246,57 @@ export class ChatController // 채팅 제어기
             const now = new Date().toISOString(); // 현재 시각
             const userMessage: Message = { id: this.nextId("user"), conversationId: conversation.id, role: "user", content, emotion: null, sceneEvent: null, createdAt: now }; // 사용자 메시지
             this.state = { ...this.state, wallet: spending.wallet, messages: [...this.state.messages, userMessage] }; // 사용자 상태 반영
-            let reply = ""; // 응답 누적
-            const character = this.state.characters.find((item) => item.id === conversation.characterId); // 캐릭터 조회
-            if (character === undefined) // 캐릭터 부재 판정
-            { // 조건 시작
-                return { ok: false, reason: "missing-conversation" }; // 연결 오류
-            } // 조건 종료
-            for await (const chunk of this.options.llm.streamReply({ character, conversation, messages: this.getMessages() })) // 응답 스트림
-            { // 순회 시작
-                reply += chunk; // 응답 누적
-            } // 순회 종료
-            const userMessageCount = this.getMessages().filter((message) => message.role === "user").length; // 사용자 메시지 수
-            const story = evaluateStory({ conversation, userMessage: content, userMessageCount }); // 스토리 판정
-            let currentScene = conversation.currentScene; // 현재 장면
-            let sceneEvent: string | null = null; // 장면 사건
-            if (story.importantEvent) // 중요 사건 판정
-            { // 조건 시작
-                const imageSpending = trySpend(this.state.wallet, "auto-image"); // 이미지 토큰 차감
-                if (imageSpending.ok) // 이미지 생성 가능
-                { // 가능 시작
-                    const scene = await this.options.images.generateScene({ sceneId: story.sceneId }); // Mock 장면 생성
-                    this.state = { ...this.state, wallet: imageSpending.wallet }; // 이미지 토큰 반영
-                    currentScene = scene.path; // 장면 경로 반영
-                    sceneEvent = story.sceneId; // 사건 기록
-                } // 가능 종료
-            } // 조건 종료
-            const assistantMessage: Message = { id: this.nextId("assistant"), conversationId: conversation.id, role: "assistant", content: reply, emotion: story.emotion, sceneEvent, createdAt: new Date().toISOString() }; // 캐릭터 메시지
-            const updatedConversation = { ...conversation, relationshipLevel: story.relationshipLevel, relationshipStage: story.relationshipStage, emotion: story.emotion, currentScene, lastMessage: reply, updatedAt: assistantMessage.createdAt }; // 대화 갱신
-            this.state = { ...this.state, messages: [...this.state.messages, assistantMessage], conversations: this.state.conversations.map((item) => item.id === conversation.id ? updatedConversation : item) }; // 응답 상태 반영
-            return { ok: true }; // 성공 반환
+            this.reportProgress(onProgress, "user", userMessage.id); // 사용자 진행 전달
+            const assistantMessageId = this.nextId("assistant"); // 응답 메시지 식별자
+            return await this.generateReply(conversation, character, userMessage, assistantMessageId, onProgress, true); // 응답 생성 반환
         } // 시도 종료
         finally // 잠금 해제
         { // 종료 시작
+            this.activeAbortController = null; // 활성 제어기 해제
+            this.busy = false; // 응답 잠금 해제
+        } // 종료 끝
+    } // 함수 종료
+
+    public async regenerateLastReply(onProgress?: ChatProgressHandler): Promise<SendResult> // 마지막 응답 다시 생성
+    { // 함수 시작
+        if (this.busy) // 응답 중 판정
+        { // 조건 시작
+            return { ok: false, reason: "busy" }; // 중복 거절
+        } // 조건 종료
+        const conversation = this.state.conversations.find((item) => item.id === this.options.conversationId); // 대화 조회
+        if (conversation === undefined) // 대화 부재 판정
+        { // 조건 시작
+            return { ok: false, reason: "missing-conversation" }; // 대화 오류
+        } // 조건 종료
+        const character = this.state.characters.find((item) => item.id === conversation.characterId); // 캐릭터 조회
+        if (character === undefined) // 캐릭터 부재 판정
+        { // 조건 시작
+            return { ok: false, reason: "missing-conversation" }; // 연결 오류
+        } // 조건 종료
+        const conversationMessages = this.getMessages(); // 현재 대화 메시지
+        const userIndex = conversationMessages.findLastIndex((message) => message.role === "user"); // 마지막 사용자 위치
+        const userMessage = userIndex >= 0 ? conversationMessages[userIndex] : undefined; // 마지막 사용자 메시지
+        if (userMessage === undefined) // 사용자 메시지 부재 판정
+        { // 조건 시작
+            return { ok: false, reason: "missing-message" }; // 메시지 오류
+        } // 조건 종료
+        const previousAssistant = conversationMessages.slice(userIndex + 1).find((message) => message.role === "assistant"); // 기존 응답 조회
+        const spending = trySpend(this.state.wallet, "chat"); // 토큰 차감 시도
+        if (!spending.ok) // 잔액 부족 판정
+        { // 조건 시작
+            return { ok: false, reason: "insufficient-token" }; // 부족 반환
+        } // 조건 종료
+        const assistantMessageId = previousAssistant?.id ?? this.nextId("assistant"); // 응답 식별자 결정
+        const applyStory = this.lastAttempt?.userMessageId === userMessage.id && this.lastAttempt.status !== "complete"; // 스토리 반영 여부
+        this.state = { ...this.state, wallet: spending.wallet }; // 대화 비용 반영
+        this.busy = true; // 응답 잠금
+        try // 다시 생성 시도
+        { // 시도 시작
+            return await this.generateReply(conversation, character, userMessage, assistantMessageId, onProgress, applyStory); // 다시 생성 반환
+        } // 시도 종료
+        finally // 잠금 해제
+        { // 종료 시작
+            this.activeAbortController = null; // 활성 제어기 해제
             this.busy = false; // 응답 잠금 해제
         } // 종료 끝
     } // 함수 종료

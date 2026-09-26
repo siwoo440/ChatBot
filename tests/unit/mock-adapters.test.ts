@@ -30,6 +30,16 @@ describe("Mock 어댑터", () => // 어댑터 묶음
         expect(first.length).toBeGreaterThan(0); // 응답 존재
     }); // 검증 종료
 
+    it("중단 신호를 받으면 대기 중인 응답을 종료한다", async () => // 중단 신호 검증
+    { // 검증 시작
+        const adapter = new MockLLMAdapter({ delayMs: 100, seed: 7 }); // 지연 어댑터 생성
+        const abortController = new AbortController(); // 중단 제어기 생성
+        const iterator = adapter.streamReply(makeInput("중단 확인"), abortController.signal)[Symbol.asyncIterator](); // 응답 반복기 생성
+        const firstChunk = iterator.next(); // 첫 조각 요청
+        abortController.abort(); // 응답 중단
+        await expect(firstChunk).rejects.toMatchObject({ name: "AbortError" }); // 중단 오류 확인
+    }); // 검증 종료
+
     it("알려진 장면과 알 수 없는 장면의 경로를 구분한다", async () => // 이미지 검증
     { // 검증 시작
         const adapter = new MockImageAdapter(); // 이미지 어댑터 생성
