@@ -295,7 +295,7 @@ export class ChatController // 채팅 제어기
         const assistantMessageId = this.nextId("assistant"); // 응답 식별자 생성
         const now = new Date().toISOString(); // 요청 시각 생성
         const abortController = new AbortController(); // 중단 제어기 생성
-        const iterator = this.options.llm.streamReply({ character, conversation, version, messages: promptMessages }, abortController.signal)[Symbol.asyncIterator](); // 수정 응답 반복기 생성
+        const iterator = this.options.llm.streamReply({ character, conversation, version: forkBaseVersion, messages: promptMessages }, abortController.signal)[Symbol.asyncIterator](); // 수정 응답 반복기 생성
         this.activeAbortController = abortController; // 활성 제어기 저장
         this.busy = true; // 응답 잠금
         let reply = ""; // 응답 누적

@@ -110,6 +110,11 @@ function validateConversationExport(value: unknown): asserts value is Conversati
     { // 조건 시작
         throw new Error("부모 대화 버전을 찾을 수 없습니다."); // 부모 오류
     } // 조건 종료
+    if (versions.some((version) => version.parentVersionId === null ? version.forkRootVersionId !== null || version.forkedFromMessageId !== null : version.forkRootVersionId === null || version.forkedFromMessageId === null)) // 분기 필드 짝 판정
+    { // 조건 시작
+        throw new Error("대화 버전 분기 정보가 올바르지 않습니다."); // 분기 구조 오류
+    } // 조건 종료
+    assertNoParentCycle(versions); // 부모 순환 검증
     if (messages.some((message) => !versionIds.has(message.versionId)) || versions.some((version) => !messages.some((message) => message.versionId === version.id))) // 메시지 연결 판정
     { // 조건 시작
         throw new Error("대화 버전 메시지를 찾을 수 없습니다."); // 메시지 오류
@@ -120,20 +125,37 @@ function validateConversationExport(value: unknown): asserts value is Conversati
         throw new Error("분기 메시지를 찾을 수 없습니다."); // 분기 오류
     } // 조건 종료
     const groupCounts = new Map<string, number>(); // 분기 그룹 개수
-    versions.filter((version) => version.forkRootVersionId !== null && version.forkedFromMessageId !== null).forEach((version) => // 수정 버전 순회
+    versions.filter((version) => version.parentVersionId !== null).forEach((version) => // 수정 버전 순회
     { // 순회 시작
-        if (!versionIds.has(version.forkRootVersionId!)) // 분기 원본 판정
+        const forkRootVersionId = version.forkRootVersionId!; // 분기 원본 식별자
+        const forkedFromMessageId = version.forkedFromMessageId!; // 분기 메시지 식별자
+        const forkRootMessages = messages.filter((message) => message.versionId === forkRootVersionId); // 분기 원본 메시지 목록
+        let ancestorId = version.parentVersionId; // 부모 탐색 시작
+        let hasForkRootAncestor = false; // 분기 원본 조상 표시
+        while (ancestorId !== null) // 부모 계보 순회
+        { // 반복 시작
+            if (ancestorId === forkRootVersionId) // 분기 원본 도달 판정
+            { // 조건 시작
+                hasForkRootAncestor = true; // 분기 조상 확인
+                break; // 계보 탐색 종료
+            } // 조건 종료
+            ancestorId = versions.find((candidate) => candidate.id === ancestorId)?.parentVersionId ?? null; // 다음 부모 이동
+        } // 반복 종료
+        if (!versionIds.has(forkRootVersionId) || !hasForkRootAncestor) // 분기 원본 판정
         { // 조건 시작
             throw new Error("분기 원본 버전을 찾을 수 없습니다."); // 분기 원본 오류
         } // 조건 종료
-        const key = `${version.forkRootVersionId}:${version.forkedFromMessageId}`; // 그룹 키 생성
+        if (!forkRootMessages.some((message) => message.id === forkedFromMessageId || message.sourceMessageId === forkedFromMessageId)) // 분기 기준 메시지 판정
+        { // 조건 시작
+            throw new Error("분기 원본 메시지를 찾을 수 없습니다."); // 분기 메시지 오류
+        } // 조건 종료
+        const key = `${forkRootVersionId}:${forkedFromMessageId}`; // 그룹 키 생성
         groupCounts.set(key, (groupCounts.get(key) ?? 1) + 1); // 원본 포함 개수 증가
     }); // 순회 종료
     if ([...groupCounts.values()].some((count) => count > CHAT_VERSION_LIMIT)) // 분기 제한 판정
     { // 조건 시작
         throw new Error("대화 버전 개수 제한을 초과했습니다."); // 제한 오류
     } // 조건 종료
-    assertNoParentCycle(versions); // 부모 순환 검증
 } // 함수 종료
 
 export function createConversationExport(state: AppState, conversationId: string): ConversationExport // 대화 내보내기 함수

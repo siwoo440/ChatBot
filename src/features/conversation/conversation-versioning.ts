@@ -189,15 +189,18 @@ export function removeMessageFromVersion(state: AppState, versionId: string, mes
         return state; // 기존 상태 반환
     } // 조건 종료
     const target = versionMessages[targetIndex]; // 대상 메시지 조회
+    const sourceMessageId = target.sourceMessageId ?? target.id; // 원본 메시지 식별자 조회
+    const removesForkAnchor = target.role === "user" && version.parentVersionId !== null && version.forkedFromMessageId === sourceMessageId; // 분기 기준 삭제 판정
+    if (removesForkAnchor) // 분기 기준 삭제 처리
+    { // 조건 시작
+        return removeVersionTree(state, version.conversationId, version.id).state; // 분기 트리 삭제 반환
+    } // 조건 종료
     const removedIds = new Set((target.role === "user" ? versionMessages.slice(targetIndex) : [target]).map((message) => message.id)); // 삭제 식별자 집합
     const messages = state.messages.filter((message) => !removedIds.has(message.id)); // 남은 메시지 목록
     const remaining = versionMessages.filter((message) => !removedIds.has(message.id)); // 현재 버전 잔여 목록
     const lastMessage = remaining.at(-1)?.content ?? ""; // 최근 메시지 결정
     const conversationVersions = state.conversationVersions.map((item) => item.id === versionId ? { ...item, lastMessage } : item); // 버전 요약 갱신
-    const sourceMessageId = target.sourceMessageId ?? target.id; // 원본 메시지 식별자 조회
-    const returnToRoot = version.forkRootVersionId !== null && version.forkedFromMessageId === sourceMessageId; // 분기 기준 삭제 판정
-    const conversations = returnToRoot ? state.conversations.map((conversation) => conversation.id === version.conversationId ? { ...conversation, currentVersionId: version.forkRootVersionId as string } : conversation) : state.conversations; // 원본 버전 복귀
-    return { ...state, conversations, messages, conversationVersions }; // 삭제 상태 반환
+    return { ...state, messages, conversationVersions }; // 삭제 상태 반환
 } // 함수 종료
 
 export function removeVersionTree(state: AppState, conversationId: string, versionId: string): VersionDeletionResult // 버전 트리 삭제

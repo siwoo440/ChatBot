@@ -105,6 +105,21 @@ describe("대화 버전 변경", () => // 변경 묶음
         expect(next.messages.filter((message) => message.versionId !== versionId)).toEqual(state.messages.filter((message) => message.versionId !== versionId)); // 다른 버전 유지 확인
     }); // 검증 종료
 
+    it("수정 버전의 분기 기준 메시지 삭제는 해당 분기 트리를 제거한다", () => // 분기 기준 삭제 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const base = state.conversationVersions.find((version) => version.id === conversation.currentVersionId)!; // 기준 버전 조회
+        const target = state.messages.find((message) => message.versionId === base.id && message.role === "user")!; // 수정 메시지 조회
+        const fork = createVersionFork(state, { conversationId: conversation.id, baseVersionId: base.id, targetMessageId: target.id, content: "삭제할 분기", assistantMessage: { id: "assistant-delete", role: "assistant", content: "삭제 응답", emotion: "관심", sceneEvent: null, createdAt: "2026-09-29T10:01:00.000Z" }, versionState: { ...base, lastMessage: "삭제 응답" }, now: "2026-09-29T10:01:00.000Z" }); // 분기 생성
+        const forkTarget = fork.messages.find((message) => message.sourceMessageId === target.id)!; // 분기 기준 조회
+        const next = removeMessageFromVersion(fork.state, fork.version.id, forkTarget.id); // 분기 기준 삭제
+        expect(next.conversationVersions.some((version) => version.id === fork.version.id)).toBe(false); // 분기 버전 제거 확인
+        expect(next.messages.some((message) => message.versionId === fork.version.id)).toBe(false); // 분기 메시지 제거 확인
+        expect(next.conversations[0].currentVersionId).toBe(base.id); // 원본 복귀 확인
+        expect(getMessageVersionGroup(next, base.id, target.id).versionIds).toEqual([base.id]); // 전환 그룹 정리 확인
+    }); // 검증 종료
+
     it("원본 삭제를 거부하고 수정 버전의 하위 트리를 함께 삭제한다", () => // 버전 삭제 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 생성

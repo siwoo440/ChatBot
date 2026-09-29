@@ -170,12 +170,13 @@ export function ChatScreen({ characterId, initialConversationId, initialVersionI
         } // 조건 종료
         const nextState = appReducer(controller.snapshot(), { type: "delete-version-message", versionId: version.id, messageId: message.id }); // 메시지 삭제 상태 생성
         applyControllerState(nextState); // 삭제 상태 적용
+        const versionRemoved = !nextState.conversationVersions.some((item) => item.id === version.id); // 분기 버전 삭제 판정
         const nextConversation = nextState.conversations.find((item) => item.id === conversation.id); // 삭제 후 대화 조회
         if (nextConversation !== undefined && nextConversation.currentVersionId !== version.id) // 원본 복귀 판정
         { // 조건 시작
             replaceRoute(createConversationHref(characterId, nextConversation.id, nextConversation.currentVersionId) as Route, { scroll: false }); // 복귀 주소 적용
         } // 조건 종료
-        setNotice("현재 버전에서 메시지를 삭제했습니다."); // 삭제 안내
+        setNotice(versionRemoved ? "분기 기준 메시지와 해당 버전을 삭제했습니다." : "현재 버전에서 메시지를 삭제했습니다."); // 삭제 안내
     }; // 함수 종료
     const selectVersion = (versionId: string, direction: "previous" | "next") => // 대화 버전 선택
     { // 함수 시작

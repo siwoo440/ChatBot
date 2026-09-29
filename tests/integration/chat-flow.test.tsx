@@ -61,6 +61,23 @@ class ControlledLLMAdapter implements LLMAdapter // 제어형 대화 어댑터
     } // 함수 종료
 } // 클래스 종료
 
+class CapturingLLMAdapter implements LLMAdapter // 입력 기록 대화 어댑터
+{ // 클래스 시작
+    public lastInput: LLMInput | null = null; // 최근 입력 기록
+
+    public async *streamReply(input: LLMInput): AsyncIterable<string> // 응답 스트림
+    { // 함수 시작
+        this.lastInput = input; // 입력 저장
+        yield "분기 시점 응답"; // 테스트 응답
+    } // 함수 종료
+
+    public async summarizeConversation(_input: SummaryInput): Promise<string> // 대화 요약
+    { // 함수 시작
+        void _input; // 입력 사용 표시
+        return Promise.resolve("테스트 요약"); // 요약 반환
+    } // 함수 종료
+} // 클래스 종료
+
 class FailingLLMAdapter implements LLMAdapter // 실패 대화 어댑터
 { // 클래스 시작
     public async *streamReply(_input: LLMInput): AsyncIterable<string> // 실패 응답 스트림
@@ -407,12 +424,15 @@ describe("채팅 흐름", () => // 채팅 묶음
         version.relationshipLevel = 90; // 이후 관계 상태 적용
         version.relationshipStage = "특별한 사이"; // 이후 관계 단계 적용
         version.currentScene = "/images/scenes/later-scene.svg"; // 이후 장면 적용
-        const controller = new ChatController({ state, conversationId: conversation.id, llm: new MockLLMAdapter({ delayMs: 0 }), images: new MockImageAdapter() }); // 제어기 생성
+        const adapter = new CapturingLLMAdapter(); // 입력 기록 어댑터 생성
+        const controller = new ChatController({ state, conversationId: conversation.id, llm: adapter, images: new MockImageAdapter() }); // 제어기 생성
         const target = controller.getMessages().find((message) => message.role === "user")!; // 과거 사용자 메시지 조회
         const result = await controller.editUserMessage(target.id, "분기 시점에서 다시 시작", undefined); // 과거 메시지 수정
         expect(result.ok).toBe(true); // 수정 성공 확인
         const nextConversation = controller.snapshot().conversations.find((item) => item.id === conversation.id)!; // 수정 대화 조회
         const nextVersion = controller.snapshot().conversationVersions.find((item) => item.id === nextConversation.currentVersionId)!; // 수정 버전 조회
+        expect(adapter.lastInput?.version.relationshipLevel).toBe(conversation.startSettings.relationshipLevel); // 응답 관계 입력 확인
+        expect(adapter.lastInput?.version.currentScene).toBe(conversation.startSettings.scene); // 응답 장면 입력 확인
         expect(nextVersion.relationshipLevel).toBe(conversation.startSettings.relationshipLevel + 1); // 분기 관계 확인
         expect(nextVersion.currentScene).toBe(conversation.startSettings.scene); // 분기 장면 확인
     }); // 검증 종료
@@ -568,7 +588,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         expect(screen.queryByLabelText(/대화 버전/)).toBeNull(); // 수정 버전 부재 확인
     }); // 검증 종료
 
-    it("수정 분기의 기준 메시지 삭제 뒤 원본 버전과 전환기로 복귀한다", async () => // 분기 기준 삭제 검증
+    it("수정 분기의 기준 메시지 삭제 뒤 해당 분기를 제거하고 원본으로 복귀한다", async () => // 분기 기준 삭제 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구 생성
         const confirm = vi.spyOn(window, "confirm").mockReturnValue(true); // 삭제 확인 대체
@@ -589,7 +609,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         } // 조건 종료
         await user.click(within(modifiedItem).getByRole("button", { name: "삭제" })); // 분기 기준 삭제
         expect(await screen.findByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 원본 메시지 복귀 확인
-        expect(screen.getByLabelText("대화 버전 1/2")).toBeVisible(); // 전환기 복귀 확인
+        expect(screen.queryByLabelText(/대화 버전/)).toBeNull(); // 삭제 분기 전환기 제거 확인
         expect(routerReplace).toHaveBeenLastCalledWith("/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1", { scroll: false }); // 원본 주소 확인
         confirm.mockRestore(); // 확인 함수 복원
     }); // 검증 종료

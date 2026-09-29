@@ -51,6 +51,9 @@ describe("대화 내보내기와 가져오기", () => // 파일 묶음
         ["누락 부모", (value: ReturnType<typeof createConversationExport>) => { value.versions[0].parentVersionId = "missing-version"; }], // 누락 부모 변조
         ["누락 메시지", (value: ReturnType<typeof createConversationExport>) => { value.messages = []; }], // 누락 메시지 변조
         ["원본 버전 부재", (value: ReturnType<typeof createConversationExport>) => { value.versions[0].parentVersionId = "missing-version"; }], // 원본 부재 변조
+        ["원본의 분기 정보", (value: ReturnType<typeof createConversationExport>) => { value.versions[0].forkRootVersionId = value.versions[0].id; value.versions[0].forkedFromMessageId = value.messages[0].id; }], // 원본 분기 변조
+        ["수정 버전의 분기 정보 누락", (value: ReturnType<typeof createConversationExport>) => { addFork(value, 1); value.versions.at(-1)!.forkRootVersionId = null; value.versions.at(-1)!.forkedFromMessageId = null; }], // 수정 분기 누락
+        ["조상이 아닌 분기 원본", (value: ReturnType<typeof createConversationExport>) => { addFork(value, 1); addFork(value, 2); value.versions.at(-1)!.forkRootVersionId = value.versions.at(-2)!.id; }], // 분기 조상 변조
     ])("%s 파일을 거부한다", (_label, mutate) => // 악성 파일 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 생성
