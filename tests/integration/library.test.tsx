@@ -19,7 +19,7 @@ describe("로컬 보관함", () => // 보관함 묶음
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 생성
         renderWithApp(<><CharacterDetail characterId="rian" /><LibraryScreen /></>); // 화면 렌더
-        await user.click(screen.getByRole("button", { name: "보관함에 추가" })); // 보관 추가
+        await user.click(screen.getByRole("button", { name: "새벽 도서관의 리안 보관함에 추가" })); // 보관 추가
         await user.click(screen.getByRole("tab", { name: "보관 캐릭터" })); // 보관 탭 이동
         expect(screen.getByRole("link", { name: /새벽 도서관의 리안/ })).toBeVisible(); // 보관 카드 확인
         expect(screen.getByRole("button", { name: "새벽 도서관의 리안 보관 해제" })).toBeVisible(); // 해제 버튼 확인

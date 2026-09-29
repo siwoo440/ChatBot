@@ -1,7 +1,11 @@
 "use client"; // 클라이언트 컴포넌트
 
-import Image from "next/image"; // 최적화 이미지
 import Link from "next/link"; // 내부 경로 링크
+import type { CSSProperties } from "react"; // 스타일 타입
+import { CharacterHero } from "@/features/character/CharacterHero"; // 캐릭터 히어로
+import { CharacterStoryInfo } from "@/features/character/CharacterStoryInfo"; // 스토리 정보
+import { getCharacterDetailProfile } from "@/features/character/character-detail-model"; // 상세 프로필 선택
+import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import type { AppState, Conversation } from "@/features/core/types"; // 상태 타입
 
@@ -49,8 +53,9 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
     const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회
     if (character === undefined) // 캐릭터 부재 판정
     { // 조건 시작
-        return <main><h1>캐릭터를 찾을 수 없습니다.</h1><Link href="/">탐색으로 돌아가기</Link></main>; // 오류 화면
+        return <main className={styles.emptyState}><h1>캐릭터를 찾을 수 없습니다.</h1><Link href="/">탐색으로 돌아가기</Link></main>; // 오류 화면
     } // 조건 종료
+    const profile = getCharacterDetailProfile(character); // 상세 프로필 조회
     const start = () => // 대화 시작 처리
     { // 함수 시작
         const result = ensureConversationForCharacter(state, character.id); // 대화 준비
@@ -58,23 +63,17 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
         dispatch({ type: "select-conversation", conversationId: result.conversation.id }); // 대화 선택
     }; // 함수 종료
     const bookmarked = state.bookmarkedCharacterIds.includes(character.id); // 보관 상태
-    const toggleBookmark = () => dispatch({ type: "toggle-bookmark", characterId: character.id }); // 보관 전환
+    const liked = state.likedCharacterIds.includes(character.id); // 좋아요 상태
+    const followed = state.followedCreatorIds.includes(character.creatorId); // 팔로우 상태
+    const pageStyle = { "--character-accent": profile.accentColor, "--character-image": `url("${character.coverImage}")` } as CSSProperties; // 캐릭터 테마
     return ( // 상세 반환
-        <main style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 28px 96px" }}> {/* 상세 본문 */}
-            <Image src={character.coverImage} alt={character.name} width={480} height={640} priority style={{ width: "min(100%, 480px)", height: "auto", borderRadius: 24, objectFit: "cover" }} /> {/* 대표 이미지 */}
-            <p>{character.creatorName} 제작</p> {/* 제작자 */}
-            <h1>{character.name}</h1> {/* 캐릭터 이름 */}
-            <p>{character.summary}</p> {/* 한 줄 소개 */}
-            <p>{character.description}</p> {/* 상세 설명 */}
-            <h2>성격</h2> {/* 성격 제목 */}
-            <p>{character.personality}</p> {/* 성격 설명 */}
-            <h2>세계관</h2> {/* 세계관 제목 */}
-            <p>{character.worldSetting}</p> {/* 세계관 설명 */}
-            <h2>첫 대화</h2> {/* 첫 대화 제목 */}
-            <blockquote>{character.greeting}</blockquote> {/* 첫 인사 */}
-            <p>{character.tags.map((tag) => <span key={tag}>#{tag} </span>)}</p> {/* 태그 목록 */}
-            <a href={`/chat/${character.id}`} onClick={start}>대화 시작</a> {/* 대화 링크 */}
-            <button type="button" aria-pressed={bookmarked} onClick={toggleBookmark}>{bookmarked ? "보관함에서 제거" : "보관함에 추가"}</button> {/* 보관 버튼 */}
+        <main className={styles.page} style={pageStyle}> {/* 상세 본문 */}
+            <div className={styles.background} aria-hidden="true" /> {/* 흐림 배경 */}
+            <div className={styles.content}> {/* 상세 내용 */}
+                <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => undefined} onFollow={() => undefined} onShare={() => undefined} onMore={() => undefined} /> {/* 히어로 */}
+                <CharacterStoryInfo character={character} profile={profile} /> {/* 스토리 정보 */}
+                <Link className={styles.primaryAction} href={`/chat/${character.id}`} onClick={start}>대화 시작</Link> {/* 대화 링크 */}
+            </div> {/* 상세 내용 종료 */}
         </main> // 본문 종료
     ); // 반환 종료
 } // 함수 종료
