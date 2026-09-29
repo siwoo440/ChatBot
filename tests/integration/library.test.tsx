@@ -1,11 +1,16 @@
 import { screen } from "@testing-library/react"; // 화면 도구
 import userEvent from "@testing-library/user-event"; // 사용자 도구
-import { describe, expect, it } from "vitest"; // 테스트 도구
+import { describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { CharacterDetail } from "@/features/character/CharacterDetail"; // 캐릭터 상세
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태 훅
 import { LibraryScreen } from "@/features/library/LibraryScreen"; // 보관함 대상
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더
+
+vi.mock("next/navigation", () => // 경로 도구 대체
+({ // 대체 시작
+    useRouter: () => ({ push: () => undefined }), // 이동 함수 제공
+})); // 대체 종료
 
 function ConversationProbe() // 대화 확인 요소
 { // 함수 시작
@@ -77,5 +82,21 @@ describe("로컬 보관함", () => // 보관함 묶음
         expect(screen.getByRole("dialog", { name: "대화 삭제" })).toHaveTextContent(`메시지 ${expectedMessages}개`); // 삭제 안내 확인
         await user.click(screen.getByRole("button", { name: "대화 삭제 확인" })); // 삭제 승인
         expect(screen.getByLabelText("대화 개수")).toHaveTextContent(`${state.conversations.length - 1}:${state.messages.length - expectedMessages}`); // 연결 데이터 제거 확인
+    }); // 검증 종료
+
+    it("같은 캐릭터의 여러 대화에 제목과 시작 설정과 최근 시각을 구분해 표시한다", async () => // 다중 대화 표시 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 준비
+        const base = state.conversations[0]; // 기준 대화 조회
+        state.conversations.push({ ...base, id: "conversation-harin-first", characterId: "harin", title: "하린과 비 오는 저녁", startSettings: { ...base.startSettings, presetId: "after-work-comfort" }, updatedAt: "2026-09-28T09:00:00.000Z" }); // 첫 대화 추가
+        state.conversations.push({ ...base, id: "conversation-harin-second", characterId: "harin", title: "하린과 마감 뒤", startSettings: { ...base.startSettings, presetId: "closing-time" }, updatedAt: "2026-09-29T10:30:00.000Z" }); // 둘째 대화 추가
+        renderWithApp(<LibraryScreen />, state); // 보관함 렌더
+        await user.click(screen.getByRole("tab", { name: "진행 중인 대화" })); // 대화 탭 이동
+        expect(screen.getByText("하린과 비 오는 저녁")).toBeVisible(); // 첫 제목 확인
+        expect(screen.getByText("하린과 마감 뒤")).toBeVisible(); // 둘째 제목 확인
+        expect(screen.getByText(/시작: 퇴근 후의 위로/)).toBeVisible(); // 첫 프리셋 확인
+        expect(screen.getByText(/시작: 마감 뒤의 한 잔/)).toBeVisible(); // 둘째 프리셋 확인
+        expect(screen.getByText(/2026\. 9\. 29/)).toBeVisible(); // 최근 시각 확인
     }); // 검증 종료
 }); // 묶음 종료

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"; // 테스트 도구
-import { getCharacterDetailProfile, getLatestActiveConversation, getRelatedCharacters } from "@/features/character/character-detail-model"; // 상세 선택 함수
+import { createConversationFromPreset, getCharacterDetailProfile, getLatestActiveConversation, getRelatedCharacters } from "@/features/character/character-detail-model"; // 상세 선택 함수
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
 
 describe("캐릭터 상세 모델", () => // 상세 모델 묶음
@@ -59,5 +59,42 @@ describe("캐릭터 상세 모델", () => // 상세 모델 묶음
         const base = state.conversations.find((conversation) => conversation.characterId === "rian")!; // 기준 대화 조회
         const archived = { ...base, archivedAt: "2026-09-29T00:00:00.000Z" }; // 보관 대화 생성
         expect(getLatestActiveConversation([archived], "rian")).toBeNull(); // 빈 결과 확인
+    }); // 검증 종료
+
+    it("선택한 시작 프리셋으로 독립 대화와 첫 메시지를 만든다", () => // 프리셋 생성 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const originalConversationCount = state.conversations.length; // 기존 대화 수 저장
+        const originalMessageCount = state.messages.length; // 기존 메시지 수 저장
+        const result = createConversationFromPreset(state, "harin", "closing-time", "2026-09-29T09:00:00.000Z"); // 새 대화 생성
+        expect(result.conversation.id).toBe("conversation-harin-2026-09-29T09:00:00.000Z"); // 시간 기반 식별자 확인
+        expect(result.conversation.title).toBe("퇴근길 카페의 하린 · 마감 뒤의 한 잔"); // 대화 제목 확인
+        expect(result.conversation.startSettings.presetId).toBe("closing-time"); // 프리셋 식별자 확인
+        expect(result.conversation.relationshipStage).toBe("가까운 사이"); // 관계 단계 확인
+        expect(result.conversation.relationshipLevel).toBe(46); // 관계 수치 확인
+        expect(result.conversation.currentScene).toBe("불을 낮춘 카페의 마지막 테이블"); // 시작 장면 확인
+        expect(result.message.content).toBe("오늘 마지막 잔은 네 거야. 천천히 마시면서 이야기해 줘."); // 첫 대사 확인
+        expect(result.state.selectedConversationId).toBe(result.conversation.id); // 선택 대화 확인
+        expect(result.state.conversations).toHaveLength(originalConversationCount + 1); // 대화 추가 확인
+        expect(result.state.messages).toHaveLength(originalMessageCount + 1); // 메시지 추가 확인
+        expect(state.conversations).toHaveLength(originalConversationCount); // 원본 대화 유지 확인
+        expect(state.messages).toHaveLength(originalMessageCount); // 원본 메시지 유지 확인
+    }); // 검증 종료
+
+    it("동일 시각의 대화 식별자가 겹치면 가장 작은 숫자 접미사를 붙인다", () => // 식별자 충돌 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const first = createConversationFromPreset(state, "harin", "after-work-comfort", "2026-09-29T09:00:00.000Z"); // 첫 대화 생성
+        const second = createConversationFromPreset(first.state, "harin", "after-work-comfort", "2026-09-29T09:00:00.000Z"); // 둘째 대화 생성
+        expect(second.conversation.id).toBe("conversation-harin-2026-09-29T09:00:00.000Z-2"); // 접미사 확인
+        expect(second.message.id).toBe(`${second.conversation.id}-message-1`); // 메시지 식별자 확인
+    }); // 검증 종료
+
+    it("알 수 없는 프리셋은 캐릭터의 첫 프리셋으로 안전하게 대체한다", () => // 프리셋 대체 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const result = createConversationFromPreset(state, "harin", "missing", "2026-09-29T10:00:00.000Z"); // 잘못된 프리셋 생성
+        expect(result.conversation.startSettings.presetId).toBe("after-work-comfort"); // 기본 프리셋 확인
+        expect(result.conversation.lastMessage).toBe("오늘은 평소보다 조금 지쳐 보여. 따뜻한 걸로 준비해도 될까?"); // 기본 대사 확인
     }); // 검증 종료
 }); // 묶음 종료

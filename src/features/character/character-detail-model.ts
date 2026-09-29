@@ -1,5 +1,13 @@
 import { characterDetailProfiles } from "@/features/character/character-detail-data"; // 상세 프로필 데이터
-import type { Character, CharacterDetailProfile, Conversation } from "@/features/core/types"; // 도메인 타입
+import type { AppState, Character, CharacterDetailProfile, Conversation, Message } from "@/features/core/types"; // 도메인 타입
+
+export interface ConversationStartResult // 대화 시작 결과
+{ // 구조 시작
+    state: AppState; // 결과 상태
+    conversation: Conversation; // 생성 대화
+    message: Message; // 첫 메시지
+    href: string; // 이동 경로
+} // 구조 종료
 
 function createFallbackProfile(character: Character): CharacterDetailProfile // 기본 상세 프로필 생성
 { // 함수 시작
@@ -59,4 +67,73 @@ export function getLatestActiveConversation(conversations: Conversation[], chara
 { // 함수 시작
     const matches = conversations.filter((conversation) => conversation.characterId === characterId && conversation.archivedAt === null); // 활성 대화 목록
     return matches.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0] ?? null; // 최신 대화 반환
+} // 함수 종료
+
+function createUniqueConversationId(state: AppState, characterId: string, now: string): string // 고유 대화 식별자 생성
+{ // 함수 시작
+    const baseId = `conversation-${characterId}-${now}`; // 기본 식별자 생성
+    const usedIds = new Set(state.conversations.map((conversation) => conversation.id)); // 사용 식별자 수집
+    if (!usedIds.has(baseId)) // 기본 식별자 확인
+    { // 조건 시작
+        return baseId; // 기본 식별자 반환
+    } // 조건 종료
+    let suffix = 2; // 접미사 시작값
+    while (usedIds.has(`${baseId}-${suffix}`)) // 충돌 반복 확인
+    { // 반복 시작
+        suffix += 1; // 접미사 증가
+    } // 반복 종료
+    return `${baseId}-${suffix}`; // 고유 식별자 반환
+} // 함수 종료
+
+export function createConversationFromPreset(state: AppState, characterId: string, presetId: string, now = new Date().toISOString()): ConversationStartResult // 프리셋 대화 생성
+{ // 함수 시작
+    const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회
+    if (character === undefined) // 캐릭터 부재 확인
+    { // 조건 시작
+        throw new Error("존재하지 않는 캐릭터입니다."); // 경로 오류
+    } // 조건 종료
+    const profile = getCharacterDetailProfile(character); // 상세 프로필 조회
+    const preset = profile.startPresets.find((item) => item.id === presetId) ?? profile.startPresets[0]; // 시작 프리셋 선택
+    if (preset === undefined) // 프리셋 부재 확인
+    { // 조건 시작
+        throw new Error("대화 시작 설정을 찾을 수 없습니다."); // 설정 오류
+    } // 조건 종료
+    const conversationId = createUniqueConversationId(state, characterId, now); // 대화 식별자 생성
+    const conversation: Conversation = // 새 대화 정의
+    { // 대화 시작
+        id: conversationId, // 대화 식별자
+        characterId, // 캐릭터 식별자
+        userId: state.profile.id, // 사용자 식별자
+        title: `${character.name} · ${preset.name}`, // 대화 제목
+        startSettings: { profileId: state.profile.id, presetId: preset.id, relationshipStage: preset.relationshipStage, relationshipLevel: preset.relationshipLevel, emotion: preset.emotion, scene: preset.scene, greeting: preset.greeting }, // 시작 설정
+        relationshipLevel: preset.relationshipLevel, // 관계 수치
+        relationshipStage: preset.relationshipStage, // 관계 단계
+        emotion: preset.emotion, // 시작 감정
+        currentScene: preset.scene, // 시작 장면
+        lastMessage: preset.greeting, // 최근 메시지
+        archivedAt: null, // 보관 시각
+        createdAt: now, // 생성 시각
+        updatedAt: now, // 수정 시각
+    }; // 대화 종료
+    const message: Message = { id: `${conversationId}-message-1`, conversationId, role: "assistant", content: preset.greeting, emotion: preset.emotion, sceneEvent: null, createdAt: now }; // 첫 메시지 생성
+    const nextState: AppState = { ...state, conversations: [...state.conversations, conversation], messages: [...state.messages, message], selectedConversationId: conversationId }; // 다음 상태 생성
+    return { state: nextState, conversation, message, href: `/chat/${characterId}` }; // 생성 결과 반환
+} // 함수 종료
+
+export function ensureConversationForCharacter(state: AppState, characterId: string, now = new Date().toISOString()): ConversationStartResult // 대화 준비
+{ // 함수 시작
+    const selected = state.selectedConversationId === null ? undefined : state.conversations.find((conversation) => conversation.id === state.selectedConversationId && conversation.characterId === characterId); // 선택 대화 조회
+    const existing = selected ?? getLatestActiveConversation(state.conversations, characterId); // 이어갈 대화 선택
+    if (existing !== null && existing !== undefined) // 기존 대화 확인
+    { // 조건 시작
+        const message = state.messages.filter((item) => item.conversationId === existing.id).sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? { id: `${existing.id}-message-reference`, conversationId: existing.id, role: "assistant", content: existing.lastMessage, emotion: existing.emotion, sceneEvent: null, createdAt: existing.updatedAt } as Message; // 최근 메시지 조회
+        return { state: { ...state, selectedConversationId: existing.id }, conversation: existing, message, href: `/chat/${characterId}` }; // 기존 대화 반환
+    } // 조건 종료
+    const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회
+    if (character === undefined) // 캐릭터 부재 확인
+    { // 조건 시작
+        throw new Error("존재하지 않는 캐릭터입니다."); // 경로 오류
+    } // 조건 종료
+    const profile = getCharacterDetailProfile(character); // 상세 프로필 조회
+    return createConversationFromPreset(state, characterId, profile.startPresets[0]?.id ?? "default", now); // 기본 대화 생성
 } // 함수 종료

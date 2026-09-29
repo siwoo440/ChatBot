@@ -6,7 +6,7 @@ import { ChatController, type ChatProgress, type SendResult } from "@/features/c
 import { LayoutSelector } from "@/features/chat/LayoutSelector"; // 레이아웃 선택기
 import { MessageList } from "@/features/chat/MessageList"; // 메시지 목록
 import { SceneViewer } from "@/features/chat/SceneViewer"; // 장면 보기
-import { ensureConversationForCharacter } from "@/features/character/CharacterDetail"; // 대화 준비
+import { ensureConversationForCharacter } from "@/features/character/character-detail-model"; // 대화 준비
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import { recommendLayout } from "@/features/chat/layout-resolver"; // 레이아웃 추천
 import type { ImageGenerationAdapter } from "@/lib/adapters/image-generation-adapter"; // 이미지 계약
