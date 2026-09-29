@@ -1,4 +1,4 @@
-import type { AppSettings, AppState, Character, Conversation, Message, PublicationStatus, UserProfile } from "@/features/core/types"; // 상태 타입
+import type { AppSettings, AppState, Character, CharacterReport, Conversation, Message, PublicationStatus, UserProfile } from "@/features/core/types"; // 상태 타입
 import { trySpend, type TokenAction } from "@/lib/story/token-policy"; // 토큰 정책
 
 export type AppAction = // 앱 동작
@@ -12,6 +12,9 @@ export type AppAction = // 앱 동작
     | { type: "upsert-character"; character: Character } // 캐릭터 저장
     | { type: "delete-character"; characterId: string } // 캐릭터 삭제
     | { type: "toggle-bookmark"; characterId: string } // 보관 전환
+    | { type: "toggle-character-like"; characterId: string } // 좋아요 전환
+    | { type: "toggle-creator-follow"; creatorId: string } // 제작자 팔로우 전환
+    | { type: "add-character-report"; report: CharacterReport } // 캐릭터 신고 추가
     | { type: "set-publication-status"; characterId: string; status: PublicationStatus } // 발행 상태 변경
     | { type: "select-conversation"; conversationId: string | null } // 대화 선택
     | { type: "rename-conversation"; conversationId: string; title: string } // 대화 이름 변경
@@ -73,6 +76,38 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             const bookmarkedCharacterIds = bookmarked ? state.bookmarkedCharacterIds.filter((id) => id !== action.characterId) : [...state.bookmarkedCharacterIds, action.characterId]; // 다음 보관 목록
             return { ...state, bookmarkedCharacterIds }; // 보관 상태 반환
         } // 전환 범위 종료
+        case "toggle-character-like": // 좋아요 전환
+        { // 전환 범위 시작
+            const exists = state.characters.some((character) => character.id === action.characterId); // 캐릭터 존재 확인
+            if (!exists) // 캐릭터 부재 판정
+            { // 조건 시작
+                return state; // 기존 상태 반환
+            } // 조건 종료
+            const liked = state.likedCharacterIds.includes(action.characterId); // 기존 좋아요 확인
+            const likedCharacterIds = liked ? state.likedCharacterIds.filter((id) => id !== action.characterId) : [...state.likedCharacterIds, action.characterId]; // 다음 좋아요 목록
+            return { ...state, likedCharacterIds }; // 좋아요 상태 반환
+        } // 전환 범위 종료
+        case "toggle-creator-follow": // 제작자 팔로우 전환
+        { // 전환 범위 시작
+            const exists = state.characters.some((character) => character.creatorId === action.creatorId); // 제작자 존재 확인
+            if (!exists) // 제작자 부재 판정
+            { // 조건 시작
+                return state; // 기존 상태 반환
+            } // 조건 종료
+            const followed = state.followedCreatorIds.includes(action.creatorId); // 기존 팔로우 확인
+            const followedCreatorIds = followed ? state.followedCreatorIds.filter((id) => id !== action.creatorId) : [...state.followedCreatorIds, action.creatorId]; // 다음 팔로우 목록
+            return { ...state, followedCreatorIds }; // 팔로우 상태 반환
+        } // 전환 범위 종료
+        case "add-character-report": // 캐릭터 신고 추가
+        { // 추가 범위 시작
+            const characterExists = state.characters.some((character) => character.id === action.report.characterId); // 캐릭터 존재 확인
+            const reportExists = state.localReports.some((report) => report.id === action.report.id); // 신고 중복 확인
+            if (!characterExists || reportExists) // 추가 제외 판정
+            { // 조건 시작
+                return state; // 기존 상태 반환
+            } // 조건 종료
+            return { ...state, localReports: [...state.localReports, action.report] }; // 신고 상태 반환
+        } // 추가 범위 종료
         case "set-publication-status": // 발행 상태 변경
             return { ...state, characters: state.characters.map((character) => character.id === action.characterId ? { ...character, publicationStatus: action.status } : character) }; // 발행 상태 반환
         case "select-conversation": // 대화 선택

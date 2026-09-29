@@ -6,13 +6,17 @@ describe("초기 앱 상태", () => // 초기 상태 묶음
     it("스키마 버전과 Mock 공급자를 고정한다", () => // 기본값 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 생성
-        expect(state.schemaVersion).toBe(5); // 스키마 버전 확인
+        expect(state.schemaVersion).toBe(6); // 스키마 버전 확인
         expect(state.providerMode).toBe("mock"); // Mock 공급자 확인
         expect(state.settings.leftPanelOpen).toBe(true); // 왼쪽 패널 확인
         expect(state.settings.rightPanelOpen).toBe(false); // 오른쪽 패널 확인
         expect(state.characters).toHaveLength(100); // 캐릭터 수 확인
         expect(state.conversations.length).toBeGreaterThanOrEqual(3); // 대화방 수 확인
         expect(state.wallet.balance).toBe(1240); // 초기 토큰 확인
+        expect(state.memories).toEqual([]); // 기억 목록 확인
+        expect(state.likedCharacterIds).toEqual([]); // 좋아요 목록 확인
+        expect(state.followedCreatorIds).toEqual([]); // 팔로우 목록 확인
+        expect(state.localReports).toEqual([]); // 신고 목록 확인
     }); // 검증 종료
 
     it("랭킹 캐릭터의 식별자와 이름을 중복 없이 제공한다", () => // 랭킹 중복 방지

@@ -19,6 +19,7 @@ describe("캐릭터 상세 대화 시작", () => // 상세 묶음
         const result = ensureConversationForCharacter(state, "harin", "2026-09-23T00:00:00.000Z"); // 첫 생성
         const repeated = ensureConversationForCharacter(result.state, "harin", "2026-09-23T00:01:00.000Z"); // 재호출
         expect(repeated.state.conversations.filter((conversation) => conversation.characterId === "harin")).toHaveLength(1); // 단일 생성
+        expect(result.conversation.startSettings).toEqual({ profileId: "user-demo", presetId: "legacy-default", relationshipStage: "첫 만남", relationshipLevel: 0, emotion: "호기심", scene: "/images/scenes/fallback-scene.svg", greeting: "오늘은 평소보다 조금 지쳐 보여. 따뜻한 걸로 준비해도 될까?" }); // 시작 설정 확인
         expect(repeated.href).toBe("/chat/harin"); // 이동 경로
     }); // 검증 종료
 }); // 묶음 종료

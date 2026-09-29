@@ -30,6 +30,7 @@ export function ensureConversationForCharacter(state: AppState, characterId: str
         characterId, // 캐릭터 식별자
         userId: state.profile.id, // 사용자 식별자
         title: character.name, // 대화 제목
+        startSettings: { profileId: state.profile.id, presetId: "legacy-default", relationshipStage: "첫 만남", relationshipLevel: 0, emotion: "호기심", scene: "/images/scenes/fallback-scene.svg", greeting: character.greeting }, // 시작 설정
         relationshipLevel: 0, // 초기 관계
         relationshipStage: "첫 만남", // 초기 단계
         emotion: "호기심", // 초기 감정

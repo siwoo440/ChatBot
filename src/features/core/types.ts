@@ -7,6 +7,8 @@ export type CharacterVisibility = "private" | "unlisted" | "public"; // 공개 �
 export type PublicationStatus = "draft" | "published"; // 발행 상태
 export type Membership = "free" | "plus" | "creator"; // 멤버십 종류
 export type RelationshipStage = "첫 만남" | "아는 사이" | "가까운 사이" | "특별한 사이"; // 관계 단계
+export type MemoryCategory = "summary" | "event" | "preference"; // 기억 분류
+export type ReportReason = "incorrect-rating" | "harmful-content" | "copyright" | "spam" | "other"; // 신고 사유
 
 export interface UserProfile // 사용자 프로필 구조
 { // 구조 시작
@@ -58,6 +60,7 @@ export interface Conversation // 대화방 구조
     characterId: string; // 캐릭터 식별자
     userId: string; // 사용자 식별자
     title: string; // 대화방 이름
+    startSettings: ConversationStartSettings; // 시작 설정
     relationshipLevel: number; // 관계 수치
     relationshipStage: RelationshipStage; // 관계 단계
     emotion: string; // 현재 감정
@@ -66,6 +69,38 @@ export interface Conversation // 대화방 구조
     archivedAt: string | null; // 보관 시각
     createdAt: string; // 생성 시각
     updatedAt: string; // 수정 시각
+} // 구조 종료
+
+export interface ConversationStartSettings // 대화 시작 설정 구조
+{ // 구조 시작
+    profileId: string; // 프로필 식별자
+    presetId: string; // 프리셋 식별자
+    relationshipStage: RelationshipStage; // 시작 관계 단계
+    relationshipLevel: number; // 시작 관계 수치
+    emotion: string; // 시작 감정
+    scene: string; // 시작 장면
+    greeting: string; // 시작 대사
+} // 구조 종료
+
+export interface CharacterMemory // 캐릭터 기억 구조
+{ // 구조 시작
+    id: string; // 기억 식별자
+    characterId: string; // 캐릭터 식별자
+    conversationId: string; // 대화방 식별자
+    category: MemoryCategory; // 기억 분류
+    content: string; // 기억 내용
+    sourceMessageIds: string[]; // 근거 메시지 식별자
+    editedByUser: boolean; // 사용자 편집 여부
+    createdAt: string; // 생성 시각
+    updatedAt: string; // 수정 시각
+} // 구조 종료
+
+export interface CharacterReport // 캐릭터 신고 구조
+{ // 구조 시작
+    id: string; // 신고 식별자
+    characterId: string; // 캐릭터 식별자
+    reason: ReportReason; // 신고 사유
+    createdAt: string; // 생성 시각
 } // 구조 종료
 
 export interface Message // 메시지 구조
@@ -103,7 +138,7 @@ export interface AppSettings // 앱 설정 구조
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 5; // 스키마 버전
+    schemaVersion: 6; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록
@@ -112,5 +147,9 @@ export interface AppState // 앱 상태 구조
     wallet: TokenWallet; // 토큰 지갑
     settings: AppSettings; // 사용자 설정
     bookmarkedCharacterIds: string[]; // 보관 캐릭터
+    memories: CharacterMemory[]; // 장기 기억 목록
+    likedCharacterIds: string[]; // 좋아요 캐릭터
+    followedCreatorIds: string[]; // 팔로우 제작자
+    localReports: CharacterReport[]; // 로컬 신고 목록
     selectedConversationId: string | null; // 선택 대화방
 } // 구조 종료
