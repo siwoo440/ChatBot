@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"; // 테스트 도구
 import { appReducer } from "@/features/core/app-reducer"; // 상태 리듀서
+import { createVersionFork } from "@/features/conversation/conversation-versioning"; // 버전 분기 함수
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 
 describe("앱 상태 리듀서", () => // 리듀서 묶음
@@ -152,5 +153,33 @@ describe("앱 상태 리듀서", () => // 리듀서 묶음
         expect(next.conversations.some((conversation) => conversation.id === target.id)).toBe(false); // 대화 제거 확인
         expect(next.messages.some((message) => message.conversationId === target.id)).toBe(false); // 메시지 제거 확인
         expect(next.selectedConversationId).toBeNull(); // 선택 해제 확인
+    }); // 검증 종료
+
+    it("대화 버전을 적용하고 선택 버전을 전환한다", () => // 버전 적용 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const base = state.conversationVersions.find((version) => version.id === conversation.currentVersionId)!; // 기준 버전 조회
+        const target = state.messages.find((message) => message.versionId === base.id && message.role === "user")!; // 수정 메시지 조회
+        const fork = createVersionFork(state, { conversationId: conversation.id, baseVersionId: base.id, targetMessageId: target.id, content: "리듀서 수정", assistantMessage: { id: "reducer-assistant", role: "assistant", content: "리듀서 응답", emotion: "관심", sceneEvent: null, createdAt: "2026-09-29T12:00:00.000Z" }, versionState: { ...base, lastMessage: "리듀서 응답" }, now: "2026-09-29T12:00:00.000Z" }); // 분기 기준 생성
+        const applied = appReducer(state, { type: "apply-conversation-version", conversationId: conversation.id, version: fork.version, messages: fork.messages }); // 새 버전 적용
+        const selected = appReducer(applied, { type: "select-conversation-version", conversationId: conversation.id, versionId: base.id }); // 원본 버전 선택
+        expect(applied.conversations[0].currentVersionId).toBe(fork.version.id); // 적용 버전 확인
+        expect(applied.messages.filter((message) => message.versionId === fork.version.id)).toEqual(fork.messages); // 적용 메시지 확인
+        expect(selected.conversations[0].currentVersionId).toBe(base.id); // 선택 버전 확인
+    }); // 검증 종료
+
+    it("리듀서가 현재 버전 메시지와 수정 버전 트리를 삭제한다", () => // 버전 삭제 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const base = state.conversationVersions.find((version) => version.id === conversation.currentVersionId)!; // 기준 버전 조회
+        const target = state.messages.find((message) => message.versionId === base.id && message.role === "user")!; // 수정 메시지 조회
+        const fork = createVersionFork(state, { conversationId: conversation.id, baseVersionId: base.id, targetMessageId: target.id, content: "삭제용 수정", assistantMessage: { id: "delete-assistant", role: "assistant", content: "삭제용 응답", emotion: "관심", sceneEvent: null, createdAt: "2026-09-29T12:00:00.000Z" }, versionState: { ...base, lastMessage: "삭제용 응답" }, now: "2026-09-29T12:00:00.000Z" }); // 분기 생성
+        const removedMessage = appReducer(fork.state, { type: "delete-version-message", versionId: fork.version.id, messageId: fork.messages.at(-1)!.id }); // 응답 메시지 삭제
+        const removedVersion = appReducer(removedMessage, { type: "delete-conversation-version", conversationId: conversation.id, versionId: fork.version.id }); // 수정 버전 삭제
+        expect(removedMessage.messages.some((message) => message.id === fork.messages.at(-1)!.id)).toBe(false); // 메시지 삭제 확인
+        expect(removedVersion.conversationVersions.some((version) => version.id === fork.version.id)).toBe(false); // 버전 삭제 확인
+        expect(removedVersion.conversations[0].currentVersionId).toBe(base.id); // 부모 버전 복귀 확인
     }); // 검증 종료
 }); // 묶음 종료
