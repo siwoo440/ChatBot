@@ -7,6 +7,7 @@ interface AppHeaderProps // 헤더 속성
     rightOpen: boolean; // 오른쪽 상태
     onToggleLeft(): void; // 왼쪽 전환
     onToggleRight(): void; // 오른쪽 전환
+    onNavigate(): void; // 내부 이동 처리
     leftButtonRef: React.RefObject<HTMLButtonElement | null>; // 왼쪽 버튼 참조
     rightButtonRef: React.RefObject<HTMLButtonElement | null>; // 오른쪽 버튼 참조
 } // 구조 종료
@@ -30,21 +31,21 @@ function MenuIcon() // 메뉴 아이콘
     ); // 반환 종료
 } // 함수 종료
 
-export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, leftButtonRef, rightButtonRef }: AppHeaderProps) // 앱 헤더
+export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onNavigate, leftButtonRef, rightButtonRef }: AppHeaderProps) // 앱 헤더
 { // 함수 시작
     return ( // 헤더 반환
         <header className="app-header"> {/* 상단 헤더 */}
             <button ref={leftButtonRef} type="button" aria-label="대화방 패널 열기와 닫기" aria-expanded={leftOpen} aria-controls="conversation-panel" onClick={onToggleLeft}> {/* 왼쪽 버튼 */}
                 <BookIcon /> {/* 책 아이콘 */}
             </button> {/* 왼쪽 버튼 종료 */}
-            <Link href="/" className="app-brand" aria-label="Mate Verse 홈"> {/* 브랜드 링크 */}
+            <Link href="/" className="app-brand" aria-label="Mate Verse 홈" onClick={onNavigate}> {/* 브랜드 링크 */}
                 <Image src="/images/brand/mate-verse-logo-v3.png" alt="Mate Verse" width={2172} height={724} priority /> {/* 브랜드 로고 */}
             </Link> {/* 브랜드 링크 종료 */}
             <nav aria-label="주요 메뉴"> {/* 주요 메뉴 */}
-                <Link href="/" className="app-navigation-link">탐색</Link> {/* 탐색 링크 */}
-                <a href="/library" className="app-navigation-link">내 작품</a> {/* 작품 링크 */}
-                <Link href="/text-play" className="app-navigation-link">Text-Play</Link> {/* Text-Play 링크 */}
-                <Link href="/text-play/download" className="app-navigation-link">Windows 다운로드</Link> {/* 다운로드 링크 */}
+                <Link href="/" className="app-navigation-link" onClick={onNavigate}>탐색</Link> {/* 탐색 링크 */}
+                <Link href="/library" className="app-navigation-link" onClick={onNavigate}>내 작품</Link> {/* 작품 링크 */}
+                <Link href="/text-play" className="app-navigation-link" onClick={onNavigate}>Text-Play</Link> {/* Text-Play 링크 */}
+                <Link href="/text-play/download" className="app-navigation-link" onClick={onNavigate}>Windows 다운로드</Link> {/* 다운로드 링크 */}
             </nav> {/* 메뉴 종료 */}
             <button ref={rightButtonRef} type="button" aria-label="사용자 패널 열기와 닫기" aria-expanded={rightOpen} aria-controls="user-panel" onClick={onToggleRight}> {/* 오른쪽 버튼 */}
                 <MenuIcon /> {/* 메뉴 아이콘 */}

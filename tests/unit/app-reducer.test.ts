@@ -35,12 +35,25 @@ describe("앱 상태 리듀서", () => // 리듀서 묶음
     it("캐릭터 삭제 시 연결 데이터와 보관 상태를 함께 제거한다", () => // 연쇄 삭제 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 준비
+        const rian = state.characters.find((character) => character.id === "rian"); // 삭제 캐릭터 조회
+        if (rian === undefined) // 삭제 캐릭터 부재 확인
+        { // 조건 시작
+            throw new Error("리안 테스트 데이터 부재"); // 데이터 오류
+        } // 조건 종료
         state.bookmarkedCharacterIds = ["rian"]; // 보관 상태 적용
+        state.likedCharacterIds = ["rian"]; // 좋아요 상태 적용
+        state.followedCreatorIds = [rian.creatorId]; // 팔로우 상태 적용
+        state.localReports = [{ id: "report-rian", characterId: "rian", reason: "other", createdAt: "2026-09-29T10:00:00.000Z" }]; // 신고 상태 적용
+        state.memories = [{ id: "memory-rian", characterId: "rian", conversationId: "conversation-rian", category: "summary", content: "리안 대화 기억", sourceMessageIds: [], editedByUser: false, createdAt: "2026-09-29T10:00:00.000Z", updatedAt: "2026-09-29T10:00:00.000Z" }]; // 기억 상태 적용
         const next = appReducer(state, { type: "delete-character", characterId: "rian" }); // 캐릭터 삭제
         expect(next.characters.some((character) => character.id === "rian")).toBe(false); // 캐릭터 제거 확인
         expect(next.conversations.some((conversation) => conversation.characterId === "rian")).toBe(false); // 대화 제거 확인
         expect(next.messages.some((message) => message.conversationId === "conversation-rian")).toBe(false); // 메시지 제거 확인
         expect(next.bookmarkedCharacterIds).toEqual([]); // 보관 제거 확인
+        expect(next.likedCharacterIds).toEqual([]); // 좋아요 제거 확인
+        expect(next.followedCreatorIds).toEqual([]); // 팔로우 제거 확인
+        expect(next.localReports).toEqual([]); // 신고 제거 확인
+        expect(next.memories).toEqual([]); // 기억 제거 확인
         expect(next.selectedConversationId).toBeNull(); // 선택 해제 확인
     }); // 검증 종료
 
@@ -58,6 +71,45 @@ describe("앱 상태 리듀서", () => // 리듀서 묶음
         const state = createInitialState(); // 초기 상태 준비
         const next = appReducer(state, { type: "toggle-bookmark", characterId: "missing" }); // 잘못된 보관 시도
         expect(next).toBe(state); // 기존 상태 확인
+    }); // 검증 종료
+
+    it("캐릭터 좋아요를 중복 없이 추가하고 제거한다", () => // 좋아요 전환 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 준비
+        const added = appReducer(state, { type: "toggle-character-like", characterId: "rian" }); // 좋아요 추가
+        const removed = appReducer(added, { type: "toggle-character-like", characterId: "rian" }); // 좋아요 제거
+        expect(added.likedCharacterIds).toEqual(["rian"]); // 추가 결과 확인
+        expect(removed.likedCharacterIds).toEqual([]); // 제거 결과 확인
+    }); // 검증 종료
+
+    it("존재하는 제작자 팔로우를 중복 없이 추가하고 제거한다", () => // 팔로우 전환 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 준비
+        const added = appReducer(state, { type: "toggle-creator-follow", creatorId: "creator-archive" }); // 팔로우 추가
+        const removed = appReducer(added, { type: "toggle-creator-follow", creatorId: "creator-archive" }); // 팔로우 제거
+        expect(added.followedCreatorIds).toEqual(["creator-archive"]); // 추가 결과 확인
+        expect(removed.followedCreatorIds).toEqual([]); // 제거 결과 확인
+    }); // 검증 종료
+
+    it("같은 식별자의 로컬 신고를 한 번만 저장한다", () => // 신고 중복 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 준비
+        const report = { id: "report-rian-1", characterId: "rian", reason: "spam" as const, createdAt: "2026-09-29T10:00:00.000Z" }; // 신고 기준값
+        const added = appReducer(state, { type: "add-character-report", report }); // 신고 추가
+        const duplicated = appReducer(added, { type: "add-character-report", report }); // 중복 신고 시도
+        expect(added.localReports).toEqual([report]); // 신고 저장 확인
+        expect(duplicated).toBe(added); // 중복 상태 확인
+    }); // 검증 종료
+
+    it("존재하지 않는 캐릭터와 제작자 반응을 무시한다", () => // 잘못된 반응 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 준비
+        const liked = appReducer(state, { type: "toggle-character-like", characterId: "missing" }); // 잘못된 좋아요 시도
+        const followed = appReducer(state, { type: "toggle-creator-follow", creatorId: "missing" }); // 잘못된 팔로우 시도
+        const reported = appReducer(state, { type: "add-character-report", report: { id: "report-missing", characterId: "missing", reason: "other", createdAt: "2026-09-29T10:00:00.000Z" } }); // 잘못된 신고 시도
+        expect(liked).toBe(state); // 좋아요 무시 확인
+        expect(followed).toBe(state); // 팔로우 무시 확인
+        expect(reported).toBe(state); // 신고 무시 확인
     }); // 검증 종료
 
     it("프로필의 이름과 이미지를 변경한다", () => // 프로필 변경 검증

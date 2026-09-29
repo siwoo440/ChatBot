@@ -1,3 +1,5 @@
+import type { Route } from "next"; // 경로 타입
+import Link from "next/link"; // 내부 경로 링크
 import type { AppSettings, TokenWallet, UserProfile } from "@/features/core/types"; // 사용자 타입
 
 interface UserPanelProps // 패널 속성
@@ -6,9 +8,10 @@ interface UserPanelProps // 패널 속성
     wallet: TokenWallet; // 토큰 지갑
     settings: AppSettings; // 앱 설정
     open: boolean; // 열림 상태
+    onNavigate(): void; // 내부 이동 처리
 } // 구조 종료
 
-export function UserPanel({ profile, wallet, settings, open }: UserPanelProps) // 사용자 패널
+export function UserPanel({ profile, wallet, settings, open, onNavigate }: UserPanelProps) // 사용자 패널
 { // 함수 시작
     return ( // 패널 반환
         <aside id="user-panel" className="user-panel" role="complementary" aria-label="사용자 정보와 설정" aria-hidden={!open}> {/* 사용자 패널 */}
@@ -34,23 +37,23 @@ export function UserPanel({ profile, wallet, settings, open }: UserPanelProps) /
                 <section className="user-panel-group" aria-labelledby="user-account-title"> {/* 계정 영역 */}
                     <h3 id="user-account-title" className="user-panel-group-title">계정</h3> {/* 계정 표제 */}
                     <div className="user-panel-link-list"> {/* 계정 링크 목록 */}
-                        <a href="/settings"><span>프로필 관리</span><span aria-hidden="true">›</span></a> {/* 프로필 링크 */}
-                        <a href="/library"><span>내 캐릭터와 작품</span><span aria-hidden="true">›</span></a> {/* 작품 링크 */}
-                        <a href="/settings"><span>토큰 이용 내역</span><span aria-hidden="true">›</span></a> {/* 토큰 링크 */}
+                        <Link href={"/settings" as Route} onClick={onNavigate}><span>프로필 관리</span><span aria-hidden="true">›</span></Link> {/* 프로필 링크 */}
+                        <Link href={"/library" as Route} onClick={onNavigate}><span>내 캐릭터와 작품</span><span aria-hidden="true">›</span></Link> {/* 작품 링크 */}
+                        <Link href={"/settings" as Route} onClick={onNavigate}><span>토큰 이용 내역</span><span aria-hidden="true">›</span></Link> {/* 토큰 링크 */}
                     </div> {/* 계정 링크 종료 */}
                 </section> {/* 계정 영역 종료 */}
                 <section className="user-panel-group" aria-labelledby="user-settings-title"> {/* 설정 영역 */}
                     <h3 id="user-settings-title" className="user-panel-group-title">설정</h3> {/* 설정 표제 */}
                     <div className="user-panel-link-list"> {/* 설정 링크 목록 */}
-                        <a href="/settings"><span>화면 레이아웃</span><span>{settings.layoutId ?? "자동"}</span></a> {/* 레이아웃 링크 */}
-                        <a href="/settings"><span>알림과 선제 메시지</span><span aria-hidden="true">›</span></a> {/* 알림 링크 */}
+                        <Link href={"/settings" as Route} onClick={onNavigate}><span>화면 레이아웃</span><span>{settings.layoutId ?? "자동"}</span></Link> {/* 레이아웃 링크 */}
+                        <Link href={"/settings" as Route} onClick={onNavigate}><span>알림과 선제 메시지</span><span aria-hidden="true">›</span></Link> {/* 알림 링크 */}
                     </div> {/* 설정 링크 종료 */}
                 </section> {/* 설정 영역 종료 */}
                 <section className="user-panel-group" aria-labelledby="user-support-title"> {/* 지원 영역 */}
                     <h3 id="user-support-title" className="user-panel-group-title">지원</h3> {/* 지원 표제 */}
                     <div className="user-panel-link-list"> {/* 지원 링크 목록 */}
-                        <a href="/settings"><span>개인정보 및 보안</span><span aria-hidden="true">›</span></a> {/* 보안 링크 */}
-                        <a href="/settings"><span>고객 지원</span><span aria-hidden="true">›</span></a> {/* 지원 링크 */}
+                        <Link href={"/settings" as Route} onClick={onNavigate}><span>개인정보 및 보안</span><span aria-hidden="true">›</span></Link> {/* 보안 링크 */}
+                        <Link href={"/settings" as Route} onClick={onNavigate}><span>고객 지원</span><span aria-hidden="true">›</span></Link> {/* 지원 링크 */}
                     </div> {/* 지원 링크 종료 */}
                 </section> {/* 지원 영역 종료 */}
             </nav> {/* 메뉴 종료 */}

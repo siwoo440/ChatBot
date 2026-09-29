@@ -291,6 +291,12 @@
     color: #aeb1c2; /* 보조 색상 */
 } /* 문구 종료 */
 
+.conversations .conversationMeta /* 대화 시작 정보 */
+{ /* 정보 시작 */
+    color: #c6b8ff; /* 시작 정보 색상 */
+    font-size: 12px; /* 시작 정보 크기 */
+} /* 정보 종료 */
+
 .dialogBackdrop /* 대화상자 배경 */
 { /* 배경 시작 */
     position: fixed; /* 화면 고정 */

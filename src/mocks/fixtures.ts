@@ -155,6 +155,7 @@ export const mockConversations: Conversation[] = // 대화방 기준값
         characterId: "rian", // 캐릭터 식별자
         userId: "user-demo", // 사용자 식별자
         title: "새벽 도서관의 리안", // 대화방 이름
+        startSettings: { profileId: "user-demo", presetId: "legacy-default", relationshipStage: "아는 사이", relationshipLevel: 34, emotion: "기대", scene: "/images/scenes/dawn-letter.svg", greeting: "기다리고 있었어. 오늘은 어떤 기억을 이곳에 남길까?" }, // 시작 설정
         relationshipLevel: 34, // 관계 수치
         relationshipStage: "아는 사이", // 관계 단계
         emotion: "기대", // 현재 감정
@@ -169,6 +170,7 @@ export const mockConversations: Conversation[] = // 대화방 기준값
         characterId: "sera", // 캐릭터 식별자
         userId: "user-demo", // 사용자 식별자
         title: "비 오는 교실, 세라", // 대화방 이름
+        startSettings: { profileId: "user-demo", presetId: "legacy-default", relationshipStage: "아는 사이", relationshipLevel: 18, emotion: "안도", scene: "/images/scenes/rainy-classroom.svg", greeting: "비가 그칠 때까지 여기 있어도 괜찮아. 책 한 권 같이 읽을래?" }, // 시작 설정
         relationshipLevel: 18, // 관계 수치
         relationshipStage: "아는 사이", // 관계 단계
         emotion: "안도", // 현재 감정
@@ -183,6 +185,7 @@ export const mockConversations: Conversation[] = // 대화방 기준값
         characterId: "noah", // 캐릭터 식별자
         userId: "user-demo", // 사용자 식별자
         title: "달빛 기록관의 노아", // 대화방 이름
+        startSettings: { profileId: "user-demo", presetId: "legacy-default", relationshipStage: "첫 만남", relationshipLevel: 7, emotion: "호기심", scene: "/images/scenes/moon-library.svg", greeting: "그 문장은 아직 끝나지 않았어." }, // 시작 설정
         relationshipLevel: 7, // 관계 수치
         relationshipStage: "첫 만남", // 관계 단계
         emotion: "호기심", // 현재 감정

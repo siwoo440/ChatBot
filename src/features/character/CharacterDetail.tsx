@@ -1,79 +1,111 @@
 "use client"; // 클라이언트 컴포넌트
 
-import Image from "next/image"; // 최적화 이미지
 import Link from "next/link"; // 내부 경로 링크
+import { useRouter } from "next/navigation"; // 경로 이동 도구
+import { useRef, useState, type CSSProperties } from "react"; // 리액트 상태 도구
+import { CharacterActionBar } from "@/features/character/CharacterActionBar"; // 하단 대화 동작
+import { CharacterDiscoverySections } from "@/features/character/CharacterDiscoverySections"; // 탐색 보조 섹션
+import { CharacterHero } from "@/features/character/CharacterHero"; // 캐릭터 히어로
+import { CharacterReportDialog } from "@/features/character/CharacterReportDialog"; // 캐릭터 신고 창
+import { CharacterStoryInfo } from "@/features/character/CharacterStoryInfo"; // 스토리 정보
+import { ConversationSetup } from "@/features/character/ConversationSetup"; // 대화 시작 설정
+import { ProloguePreview } from "@/features/character/ProloguePreview"; // 프롤로그 미리보기
+import { createCharacterReport, createConversationFromPreset, getCharacterDetailProfile, getLatestActiveConversation, getRelatedCharacters } from "@/features/character/character-detail-model"; // 상세 모델 함수
+import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
-import type { AppState, Conversation } from "@/features/core/types"; // 상태 타입
-
-export interface ConversationStartResult // 대화 시작 결과
-{ // 구조 시작
-    state: AppState; // 결과 상태
-    conversation: Conversation; // 대상 대화
-    href: string; // 이동 경로
-} // 구조 종료
-
-export function ensureConversationForCharacter(state: AppState, characterId: string, now = new Date().toISOString()): ConversationStartResult // 대화 준비
-{ // 함수 시작
-    const existing = state.conversations.find((conversation) => conversation.characterId === characterId); // 기존 대화 조회
-    if (existing !== undefined) // 기존 대화 판정
-    { // 조건 시작
-        return { state, conversation: existing, href: `/chat/${characterId}` }; // 기존 대화 반환
-    } // 조건 종료
-    const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회
-    if (character === undefined) // 캐릭터 부재 판정
-    { // 조건 시작
-        throw new Error("존재하지 않는 캐릭터입니다."); // 경로 오류
-    } // 조건 종료
-    const conversation: Conversation = // 새 대화
-    { // 대화 시작
-        id: `conversation-${characterId}`, // 대화 식별자
-        characterId, // 캐릭터 식별자
-        userId: state.profile.id, // 사용자 식별자
-        title: character.name, // 대화 제목
-        relationshipLevel: 0, // 초기 관계
-        relationshipStage: "첫 만남", // 초기 단계
-        emotion: "호기심", // 초기 감정
-        currentScene: "/images/scenes/fallback-scene.svg", // 초기 장면
-        lastMessage: character.greeting, // 첫 메시지
-        archivedAt: null, // 보관 시각
-        createdAt: now, // 생성 시각
-        updatedAt: now, // 수정 시각
-    }; // 대화 종료
-    return { state: { ...state, conversations: [...state.conversations, conversation], selectedConversationId: conversation.id }, conversation, href: `/chat/${characterId}` }; // 새 대화 반환
-} // 함수 종료
+import type { ReportReason } from "@/features/core/types"; // 신고 사유 타입
 
 export function CharacterDetail({ characterId }: { characterId: string }) // 캐릭터 상세
 { // 함수 시작
     const { state, dispatch } = useAppStore(); // 앱 상태
+    const router = useRouter(); // 경로 이동기
     const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회
-    if (character === undefined) // 캐릭터 부재 판정
+    const initialProfile = character === undefined ? null : getCharacterDetailProfile(character); // 초기 상세 프로필
+    const [selectedProfileId, setSelectedProfileId] = useState(state.profile.id); // 선택 프로필 상태
+    const [selectedPresetId, setSelectedPresetId] = useState(initialProfile?.startPresets[0]?.id ?? ""); // 선택 프리셋 상태
+    const [creating, setCreating] = useState(false); // 대화 생성 상태
+    const [shareStatus, setShareStatus] = useState(""); // 공유 상태
+    const [reportOpen, setReportOpen] = useState(false); // 신고 창 상태
+    const [reportReason, setReportReason] = useState<ReportReason>("incorrect-rating"); // 신고 사유 상태
+    const creatingRef = useRef(false); // 중복 생성 잠금
+    const reportTriggerRef = useRef<HTMLButtonElement | null>(null); // 신고 버튼 참조
+    if (character === undefined || initialProfile === null) // 캐릭터 부재 판정
     { // 조건 시작
-        return <main><h1>캐릭터를 찾을 수 없습니다.</h1><Link href="/">탐색으로 돌아가기</Link></main>; // 오류 화면
+        return <main className={styles.emptyState}><h1>캐릭터를 찾을 수 없습니다.</h1><Link href="/">탐색으로 돌아가기</Link></main>; // 오류 화면
     } // 조건 종료
-    const start = () => // 대화 시작 처리
+    const profile = initialProfile; // 상세 프로필 확정
+    const selectedPreset = profile.startPresets.find((preset) => preset.id === selectedPresetId) ?? profile.startPresets[0]; // 선택 프리셋 조회
+    const selectedPrologue = profile.prologues.find((prologue) => prologue.id === selectedPreset?.prologueId) ?? profile.prologues[0]; // 선택 프롤로그 조회
+    const latestConversation = getLatestActiveConversation(state.conversations, character.id); // 최근 대화 조회
+    const relatedCharacters = getRelatedCharacters(character, state.characters, 8); // 연관 캐릭터 조회
+    const continueConversation = () => // 최근 대화 이어가기
     { // 함수 시작
-        const result = ensureConversationForCharacter(state, character.id); // 대화 준비
-        dispatch({ type: "upsert-conversation", conversation: result.conversation }); // 대화 저장
-        dispatch({ type: "select-conversation", conversationId: result.conversation.id }); // 대화 선택
+        if (latestConversation === null) // 최근 대화 부재 확인
+        { // 조건 시작
+            return; // 이동 중단
+        } // 조건 종료
+        dispatch({ type: "select-conversation", conversationId: latestConversation.id }); // 최근 대화 선택
+        router.push(`/chat/${character.id}`); // 대화 화면 이동
+    }; // 함수 종료
+    const startConversation = () => // 새 대화 시작
+    { // 함수 시작
+        if (creatingRef.current || selectedPreset === undefined) // 중복 실행 확인
+        { // 조건 시작
+            return; // 생성 중단
+        } // 조건 종료
+        creatingRef.current = true; // 생성 잠금 설정
+        setCreating(true); // 생성 상태 설정
+        const result = createConversationFromPreset(state, character.id, selectedPreset.id); // 새 대화 생성
+        dispatch({ type: "replace-state", state: result.state }); // 생성 상태 저장
+        router.push(result.href); // 대화 화면 이동
+    }; // 함수 종료
+    const shareCharacter = async () => // 캐릭터 공유
+    { // 함수 시작
+        try // 복사 시도
+        { // 시도 시작
+            if (navigator.clipboard?.writeText === undefined) // 클립보드 부재 확인
+            { // 조건 시작
+                throw new Error("clipboard-unavailable"); // 클립보드 오류
+            } // 조건 종료
+            await navigator.clipboard.writeText(window.location.href); // 현재 링크 복사
+            setShareStatus("공유 링크를 복사했습니다."); // 성공 상태 설정
+        } // 시도 종료
+        catch // 복사 실패 처리
+        { // 실패 시작
+            setShareStatus("공유 링크를 복사하지 못했습니다."); // 실패 상태 설정
+        } // 실패 종료
+    }; // 함수 종료
+    const openReport = (trigger: HTMLButtonElement) => // 신고 창 열기
+    { // 함수 시작
+        reportTriggerRef.current = trigger; // 원래 버튼 저장
+        setReportOpen(true); // 신고 창 표시
+    }; // 함수 종료
+    const closeReport = () => // 신고 창 닫기
+    { // 함수 시작
+        setReportOpen(false); // 신고 창 숨김
+        queueMicrotask(() => reportTriggerRef.current?.focus()); // 원래 버튼 초점
+    }; // 함수 종료
+    const submitReport = () => // 신고 저장
+    { // 함수 시작
+        dispatch({ type: "add-character-report", report: createCharacterReport(character.id, reportReason) }); // 로컬 신고 추가
+        closeReport(); // 신고 창 닫기
     }; // 함수 종료
     const bookmarked = state.bookmarkedCharacterIds.includes(character.id); // 보관 상태
-    const toggleBookmark = () => dispatch({ type: "toggle-bookmark", characterId: character.id }); // 보관 전환
+    const liked = state.likedCharacterIds.includes(character.id); // 좋아요 상태
+    const followed = state.followedCreatorIds.includes(character.creatorId); // 팔로우 상태
+    const pageStyle = { "--character-accent": profile.accentColor, "--character-image": `url("${character.coverImage}")` } as CSSProperties; // 캐릭터 테마
     return ( // 상세 반환
-        <main style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 28px 96px" }}> {/* 상세 본문 */}
-            <Image src={character.coverImage} alt={character.name} width={480} height={640} priority style={{ width: "min(100%, 480px)", height: "auto", borderRadius: 24, objectFit: "cover" }} /> {/* 대표 이미지 */}
-            <p>{character.creatorName} 제작</p> {/* 제작자 */}
-            <h1>{character.name}</h1> {/* 캐릭터 이름 */}
-            <p>{character.summary}</p> {/* 한 줄 소개 */}
-            <p>{character.description}</p> {/* 상세 설명 */}
-            <h2>성격</h2> {/* 성격 제목 */}
-            <p>{character.personality}</p> {/* 성격 설명 */}
-            <h2>세계관</h2> {/* 세계관 제목 */}
-            <p>{character.worldSetting}</p> {/* 세계관 설명 */}
-            <h2>첫 대화</h2> {/* 첫 대화 제목 */}
-            <blockquote>{character.greeting}</blockquote> {/* 첫 인사 */}
-            <p>{character.tags.map((tag) => <span key={tag}>#{tag} </span>)}</p> {/* 태그 목록 */}
-            <a href={`/chat/${character.id}`} onClick={start}>대화 시작</a> {/* 대화 링크 */}
-            <button type="button" aria-pressed={bookmarked} onClick={toggleBookmark}>{bookmarked ? "보관함에서 제거" : "보관함에 추가"}</button> {/* 보관 버튼 */}
+        <main className={styles.page} style={pageStyle}> {/* 상세 본문 */}
+            <div className={styles.background} aria-hidden="true" /> {/* 흐림 배경 */}
+            <div className={styles.content}> {/* 상세 내용 */}
+                <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} latestConversation={latestConversation} creating={creating} shareStatus={shareStatus} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => dispatch({ type: "toggle-character-like", characterId: character.id })} onFollow={() => dispatch({ type: "toggle-creator-follow", creatorId: character.creatorId })} onShare={shareCharacter} onMore={openReport} onContinue={continueConversation} onStart={startConversation} /> {/* 히어로 */}
+                <CharacterStoryInfo character={character} profile={profile} /> {/* 스토리 정보 */}
+                <ConversationSetup profile={state.profile} presets={profile.startPresets} selectedProfileId={selectedProfileId} selectedPresetId={selectedPreset?.id ?? ""} onProfileChange={setSelectedProfileId} onPresetChange={setSelectedPresetId} /> {/* 시작 설정 */}
+                {selectedPrologue === undefined || selectedPreset === undefined ? null : <ProloguePreview key={selectedPrologue.id} prologue={selectedPrologue} presetName={selectedPreset.name} fallbackImage={character.coverImage} characterName={character.name} />} {/* 프롤로그 미리보기 */}
+                <CharacterDiscoverySections profile={profile} userProfile={state.profile} characters={state.characters} relatedCharacters={relatedCharacters} /> {/* 업데이트와 탐색 */}
+                <CharacterActionBar latestConversation={latestConversation} creating={creating} onContinue={continueConversation} onStart={startConversation} /> {/* 대화 동작 */}
+            </div> {/* 상세 내용 종료 */}
+            {reportOpen ? <CharacterReportDialog characterName={character.name} reason={reportReason} onReasonChange={setReportReason} onCancel={closeReport} onSubmit={submitReport} /> : null} {/* 신고 창 */}
         </main> // 본문 종료
     ); // 반환 종료
 } // 함수 종료

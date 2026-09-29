@@ -5,7 +5,7 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
 { // 함수 시작
     return ( // 초기 상태 반환
     { // 상태 시작
-        schemaVersion: 5, // 스키마 버전
+        schemaVersion: 6, // 스키마 버전
         providerMode: "mock", // Mock 공급자
         profile: structuredClone(mockProfile), // 사용자 복사본
         characters: structuredClone(mockCharacters), // 캐릭터 복사본
@@ -32,6 +32,10 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
             dailyNotificationLimit: 3, // 일일 알림 제한
         }, // 설정 종료
         bookmarkedCharacterIds: [], // 보관 캐릭터
+        memories: [], // 장기 기억 목록
+        likedCharacterIds: [], // 좋아요 캐릭터
+        followedCreatorIds: [], // 팔로우 제작자
+        localReports: [], // 로컬 신고 목록
         selectedConversationId: "conversation-rian", // 선택 대화방
     }); // 상태 종료
 } // 함수 종료
