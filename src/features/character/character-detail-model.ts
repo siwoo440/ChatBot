@@ -1,10 +1,11 @@
 import { characterDetailProfiles } from "@/features/character/character-detail-data"; // 상세 프로필 데이터
-import type { AppState, Character, CharacterDetailProfile, CharacterReport, Conversation, Message, ReportReason } from "@/features/core/types"; // 도메인 타입
+import type { AppState, Character, CharacterDetailProfile, CharacterReport, Conversation, ConversationVersion, Message, ReportReason } from "@/features/core/types"; // 도메인 타입
 
 export interface ConversationStartResult // 대화 시작 결과
 { // 구조 시작
     state: AppState; // 결과 상태
     conversation: Conversation; // 생성 대화
+    version: ConversationVersion; // 현재 버전
     message: Message; // 첫 메시지
     href: `/chat/${string}`; // 대화 이동 경로
 } // 구조 종료
@@ -106,6 +107,7 @@ export function createConversationFromPreset(state: AppState, characterId: strin
     const prologue = profile.prologues.find((item) => item.id === preset.prologueId) ?? profile.prologues[0]; // 연결 프롤로그 조회
     const sceneImage = prologue?.image ?? character.coverImage; // 표시 이미지 선택
     const conversationId = createUniqueConversationId(state, characterId, now); // 대화 식별자 생성
+    const versionId = `${conversationId}-version-1`; // 최초 버전 식별자
     const conversation: Conversation = // 새 대화 정의
     { // 대화 시작
         id: conversationId, // 대화 식별자
@@ -113,6 +115,7 @@ export function createConversationFromPreset(state: AppState, characterId: strin
         userId: state.profile.id, // 사용자 식별자
         title: `${character.name} · ${preset.name}`, // 대화 제목
         startSettings: { profileId: state.profile.id, presetId: preset.id, relationshipStage: preset.relationshipStage, relationshipLevel: preset.relationshipLevel, emotion: preset.emotion, scene: sceneImage, greeting: preset.greeting }, // 시작 설정
+        currentVersionId: versionId, // 현재 버전 식별자
         relationshipLevel: preset.relationshipLevel, // 관계 수치
         relationshipStage: preset.relationshipStage, // 관계 단계
         emotion: preset.emotion, // 시작 감정
@@ -122,9 +125,10 @@ export function createConversationFromPreset(state: AppState, characterId: strin
         createdAt: now, // 생성 시각
         updatedAt: now, // 수정 시각
     }; // 대화 종료
-    const message: Message = { id: `${conversationId}-message-1`, conversationId, role: "assistant", content: preset.greeting, emotion: preset.emotion, sceneEvent: null, createdAt: now }; // 첫 메시지 생성
-    const nextState: AppState = { ...state, conversations: [...state.conversations, conversation], messages: [...state.messages, message], selectedConversationId: conversationId }; // 다음 상태 생성
-    return { state: nextState, conversation, message, href: `/chat/${characterId}` }; // 생성 결과 반환
+    const version: ConversationVersion = { id: versionId, conversationId, parentVersionId: null, forkRootVersionId: null, forkedFromMessageId: null, ordinal: 1, relationshipLevel: preset.relationshipLevel, relationshipStage: preset.relationshipStage, emotion: preset.emotion, currentScene: sceneImage, lastMessage: preset.greeting, createdAt: now, updatedAt: now }; // 최초 버전 생성
+    const message: Message = { id: `${conversationId}-message-1`, conversationId, versionId, sourceMessageId: null, role: "assistant", content: preset.greeting, emotion: preset.emotion, sceneEvent: null, createdAt: now }; // 첫 메시지 생성
+    const nextState: AppState = { ...state, conversations: [...state.conversations, conversation], conversationVersions: [...state.conversationVersions, version], messages: [...state.messages, message], selectedConversationId: conversationId }; // 다음 상태 생성
+    return { state: nextState, conversation, version, message, href: `/chat/${characterId}` }; // 생성 결과 반환
 } // 함수 종료
 
 export function ensureConversationForCharacter(state: AppState, characterId: string, now = new Date().toISOString()): ConversationStartResult // 대화 준비
@@ -133,8 +137,13 @@ export function ensureConversationForCharacter(state: AppState, characterId: str
     const existing = selected ?? getLatestActiveConversation(state.conversations, characterId); // 이어갈 대화 선택
     if (existing !== null && existing !== undefined) // 기존 대화 확인
     { // 조건 시작
-        const message = state.messages.filter((item) => item.conversationId === existing.id).sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? { id: `${existing.id}-message-reference`, conversationId: existing.id, role: "assistant", content: existing.lastMessage, emotion: existing.emotion, sceneEvent: null, createdAt: existing.updatedAt } as Message; // 최근 메시지 조회
-        return { state: { ...state, selectedConversationId: existing.id }, conversation: existing, message, href: `/chat/${characterId}` }; // 기존 대화 반환
+        const version = state.conversationVersions.find((item) => item.id === existing.currentVersionId); // 현재 버전 조회
+        if (version === undefined) // 버전 부재 판정
+        { // 조건 시작
+            throw new Error("현재 대화 버전을 찾을 수 없습니다."); // 버전 오류
+        } // 조건 종료
+        const message = state.messages.filter((item) => item.conversationId === existing.id && item.versionId === existing.currentVersionId).sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? { id: `${existing.id}-message-reference`, conversationId: existing.id, versionId: existing.currentVersionId, sourceMessageId: null, role: "assistant", content: existing.lastMessage, emotion: existing.emotion, sceneEvent: null, createdAt: existing.updatedAt } as Message; // 최근 메시지 조회
+        return { state: { ...state, selectedConversationId: existing.id }, conversation: existing, version, message, href: `/chat/${characterId}` }; // 기존 대화 반환
     } // 조건 종료
     const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회
     if (character === undefined) // 캐릭터 부재 확인

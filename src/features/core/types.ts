@@ -61,12 +61,30 @@ export interface Conversation // 대화방 구조
     userId: string; // 사용자 식별자
     title: string; // 대화방 이름
     startSettings: ConversationStartSettings; // 시작 설정
+    currentVersionId: string; // 현재 버전 식별자
     relationshipLevel: number; // 관계 수치
     relationshipStage: RelationshipStage; // 관계 단계
     emotion: string; // 현재 감정
     currentScene: string; // 현재 장면
     lastMessage: string; // 마지막 메시지
     archivedAt: string | null; // 보관 시각
+    createdAt: string; // 생성 시각
+    updatedAt: string; // 수정 시각
+} // 구조 종료
+
+export interface ConversationVersion // 대화 버전 구조
+{ // 구조 시작
+    id: string; // 버전 식별자
+    conversationId: string; // 대화방 식별자
+    parentVersionId: string | null; // 부모 버전 식별자
+    forkRootVersionId: string | null; // 분기 원본 식별자
+    forkedFromMessageId: string | null; // 분기 메시지 식별자
+    ordinal: number; // 버전 순번
+    relationshipLevel: number; // 관계 수치
+    relationshipStage: RelationshipStage; // 관계 단계
+    emotion: string; // 현재 감정
+    currentScene: string; // 현재 장면
+    lastMessage: string; // 마지막 메시지
     createdAt: string; // 생성 시각
     updatedAt: string; // 수정 시각
 } // 구조 종료
@@ -163,6 +181,8 @@ export interface Message // 메시지 구조
 { // 구조 시작
     id: string; // 메시지 식별자
     conversationId: string; // 대화방 식별자
+    versionId: string; // 버전 식별자
+    sourceMessageId: string | null; // 원본 메시지 식별자
     role: MessageRole; // 메시지 역할
     content: string; // 메시지 내용
     emotion: string | null; // 감정 정보
@@ -194,11 +214,12 @@ export interface AppSettings // 앱 설정 구조
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 6; // 스키마 버전
+    schemaVersion: 7; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록
     conversations: Conversation[]; // 대화방 목록
+    conversationVersions: ConversationVersion[]; // 대화 버전 목록
     messages: Message[]; // 메시지 목록
     wallet: TokenWallet; // 토큰 지갑
     settings: AppSettings; // 사용자 설정

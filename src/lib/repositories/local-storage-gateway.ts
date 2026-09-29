@@ -1,5 +1,5 @@
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
-import type { AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, Message, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
+import type { AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, Message, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
 
 const stateKey = "mateverse:v1:state"; // 상태 저장 키
@@ -153,6 +153,25 @@ function isConversation(value: unknown): value is Conversation // 대화 판정 
         && isString(value.userId) // 사용자 식별자 확인
         && isString(value.title) // 제목 확인
         && isConversationStartSettings(value.startSettings) // 시작 설정 확인
+        && isString(value.currentVersionId) // 현재 버전 확인
+        && isFiniteNumber(value.relationshipLevel) // 관계 수치 확인
+        && isOneOf(value.relationshipStage, relationshipStages) // 관계 단계 확인
+        && isString(value.emotion) // 감정 확인
+        && isString(value.currentScene) // 장면 확인
+        && isString(value.lastMessage) // 최근 메시지 확인
+        && (value.archivedAt === null || isString(value.archivedAt)) // 보관 시각 확인
+        && isString(value.createdAt) // 생성 시각 확인
+        && isString(value.updatedAt); // 수정 시각 확인
+} // 함수 종료
+
+function isVersionSixConversation(value: unknown): boolean // 버전 6 대화 판정 함수
+{ // 함수 시작
+    return isRecord(value) // 객체 확인
+        && isString(value.id) // 식별자 확인
+        && isString(value.characterId) // 캐릭터 식별자 확인
+        && isString(value.userId) // 사용자 식별자 확인
+        && isString(value.title) // 제목 확인
+        && isConversationStartSettings(value.startSettings) // 시작 설정 확인
         && isFiniteNumber(value.relationshipLevel) // 관계 수치 확인
         && isOneOf(value.relationshipStage, relationshipStages) // 관계 단계 확인
         && isString(value.emotion) // 감정 확인
@@ -201,11 +220,43 @@ function isMessage(value: unknown): value is Message // 메시지 판정 함수
     return isRecord(value) // 객체 확인
         && isString(value.id) // 식별자 확인
         && isString(value.conversationId) // 대화 식별자 확인
+        && isString(value.versionId) // 버전 식별자 확인
+        && (value.sourceMessageId === null || isString(value.sourceMessageId)) // 원본 메시지 확인
         && isOneOf(value.role, messageRoles) // 역할 확인
         && isString(value.content) // 내용 확인
         && (value.emotion === null || isString(value.emotion)) // 감정 확인
         && (value.sceneEvent === null || isString(value.sceneEvent)) // 장면 사건 확인
         && isString(value.createdAt); // 생성 시각 확인
+} // 함수 종료
+
+function isLegacyMessage(value: unknown): boolean // 이전 메시지 판정 함수
+{ // 함수 시작
+    return isRecord(value) // 객체 확인
+        && isString(value.id) // 식별자 확인
+        && isString(value.conversationId) // 대화 식별자 확인
+        && isOneOf(value.role, messageRoles) // 역할 확인
+        && isString(value.content) // 내용 확인
+        && (value.emotion === null || isString(value.emotion)) // 감정 확인
+        && (value.sceneEvent === null || isString(value.sceneEvent)) // 장면 사건 확인
+        && isString(value.createdAt); // 생성 시각 확인
+} // 함수 종료
+
+function isConversationVersion(value: unknown): value is ConversationVersion // 대화 버전 판정 함수
+{ // 함수 시작
+    return isRecord(value) // 객체 확인
+        && isString(value.id) // 식별자 확인
+        && isString(value.conversationId) // 대화방 식별자 확인
+        && (value.parentVersionId === null || isString(value.parentVersionId)) // 부모 버전 확인
+        && (value.forkRootVersionId === null || isString(value.forkRootVersionId)) // 분기 원본 확인
+        && (value.forkedFromMessageId === null || isString(value.forkedFromMessageId)) // 분기 메시지 확인
+        && isFiniteNumber(value.ordinal) // 버전 순번 확인
+        && isFiniteNumber(value.relationshipLevel) // 관계 수치 확인
+        && isOneOf(value.relationshipStage, relationshipStages) // 관계 단계 확인
+        && isString(value.emotion) // 감정 확인
+        && isString(value.currentScene) // 장면 확인
+        && isString(value.lastMessage) // 최근 메시지 확인
+        && isString(value.createdAt) // 생성 시각 확인
+        && isString(value.updatedAt); // 수정 시각 확인
 } // 함수 종료
 
 function isCharacterMemory(value: unknown): value is CharacterMemory // 기억 판정 함수
@@ -255,7 +306,7 @@ function isAppSettings(value: unknown): value is AppSettings // 설정 판정 �
         && isFiniteNumber(value.dailyNotificationLimit); // 알림 제한 확인
 } // 함수 종료
 
-function hasAppStateData(value: unknown, conversationValidator: (item: unknown) => boolean = isConversation): value is Record<string, unknown> // 앱 상태 내용 판정 함수
+function hasAppStateData(value: unknown, conversationValidator: (item: unknown) => boolean = isConversation, messageValidator: (item: unknown) => boolean = isMessage): value is Record<string, unknown> // 앱 상태 내용 판정 함수
 { // 함수 시작
     return isRecord(value) // 객체 확인
         && value.providerMode === "mock" // 공급자 확인
@@ -265,24 +316,60 @@ function hasAppStateData(value: unknown, conversationValidator: (item: unknown) 
         && Array.isArray(value.conversations) // 대화 목록 확인
         && value.conversations.every(conversationValidator) // 대화 항목 확인
         && Array.isArray(value.messages) // 메시지 목록 확인
-        && value.messages.every(isMessage) // 메시지 항목 확인
+        && value.messages.every(messageValidator) // 메시지 항목 확인
         && isTokenWallet(value.wallet) // 지갑 확인
         && isAppSettings(value.settings) // 설정 확인
         && isStringArray(value.bookmarkedCharacterIds) // 보관 목록 확인
         && (value.selectedConversationId === null || isString(value.selectedConversationId)); // 선택 대화 확인
 } // 함수 종료
 
-type SchemaSixFields = "schemaVersion" | "conversations" | "memories" | "likedCharacterIds" | "followedCreatorIds" | "localReports"; // 스키마 6 필드 묶음
-type LegacyConversation = Omit<Conversation, "archivedAt" | "startSettings"> & { archivedAt?: string | null }; // 이전 대화 타입
-type VersionFiveConversation = Omit<Conversation, "startSettings">; // 버전 5 대화 타입
-type VersionTwoState = Omit<AppState, SchemaSixFields> & { schemaVersion: 2; conversations: LegacyConversation[] }; // 버전 2 상태 타입
-type VersionThreeState = Omit<AppState, SchemaSixFields> & { schemaVersion: 3; conversations: LegacyConversation[] }; // 버전 3 상태 타입
-type VersionFourState = Omit<AppState, SchemaSixFields> & { schemaVersion: 4; conversations: LegacyConversation[] }; // 버전 4 상태 타입
-type VersionFiveState = Omit<AppState, SchemaSixFields> & { schemaVersion: 5; conversations: VersionFiveConversation[] }; // 버전 5 상태 타입
+type SchemaSevenFields = "schemaVersion" | "conversations" | "conversationVersions" | "messages" | "memories" | "likedCharacterIds" | "followedCreatorIds" | "localReports"; // 스키마 7 필드 묶음
+type VersionSixConversation = Omit<Conversation, "currentVersionId">; // 버전 6 대화 타입
+type LegacyConversation = Omit<VersionSixConversation, "archivedAt" | "startSettings"> & { archivedAt?: string | null }; // 이전 대화 타입
+type VersionFiveConversation = Omit<VersionSixConversation, "startSettings">; // 버전 5 대화 타입
+type LegacyMessage = Omit<Message, "versionId" | "sourceMessageId">; // 이전 메시지 타입
+type VersionTwoState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 2; conversations: LegacyConversation[]; messages: LegacyMessage[] }; // 버전 2 상태 타입
+type VersionThreeState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 3; conversations: LegacyConversation[]; messages: LegacyMessage[] }; // 버전 3 상태 타입
+type VersionFourState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 4; conversations: LegacyConversation[]; messages: LegacyMessage[] }; // 버전 4 상태 타입
+type VersionFiveState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 5; conversations: VersionFiveConversation[]; messages: LegacyMessage[] }; // 버전 5 상태 타입
+type VersionSixState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 6; conversations: VersionSixConversation[]; messages: LegacyMessage[]; memories: CharacterMemory[]; likedCharacterIds: string[]; followedCreatorIds: string[]; localReports: CharacterReport[] }; // 버전 6 상태 타입
 
 function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
-    return hasAppStateData(value) // 공통 상태 확인
+    if (!hasAppStateData(value) // 공통 상태 확인
+        || value.schemaVersion !== 7 // 버전 7 확인
+        || !Array.isArray(value.memories) // 기억 목록 확인
+        || !value.memories.every(isCharacterMemory) // 기억 항목 확인
+        || !isStringArray(value.likedCharacterIds) // 좋아요 목록 확인
+        || !isStringArray(value.followedCreatorIds) // 팔로우 목록 확인
+        || !Array.isArray(value.localReports) // 신고 목록 확인
+        || !value.localReports.every(isCharacterReport)) // 신고 항목 확인
+    { // 잘못된 상태 시작
+        return false; // 상태 거부
+    } // 잘못된 상태 종료
+    if (!Array.isArray(value.conversationVersions) || !value.conversationVersions.every(isConversationVersion)) // 버전 목록 확인
+    { // 잘못된 버전 시작
+        return false; // 상태 거부
+    } // 잘못된 버전 종료
+    const characterIds = new Set((value.characters as Character[]).map((character) => character.id)); // 캐릭터 식별자 집합
+    const conversations = value.conversations as Conversation[]; // 대화 목록 지정
+    const versions = value.conversationVersions as ConversationVersion[]; // 버전 목록 지정
+    const messages = value.messages as Message[]; // 메시지 목록 지정
+    const conversationIds = new Set(conversations.map((conversation) => conversation.id)); // 대화 식별자 집합
+    const versionsById = new Map(versions.map((version) => [version.id, version])); // 버전 식별자 색인
+    const validConversations = conversations.every((conversation) => // 대화 연결 확인
+    { // 판정 시작
+        const currentVersion = versionsById.get(conversation.currentVersionId); // 현재 버전 조회
+        return characterIds.has(conversation.characterId) && currentVersion?.conversationId === conversation.id; // 연결 여부 반환
+    }); // 판정 종료
+    const validVersions = versions.every((version) => conversationIds.has(version.conversationId)); // 버전 연결 확인
+    const validMessages = messages.every((message) => versionsById.get(message.versionId)?.conversationId === message.conversationId && conversationIds.has(message.conversationId)); // 메시지 연결 확인
+    return validConversations && validVersions && validMessages; // 전체 연결 반환
+} // 함수 종료
+
+function isVersionSixState(value: unknown): value is VersionSixState // 버전 6 상태 판정 함수
+{ // 함수 시작
+    return hasAppStateData(value, isVersionSixConversation, isLegacyMessage) // 공통 상태 확인
         && value.schemaVersion === 6 // 버전 6 확인
         && Array.isArray(value.memories) // 기억 목록 확인
         && value.memories.every(isCharacterMemory) // 기억 항목 확인
@@ -294,22 +381,48 @@ function isAppState(value: unknown): value is AppState // 앱 상태 판정 함�
 
 function isVersionFiveState(value: unknown): value is VersionFiveState // 버전 5 상태 판정 함수
 { // 함수 시작
-    return hasAppStateData(value, isVersionFiveConversation) && value.schemaVersion === 5; // 버전 5 상태 반환
+    return hasAppStateData(value, isVersionFiveConversation, isLegacyMessage) && value.schemaVersion === 5; // 버전 5 상태 반환
 } // 함수 종료
 
 function isVersionTwoState(value: unknown): value is VersionTwoState // 버전 2 상태 판정 함수
 { // 함수 시작
-    return hasAppStateData(value, isLegacyConversation) && value.schemaVersion === 2; // 버전 2 상태 반환
+    return hasAppStateData(value, isLegacyConversation, isLegacyMessage) && value.schemaVersion === 2; // 버전 2 상태 반환
 } // 함수 종료
 
 function isVersionThreeState(value: unknown): value is VersionThreeState // 버전 3 상태 판정 함수
 { // 함수 시작
-    return hasAppStateData(value, isLegacyConversation) && value.schemaVersion === 3; // 버전 3 상태 반환
+    return hasAppStateData(value, isLegacyConversation, isLegacyMessage) && value.schemaVersion === 3; // 버전 3 상태 반환
 } // 함수 종료
 
 function isVersionFourState(value: unknown): value is VersionFourState // 버전 4 상태 판정 함수
 { // 함수 시작
-    return hasAppStateData(value, isLegacyConversation) && value.schemaVersion === 4; // 버전 4 상태 반환
+    return hasAppStateData(value, isLegacyConversation, isLegacyMessage) && value.schemaVersion === 4; // 버전 4 상태 반환
+} // 함수 종료
+
+export function migrateVersionSix(value: Record<string, unknown>): AppState | null // 버전 6 변환 함수
+{ // 함수 시작
+    if (!isVersionSixState(value)) // 버전 6 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const characterIds = new Set(value.characters.map((character) => character.id)); // 캐릭터 식별자 집합
+    if (value.conversations.some((conversation) => !characterIds.has(conversation.characterId) || !value.messages.some((message) => message.conversationId === conversation.id))) // 연결 손상 판정
+    { // 손상 상태 시작
+        return null; // 비파괴 거부
+    } // 손상 상태 종료
+    const versionIds = new Map(value.conversations.map((conversation) => [conversation.id, `${conversation.id}-version-1`])); // 최초 버전 식별자 색인
+    const conversations: Conversation[] = value.conversations.map((conversation) => ({ ...conversation, currentVersionId: versionIds.get(conversation.id) as string })); // 대화 버전 연결
+    const conversationVersions: ConversationVersion[] = value.conversations.map((conversation) => // 최초 버전 생성
+    { // 변환 시작
+        return { id: versionIds.get(conversation.id) as string, conversationId: conversation.id, parentVersionId: null, forkRootVersionId: null, forkedFromMessageId: null, ordinal: 1, relationshipLevel: conversation.relationshipLevel, relationshipStage: conversation.relationshipStage, emotion: conversation.emotion, currentScene: conversation.currentScene, lastMessage: conversation.lastMessage, createdAt: conversation.createdAt, updatedAt: conversation.updatedAt }; // 버전 반환
+    }); // 변환 종료
+    const messages: Message[] = value.messages.map((message) => ({ ...message, versionId: versionIds.get(message.conversationId) as string, sourceMessageId: null })); // 메시지 버전 연결
+    if (messages.some((message) => message.versionId === undefined)) // 메시지 연결 손상 판정
+    { // 손상 상태 시작
+        return null; // 비파괴 거부
+    } // 손상 상태 종료
+    const candidate: unknown = { ...value, schemaVersion: 7, conversations, conversationVersions, messages }; // 버전 7 후보
+    return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
 export function migrateVersionFive(value: Record<string, unknown>): AppState | null // 버전 5 변환 함수
@@ -335,7 +448,7 @@ export function migrateVersionFive(value: Record<string, unknown>): AppState | n
         return { ...conversation, startSettings }; // 시작 설정 추가
     }); // 변환 종료
     const candidate: unknown = { ...value, schemaVersion: 6, conversations, memories: [], likedCharacterIds: [], followedCreatorIds: [], localReports: [] }; // 버전 6 후보
-    return isAppState(candidate) ? candidate : null; // 유효 변환 반환
+    return isRecord(candidate) ? migrateVersionSix(candidate) : null; // 연속 변환 반환
 } // 함수 종료
 
 function migrateVersionFour(value: Record<string, unknown>): AppState | null // 버전 4 변환 함수
@@ -483,8 +596,12 @@ function migrateParsedState(parsed: unknown): AppState | null // 분석 상태 �
     } // 버전 4 종료
     if (parsed.schemaVersion === 5) // 버전 5 판정
     { // 버전 5 시작
-        return migrateVersionFive(parsed); // 버전 6 변환
+        return migrateVersionFive(parsed); // 버전 7 변환
     } // 버전 5 종료
+    if (parsed.schemaVersion === 6) // 버전 6 판정
+    { // 버전 6 시작
+        return migrateVersionSix(parsed); // 버전 7 변환
+    } // 버전 6 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 
@@ -499,7 +616,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     { // 실패 시작
         throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
     } // 실패 종료
-    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 6) // 미래 버전 판정
+    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 7) // 미래 버전 판정
     { // 미래 버전 시작
         throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
     } // 미래 버전 종료

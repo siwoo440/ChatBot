@@ -1,4 +1,4 @@
-import type { Character, CharacterDraft, Conversation, Message, UserProfile } from "@/features/core/types"; // 도메인 타입
+import type { Character, CharacterDraft, Conversation, ConversationVersion, Message, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { generatedRankingCharacters } from "@/mocks/ranking-character-concepts"; // 랭킹 캐릭터
 
 export const mockProfile: UserProfile = // 사용자 기준값
@@ -156,6 +156,7 @@ export const mockConversations: Conversation[] = // 대화방 기준값
         userId: "user-demo", // 사용자 식별자
         title: "새벽 도서관의 리안", // 대화방 이름
         startSettings: { profileId: "user-demo", presetId: "legacy-default", relationshipStage: "아는 사이", relationshipLevel: 34, emotion: "기대", scene: "/images/scenes/dawn-letter.svg", greeting: "기다리고 있었어. 오늘은 어떤 기억을 이곳에 남길까?" }, // 시작 설정
+        currentVersionId: "conversation-rian-version-1", // 현재 버전 식별자
         relationshipLevel: 34, // 관계 수치
         relationshipStage: "아는 사이", // 관계 단계
         emotion: "기대", // 현재 감정
@@ -171,6 +172,7 @@ export const mockConversations: Conversation[] = // 대화방 기준값
         userId: "user-demo", // 사용자 식별자
         title: "비 오는 교실, 세라", // 대화방 이름
         startSettings: { profileId: "user-demo", presetId: "legacy-default", relationshipStage: "아는 사이", relationshipLevel: 18, emotion: "안도", scene: "/images/scenes/rainy-classroom.svg", greeting: "비가 그칠 때까지 여기 있어도 괜찮아. 책 한 권 같이 읽을래?" }, // 시작 설정
+        currentVersionId: "conversation-sera-version-1", // 현재 버전 식별자
         relationshipLevel: 18, // 관계 수치
         relationshipStage: "아는 사이", // 관계 단계
         emotion: "안도", // 현재 감정
@@ -186,6 +188,7 @@ export const mockConversations: Conversation[] = // 대화방 기준값
         userId: "user-demo", // 사용자 식별자
         title: "달빛 기록관의 노아", // 대화방 이름
         startSettings: { profileId: "user-demo", presetId: "legacy-default", relationshipStage: "첫 만남", relationshipLevel: 7, emotion: "호기심", scene: "/images/scenes/moon-library.svg", greeting: "그 문장은 아직 끝나지 않았어." }, // 시작 설정
+        currentVersionId: "conversation-noah-version-1", // 현재 버전 식별자
         relationshipLevel: 7, // 관계 수치
         relationshipStage: "첫 만남", // 관계 단계
         emotion: "호기심", // 현재 감정
@@ -197,14 +200,34 @@ export const mockConversations: Conversation[] = // 대화방 기준값
     }, // 노아 대화 종료
 ]; // 대화방 목록 종료
 
+export const mockConversationVersions: ConversationVersion[] = mockConversations.map((conversation) => // 대화 버전 기준값
+{ // 변환 시작
+    return ( // 버전 반환
+    { // 버전 시작
+        id: conversation.currentVersionId, // 버전 식별자
+        conversationId: conversation.id, // 대화방 식별자
+        parentVersionId: null, // 부모 버전 부재
+        forkRootVersionId: null, // 분기 원본 부재
+        forkedFromMessageId: null, // 분기 메시지 부재
+        ordinal: 1, // 최초 버전 순번
+        relationshipLevel: conversation.relationshipLevel, // 관계 수치 복사
+        relationshipStage: conversation.relationshipStage, // 관계 단계 복사
+        emotion: conversation.emotion, // 감정 복사
+        currentScene: conversation.currentScene, // 장면 복사
+        lastMessage: conversation.lastMessage, // 마지막 메시지 복사
+        createdAt: conversation.createdAt, // 생성 시각 복사
+        updatedAt: conversation.updatedAt, // 수정 시각 복사
+    }); // 버전 종료
+}); // 변환 종료
+
 export const mockMessages: Message[] = // 메시지 기준값
 [ // 메시지 목록 시작
-    { id: "message-rian-1", conversationId: "conversation-rian", role: "assistant", content: "이 자리는 늘 네가 오던 창가야.", emotion: "기대", sceneEvent: null, createdAt: "2026-09-22T06:18:00.000Z" }, // 리안 첫 메시지
-    { id: "message-rian-2", conversationId: "conversation-rian", role: "user", content: "오늘 기록할 이야기가 많아.", emotion: null, sceneEvent: null, createdAt: "2026-09-22T06:19:00.000Z" }, // 리안 사용자 메시지
-    { id: "message-rian-3", conversationId: "conversation-rian", role: "assistant", content: "오늘도 네 자리를 남겨뒀어.", emotion: "기대", sceneEvent: "dawn-letter", createdAt: "2026-09-22T06:20:00.000Z" }, // 리안 최근 메시지
-    { id: "message-sera-1", conversationId: "conversation-sera", role: "assistant", content: "비가 조금 더 올 것 같아.", emotion: "조심스러움", sceneEvent: null, createdAt: "2026-09-22T06:10:00.000Z" }, // 세라 첫 메시지
-    { id: "message-sera-2", conversationId: "conversation-sera", role: "assistant", content: "우산 하나로 충분할까?", emotion: "안도", sceneEvent: "rain-window", createdAt: "2026-09-22T06:12:00.000Z" }, // 세라 최근 메시지
-    { id: "message-noah-1", conversationId: "conversation-noah", role: "assistant", content: "그 문장은 아직 끝나지 않았어.", emotion: "호기심", sceneEvent: null, createdAt: "2026-09-21T23:40:00.000Z" }, // 노아 최근 메시지
+    { id: "message-rian-1", conversationId: "conversation-rian", versionId: "conversation-rian-version-1", sourceMessageId: null, role: "assistant", content: "이 자리는 늘 네가 오던 창가야.", emotion: "기대", sceneEvent: null, createdAt: "2026-09-22T06:18:00.000Z" }, // 리안 첫 메시지
+    { id: "message-rian-2", conversationId: "conversation-rian", versionId: "conversation-rian-version-1", sourceMessageId: null, role: "user", content: "오늘 기록할 이야기가 많아.", emotion: null, sceneEvent: null, createdAt: "2026-09-22T06:19:00.000Z" }, // 리안 사용자 메시지
+    { id: "message-rian-3", conversationId: "conversation-rian", versionId: "conversation-rian-version-1", sourceMessageId: null, role: "assistant", content: "오늘도 네 자리를 남겨뒀어.", emotion: "기대", sceneEvent: "dawn-letter", createdAt: "2026-09-22T06:20:00.000Z" }, // 리안 최근 메시지
+    { id: "message-sera-1", conversationId: "conversation-sera", versionId: "conversation-sera-version-1", sourceMessageId: null, role: "assistant", content: "비가 조금 더 올 것 같아.", emotion: "조심스러움", sceneEvent: null, createdAt: "2026-09-22T06:10:00.000Z" }, // 세라 첫 메시지
+    { id: "message-sera-2", conversationId: "conversation-sera", versionId: "conversation-sera-version-1", sourceMessageId: null, role: "assistant", content: "우산 하나로 충분할까?", emotion: "안도", sceneEvent: "rain-window", createdAt: "2026-09-22T06:12:00.000Z" }, // 세라 최근 메시지
+    { id: "message-noah-1", conversationId: "conversation-noah", versionId: "conversation-noah-version-1", sourceMessageId: null, role: "assistant", content: "그 문장은 아직 끝나지 않았어.", emotion: "호기심", sceneEvent: null, createdAt: "2026-09-21T23:40:00.000Z" }, // 노아 최근 메시지
 ]; // 메시지 목록 종료
 
 export const validCharacterDraft: CharacterDraft = // 유효 초안 기준값
