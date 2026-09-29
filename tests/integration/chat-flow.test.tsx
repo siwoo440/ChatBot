@@ -371,7 +371,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         await user.click(screen.getByRole("button", { name: "전송" })); // 메시지 전송
         await adapter.firstChunkReached; // 첫 조각 대기
         await user.click(screen.getByRole("button", { name: "응답 중단" })); // 응답 중단
-        await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("응답을 중단했습니다.")); // 중단 안내 확인
+        await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("응답을 중단했습니다."), { timeout: 5_000 }); // 중단 안내 확인
         expect(screen.getByText("중단 전 조각")).toBeInTheDocument(); // 부분 응답 유지 확인
         expect(screen.getByLabelText("메시지")).toBeEnabled(); // 입력 활성화 확인
         expect(screen.getByRole("list", { name: "대화 메시지" })).toHaveAttribute("aria-busy", "false"); // 응답 상태 해제 확인

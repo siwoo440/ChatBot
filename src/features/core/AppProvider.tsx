@@ -34,6 +34,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
 { // 함수 시작
     const [state, dispatch] = useReducer(appReducer, initialState); // 상태 리듀서
     const [storageError, setStorageError] = useState<string | null>(null); // 저장 오류 상태
+    const [restored, setRestored] = useState(repository !== undefined); // 저장 복원 상태
     const hydrated = useRef(false); // 복원 완료 표시
     useEffect(() => // 최초 복원 효과
     { // 효과 시작
@@ -53,6 +54,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             } // 조건 종료
             dispatch({ type: "replace-state", state: restoredState }); // 저장 상태 복원
             hydrated.current = true; // 복원 완료
+            setRestored(true); // 화면 복원 완료
         }); // 작업 종료
         return () => // 효과 정리
         { // 정리 시작
@@ -104,7 +106,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
         } // 오류 종료
     }, [repository, state]); // 함수 종료
     const value = useMemo(() => ({ state, dispatch, storageError, createBackup }), [createBackup, state, storageError]); // 문맥 값
-    return <AppContext.Provider value={value}>{children}</AppContext.Provider>; // 공급자 반환
+    return <AppContext.Provider value={value}>{restored ? children : <p role="status">로컬 대화를 불러오는 중입니다.</p>}</AppContext.Provider>; // 공급자 반환
 } // 함수 종료
 
 export function useAppStore(): AppStore // 앱 저장소 훅
