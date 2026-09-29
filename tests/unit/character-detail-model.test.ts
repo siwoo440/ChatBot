@@ -71,9 +71,9 @@ describe("캐릭터 상세 모델", () => // 상세 모델 묶음
         expect(result.conversation.title).toBe("퇴근길 카페의 하린 · 마감 뒤의 한 잔"); // 대화 제목 확인
         expect(result.conversation.startSettings.presetId).toBe("closing-time"); // 프리셋 식별자 확인
         expect(result.conversation.currentVersionId).toBe(`${result.conversation.id}-version-1`); // 현재 버전 확인
-        expect(result.conversation.relationshipStage).toBe("가까운 사이"); // 관계 단계 확인
-        expect(result.conversation.relationshipLevel).toBe(46); // 관계 수치 확인
-        expect(result.conversation.currentScene).toBe("/images/characters/prologues/harin-prologue-v1.png"); // 표시 이미지 확인
+        expect(result.version.relationshipStage).toBe("가까운 사이"); // 관계 단계 확인
+        expect(result.version.relationshipLevel).toBe(46); // 관계 수치 확인
+        expect(result.version.currentScene).toBe("/images/characters/prologues/harin-prologue-v1.png"); // 표시 이미지 확인
         expect(result.conversation.startSettings.scene).toBe("/images/characters/prologues/harin-prologue-v1.png"); // 저장 이미지 확인
         expect(result.message.content).toBe("오늘 마지막 잔은 네 거야. 천천히 마시면서 이야기해 줘."); // 첫 대사 확인
         expect(result.message.versionId).toBe(result.conversation.currentVersionId); // 메시지 버전 확인
@@ -100,6 +100,6 @@ describe("캐릭터 상세 모델", () => // 상세 모델 묶음
         const state = createInitialState(); // 초기 상태 생성
         const result = createConversationFromPreset(state, "harin", "missing", "2026-09-29T10:00:00.000Z"); // 잘못된 프리셋 생성
         expect(result.conversation.startSettings.presetId).toBe("after-work-comfort"); // 기본 프리셋 확인
-        expect(result.conversation.lastMessage).toBe("오늘은 평소보다 조금 지쳐 보여. 따뜻한 걸로 준비해도 될까?"); // 기본 대사 확인
+        expect(result.version.lastMessage).toBe("오늘은 평소보다 조금 지쳐 보여. 따뜻한 걸로 준비해도 될까?"); // 기본 대사 확인
     }); // 검증 종료
 }); // 묶음 종료

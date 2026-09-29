@@ -116,11 +116,6 @@ export function createConversationFromPreset(state: AppState, characterId: strin
         title: `${character.name} · ${preset.name}`, // 대화 제목
         startSettings: { profileId: state.profile.id, presetId: preset.id, relationshipStage: preset.relationshipStage, relationshipLevel: preset.relationshipLevel, emotion: preset.emotion, scene: sceneImage, greeting: preset.greeting }, // 시작 설정
         currentVersionId: versionId, // 현재 버전 식별자
-        relationshipLevel: preset.relationshipLevel, // 관계 수치
-        relationshipStage: preset.relationshipStage, // 관계 단계
-        emotion: preset.emotion, // 시작 감정
-        currentScene: sceneImage, // 시작 장면 이미지
-        lastMessage: preset.greeting, // 최근 메시지
         archivedAt: null, // 보관 시각
         createdAt: now, // 생성 시각
         updatedAt: now, // 수정 시각
@@ -142,7 +137,7 @@ export function ensureConversationForCharacter(state: AppState, characterId: str
         { // 조건 시작
             throw new Error("현재 대화 버전을 찾을 수 없습니다."); // 버전 오류
         } // 조건 종료
-        const message = state.messages.filter((item) => item.conversationId === existing.id && item.versionId === existing.currentVersionId).sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? { id: `${existing.id}-message-reference`, conversationId: existing.id, versionId: existing.currentVersionId, sourceMessageId: null, role: "assistant", content: existing.lastMessage, emotion: existing.emotion, sceneEvent: null, createdAt: existing.updatedAt } as Message; // 최근 메시지 조회
+        const message = state.messages.filter((item) => item.conversationId === existing.id && item.versionId === existing.currentVersionId).sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? { id: `${existing.id}-message-reference`, conversationId: existing.id, versionId: existing.currentVersionId, sourceMessageId: null, role: "assistant", content: version.lastMessage, emotion: version.emotion, sceneEvent: null, createdAt: version.updatedAt } as Message; // 최근 메시지 조회
         return { state: { ...state, selectedConversationId: existing.id }, conversation: existing, version, message, href: `/chat/${characterId}` }; // 기존 대화 반환
     } // 조건 종료
     const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회

@@ -17,7 +17,7 @@ describe("앱 상태 리듀서", () => // 리듀서 묶음
     it("메시지를 추가하고 대화방을 선택한다", () => // 대화 상태 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태
-        const message = { id: "message-new", conversationId: "conversation-sera", role: "user" as const, content: "안녕", emotion: null, sceneEvent: null, createdAt: "2026-09-23T00:00:00.000Z" }; // 새 메시지
+        const message = { id: "message-new", conversationId: "conversation-sera", versionId: "conversation-sera-version-1", sourceMessageId: null, role: "user" as const, content: "안녕", emotion: null, sceneEvent: null, createdAt: "2026-09-23T00:00:00.000Z" }; // 새 메시지
         const withMessage = appReducer(state, { type: "add-message", message }); // 메시지 추가
         const selected = appReducer(withMessage, { type: "select-conversation", conversationId: "conversation-sera" }); // 대화 선택
         expect(selected.messages.at(-1)).toEqual(message); // 메시지 확인

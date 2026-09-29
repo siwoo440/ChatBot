@@ -89,8 +89,11 @@ describe("로컬 보관함", () => // 보관함 묶음
         const user = userEvent.setup(); // 사용자 도구 생성
         const state = createInitialState(); // 초기 상태 준비
         const base = state.conversations[0]; // 기준 대화 조회
-        state.conversations.push({ ...base, id: "conversation-harin-first", characterId: "harin", title: "하린과 비 오는 저녁", startSettings: { ...base.startSettings, presetId: "after-work-comfort" }, updatedAt: "2026-09-28T09:00:00.000Z" }); // 첫 대화 추가
-        state.conversations.push({ ...base, id: "conversation-harin-second", characterId: "harin", title: "하린과 마감 뒤", startSettings: { ...base.startSettings, presetId: "closing-time" }, updatedAt: "2026-09-29T10:30:00.000Z" }); // 둘째 대화 추가
+        const baseVersion = state.conversationVersions.find((version) => version.id === base.currentVersionId)!; // 기준 버전 조회
+        state.conversations.push({ ...base, id: "conversation-harin-first", characterId: "harin", title: "하린과 비 오는 저녁", currentVersionId: "conversation-harin-first-version-1", startSettings: { ...base.startSettings, presetId: "after-work-comfort" }, updatedAt: "2026-09-28T09:00:00.000Z" }); // 첫 대화 추가
+        state.conversationVersions.push({ ...baseVersion, id: "conversation-harin-first-version-1", conversationId: "conversation-harin-first", updatedAt: "2026-09-28T09:00:00.000Z" }); // 첫 버전 추가
+        state.conversations.push({ ...base, id: "conversation-harin-second", characterId: "harin", title: "하린과 마감 뒤", currentVersionId: "conversation-harin-second-version-1", startSettings: { ...base.startSettings, presetId: "closing-time" }, updatedAt: "2026-09-29T10:30:00.000Z" }); // 둘째 대화 추가
+        state.conversationVersions.push({ ...baseVersion, id: "conversation-harin-second-version-1", conversationId: "conversation-harin-second", updatedAt: "2026-09-29T10:30:00.000Z" }); // 둘째 버전 추가
         renderWithApp(<LibraryScreen />, state); // 보관함 렌더
         await user.click(screen.getByRole("tab", { name: "진행 중인 대화" })); // 대화 탭 이동
         expect(screen.getByText("하린과 비 오는 저녁")).toBeVisible(); // 첫 제목 확인

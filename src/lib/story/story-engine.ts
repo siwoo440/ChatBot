@@ -1,8 +1,9 @@
-import type { Conversation, RelationshipStage } from "@/features/core/types"; // 대화 타입
+import type { Conversation, ConversationVersion, RelationshipStage } from "@/features/core/types"; // 대화 타입
 
 export interface StoryInput // 스토리 입력
 { // 구조 시작
     conversation: Conversation; // 현재 대화
+    version: ConversationVersion; // 현재 버전
     userMessage: string; // 사용자 메시지
     userMessageCount: number; // 사용자 메시지 수
 } // 구조 종료
@@ -53,7 +54,7 @@ function resolveScene(characterId: string): string // 장면 계산
 export function evaluateStory(input: StoryInput): StoryUpdate // 스토리 판정
 { // 함수 시작
     const positive = /고마|좋아|행복|반가/.test(input.userMessage); // 긍정 표현
-    const relationshipLevel = Math.min(100, input.conversation.relationshipLevel + (positive ? 3 : 1)); // 관계 증가
+    const relationshipLevel = Math.min(100, input.version.relationshipLevel + (positive ? 3 : 1)); // 관계 증가
     const importantEvent = input.userMessageCount > 0 && input.userMessageCount % 3 === 0; // 중요 사건 판정
     return { relationshipLevel, relationshipStage: resolveStage(relationshipLevel), emotion: positive ? "기쁨" : "관심", importantEvent, sceneId: resolveScene(input.conversation.characterId) }; // 결과 반환
 } // 함수 종료

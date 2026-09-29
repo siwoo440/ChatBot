@@ -294,14 +294,14 @@ describe("채팅 흐름", () => // 채팅 묶음
         const state = createInitialState(); // 초기 상태 생성
         const initialBalance = state.wallet.balance; // 초기 잔액 저장
         const conversation = state.conversations.find((item) => item.id === "conversation-rian"); // 초기 대화 조회
-        const initialRelationship = conversation?.relationshipLevel ?? 0; // 초기 관계 저장
+        const initialRelationship = state.conversationVersions.find((item) => item.id === conversation?.currentVersionId)?.relationshipLevel ?? 0; // 초기 관계 저장
         const controller = new ChatController({ state, conversationId: "conversation-rian", llm: new RetryLLMAdapter(), images: new MockImageAdapter() }); // 재시도 제어기 생성
         await expect(controller.sendMessage("비용 재시도 대상")).rejects.toThrow("첫 요청 실패"); // 첫 요청 실패 확인
         expect(controller.snapshot().wallet.balance).toBe(initialBalance - 1); // 실패 비용 확인
-        expect(controller.snapshot().conversations.find((item) => item.id === "conversation-rian")?.relationshipLevel).toBe(initialRelationship); // 실패 관계 유지 확인
+        expect(controller.snapshot().conversationVersions.find((item) => item.id === conversation?.currentVersionId)?.relationshipLevel).toBe(initialRelationship); // 실패 관계 유지 확인
         await expect(controller.regenerateLastReply()).resolves.toEqual({ ok: true }); // 재시도 성공 확인
         expect(controller.snapshot().wallet.balance).toBe(initialBalance - 2); // 재시도 비용 확인
-        expect(controller.snapshot().conversations.find((item) => item.id === "conversation-rian")?.relationshipLevel).toBe(initialRelationship + 1); // 관계 단일 반영 확인
+        expect(controller.snapshot().conversationVersions.find((item) => item.id === conversation?.currentVersionId)?.relationshipLevel).toBe(initialRelationship + 1); // 관계 단일 반영 확인
     }); // 검증 종료
 
     it("완료된 마지막 응답을 새 메시지 추가 없이 다시 생성한다", async () => // 다시 생성 검증

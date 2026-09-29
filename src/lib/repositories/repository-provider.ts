@@ -75,11 +75,6 @@ export function createLocalRepositoryProvider(storage: Storage): LocalRepository
         { // 함수 시작
             updateState((state) => // 상태 변경
             { // 변경 시작
-                const versionExists = state.conversationVersions.some((version) => version.id === conversation.currentVersionId && version.conversationId === conversation.id); // 버전 존재 확인
-                if (!versionExists) // 버전 부재 판정
-                { // 버전 생성 시작
-                    state.conversationVersions = [...state.conversationVersions, { id: conversation.currentVersionId, conversationId: conversation.id, parentVersionId: null, forkRootVersionId: null, forkedFromMessageId: null, ordinal: 1, relationshipLevel: conversation.relationshipLevel, relationshipStage: conversation.relationshipStage, emotion: conversation.emotion, currentScene: conversation.currentScene, lastMessage: conversation.lastMessage, createdAt: conversation.createdAt, updatedAt: conversation.updatedAt }]; // 최초 버전 반영
-                } // 버전 생성 종료
                 state.conversations = replaceById(state.conversations, conversation); // 대화 반영
             }); // 변경 종료
         }, // 함수 종료

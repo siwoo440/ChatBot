@@ -62,11 +62,6 @@ export interface Conversation // 대화방 구조
     title: string; // 대화방 이름
     startSettings: ConversationStartSettings; // 시작 설정
     currentVersionId: string; // 현재 버전 식별자
-    relationshipLevel: number; // 관계 수치
-    relationshipStage: RelationshipStage; // 관계 단계
-    emotion: string; // 현재 감정
-    currentScene: string; // 현재 장면
-    lastMessage: string; // 마지막 메시지
     archivedAt: string | null; // 보관 시각
     createdAt: string; // 생성 시각
     updatedAt: string; // 수정 시각

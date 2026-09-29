@@ -154,11 +154,6 @@ function isConversation(value: unknown): value is Conversation // 대화 판정 
         && isString(value.title) // 제목 확인
         && isConversationStartSettings(value.startSettings) // 시작 설정 확인
         && isString(value.currentVersionId) // 현재 버전 확인
-        && isFiniteNumber(value.relationshipLevel) // 관계 수치 확인
-        && isOneOf(value.relationshipStage, relationshipStages) // 관계 단계 확인
-        && isString(value.emotion) // 감정 확인
-        && isString(value.currentScene) // 장면 확인
-        && isString(value.lastMessage) // 최근 메시지 확인
         && (value.archivedAt === null || isString(value.archivedAt)) // 보관 시각 확인
         && isString(value.createdAt) // 생성 시각 확인
         && isString(value.updatedAt); // 수정 시각 확인
@@ -324,7 +319,7 @@ function hasAppStateData(value: unknown, conversationValidator: (item: unknown) 
 } // 함수 종료
 
 type SchemaSevenFields = "schemaVersion" | "conversations" | "conversationVersions" | "messages" | "memories" | "likedCharacterIds" | "followedCreatorIds" | "localReports"; // 스키마 7 필드 묶음
-type VersionSixConversation = Omit<Conversation, "currentVersionId">; // 버전 6 대화 타입
+type VersionSixConversation = Omit<Conversation, "currentVersionId"> & { relationshipLevel: number; relationshipStage: ConversationVersion["relationshipStage"]; emotion: string; currentScene: string; lastMessage: string }; // 버전 6 대화 타입
 type LegacyConversation = Omit<VersionSixConversation, "archivedAt" | "startSettings"> & { archivedAt?: string | null }; // 이전 대화 타입
 type VersionFiveConversation = Omit<VersionSixConversation, "startSettings">; // 버전 5 대화 타입
 type LegacyMessage = Omit<Message, "versionId" | "sourceMessageId">; // 이전 메시지 타입
@@ -411,7 +406,11 @@ export function migrateVersionSix(value: Record<string, unknown>): AppState | nu
         return null; // 비파괴 거부
     } // 손상 상태 종료
     const versionIds = new Map(value.conversations.map((conversation) => [conversation.id, `${conversation.id}-version-1`])); // 최초 버전 식별자 색인
-    const conversations: Conversation[] = value.conversations.map((conversation) => ({ ...conversation, currentVersionId: versionIds.get(conversation.id) as string })); // 대화 버전 연결
+    const conversations: Conversation[] = value.conversations.map((conversation) => // 대화 버전 연결
+    { // 변환 시작
+        const { relationshipLevel: _relationshipLevel, relationshipStage: _relationshipStage, emotion: _emotion, currentScene: _currentScene, lastMessage: _lastMessage, ...sharedConversation } = conversation; // 버전 필드 분리
+        return { ...sharedConversation, currentVersionId: versionIds.get(conversation.id) as string }; // 공통 대화 반환
+    }); // 변환 종료
     const conversationVersions: ConversationVersion[] = value.conversations.map((conversation) => // 최초 버전 생성
     { // 변환 시작
         return { id: versionIds.get(conversation.id) as string, conversationId: conversation.id, parentVersionId: null, forkRootVersionId: null, forkedFromMessageId: null, ordinal: 1, relationshipLevel: conversation.relationshipLevel, relationshipStage: conversation.relationshipStage, emotion: conversation.emotion, currentScene: conversation.currentScene, lastMessage: conversation.lastMessage, createdAt: conversation.createdAt, updatedAt: conversation.updatedAt }; // 버전 반환

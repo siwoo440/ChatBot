@@ -59,7 +59,7 @@ export class MockLLMAdapter implements LLMAdapter // Mock 대화 어댑터
     public async *streamReply(input: LLMInput, signal?: AbortSignal): AsyncIterable<string> // 응답 스트림
     { // 함수 시작
         const lastMessage = input.messages.at(-1)?.content.trim().toLowerCase() ?? ""; // 최근 입력
-        const key = `${input.character.id}|${input.conversation.emotion}|${input.conversation.relationshipStage}|${lastMessage}|${this.seed}`; // 결정 키
+        const key = `${input.character.id}|${input.version.emotion}|${input.version.relationshipStage}|${lastMessage}|${this.seed}`; // 결정 키
         const response = responses[hash(key) % responses.length]; // 응답 선택
         const words = response.split(" "); // 단어 분리
         for (const [index, word] of words.entries()) // 단어 순회

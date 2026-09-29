@@ -7,6 +7,29 @@ import { createLocalRepositoryProvider } from "@/lib/repositories/repository-pro
 const stateKey = "mateverse:v1:state"; // 상태 저장 키
 const backupKey = "mateverse:v1:backup"; // 백업 저장 키
 
+function restoreLegacyConversationFields(value: Record<string, unknown>): void // 이전 대화 필드 복원
+{ // 함수 시작
+    const conversations = value.conversations as Array<Record<string, unknown>>; // 대화 목록 접근
+    const versions = value.conversationVersions as Array<Record<string, unknown>>; // 버전 목록 접근
+    conversations.forEach((conversation) => // 대화 순회
+    { // 순회 시작
+        const version = versions.find((item) => item.id === conversation.currentVersionId); // 현재 버전 조회
+        conversation.relationshipLevel = version?.relationshipLevel; // 관계 수치 복원
+        conversation.relationshipStage = version?.relationshipStage; // 관계 단계 복원
+        conversation.emotion = version?.emotion; // 감정 복원
+        conversation.currentScene = version?.currentScene; // 장면 복원
+        conversation.lastMessage = version?.lastMessage; // 최근 메시지 복원
+        delete conversation.currentVersionId; // 현재 버전 제거
+    }); // 순회 종료
+    const messages = value.messages as Array<Record<string, unknown>>; // 메시지 목록 접근
+    messages.forEach((message) => // 메시지 순회
+    { // 순회 시작
+        delete message.versionId; // 버전 연결 제거
+        delete message.sourceMessageId; // 원본 연결 제거
+    }); // 순회 종료
+    delete value.conversationVersions; // 버전 목록 제거
+} // 함수 종료
+
 class FailingStorage implements Storage // 실패 저장소
 { // 클래스 시작
     public readonly length = 0; // 저장 항목 수
@@ -127,6 +150,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
     it("버전 0 데이터를 버전 1로 변환하고 사용자 데이터를 유지한다", () => // 마이그레이션 검증
     { // 검증 시작
         const legacy = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 이전 상태 생성
+        restoreLegacyConversationFields(legacy); // 이전 대화 구조 복원
         legacy.schemaVersion = 0; // 이전 버전 적용
         delete legacy.providerMode; // 공급자 필드 제거
         legacy.settings = { leftPanelOpen: false, rightPanelOpen: true }; // 이전 설정 적용
@@ -146,6 +170,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
     it("버전 1 상태를 버전 2로 변환하고 기존 데이터를 유지한다", () => // 마이그레이션 검증
     { // 검증 시작
         const legacy = createInitialState() as unknown as Record<string, unknown>; // 기준 상태 준비
+        restoreLegacyConversationFields(legacy); // 이전 대화 구조 복원
         legacy.schemaVersion = 1; // 이전 버전 적용
         delete legacy.bookmarkedCharacterIds; // 새 필드 제거
         const characters = legacy.characters as Array<Record<string, unknown>>; // 캐릭터 접근
@@ -166,6 +191,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const current = createInitialState(); // 현재 상태 생성
         const custom: Character = { ...current.characters[0], id: "custom-local", name: "사용자 제작 캐릭터" }; // 사용자 캐릭터 생성
         const legacy = { ...current, schemaVersion: 2, characters: [...current.characters.slice(0, 7), custom] }; // 버전 2 상태 생성
+        restoreLegacyConversationFields(legacy as unknown as Record<string, unknown>); // 이전 대화 구조 복원
         localStorage.setItem(stateKey, JSON.stringify(legacy)); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(false); // 정상 변환 확인
@@ -181,6 +207,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const custom: Character = { ...current.characters[0], id: "custom-local", name: "사용자 제작 캐릭터", coverImage: "/custom.webp" }; // 사용자 캐릭터 생성
         const staleCharacters = current.characters.map((character) => character.id === "rank-050" ? { ...character, coverImage: "/images/characters/rian.webp" } : character); // 이전 이미지 적용
         const legacy = { ...current, schemaVersion: 3, characters: [...staleCharacters, custom] }; // 버전 3 상태 생성
+        restoreLegacyConversationFields(legacy as unknown as Record<string, unknown>); // 이전 대화 구조 복원
         localStorage.setItem(stateKey, JSON.stringify(legacy)); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(false); // 정상 변환 확인
@@ -192,6 +219,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
     it("스키마 4 대화에 보관 시각을 추가한다", () => // 스키마 변환 검증
     { // 테스트 시작
         const legacy = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 이전 상태 복사
+        restoreLegacyConversationFields(legacy); // 이전 대화 구조 복원
         legacy.schemaVersion = 4; // 이전 버전 적용
         const conversations = legacy.conversations as Array<Record<string, unknown>>; // 대화 목록 접근
         conversations.forEach((conversation) => delete conversation.archivedAt); // 새 필드 제거
@@ -204,6 +232,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
     it("스키마 5 데이터를 유지하며 최신 기본값을 추가한다", () => // 연속 변환 검증
     { // 테스트 시작
         const current = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 현재 상태 복사
+        restoreLegacyConversationFields(current); // 이전 대화 구조 복원
         current.schemaVersion = 5; // 이전 버전 적용
         delete current.memories; // 기억 필드 제거
         delete current.likedCharacterIds; // 좋아요 필드 제거
@@ -220,7 +249,8 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         expect(result.recovered).toBe(false); // 정상 변환 확인
         expect(result.state.schemaVersion).toBe(7); // 새 버전 확인
         expect(result.state.characters).toEqual(characters); // 캐릭터 유지 확인
-        expect(result.state.messages).toEqual(messages); // 메시지 유지 확인
+        expect(result.state.messages.map((message) => message.content)).toEqual((messages as Array<Record<string, unknown>>).map((message) => message.content)); // 메시지 내용 유지 확인
+        expect(result.state.messages.every((message) => message.versionId.length > 0)).toBe(true); // 메시지 버전 연결 확인
         expect(result.state.wallet.balance).toBe(777); // 지갑 유지 확인
         expect(result.state.conversations).toHaveLength(conversations.length); // 대화 수 유지 확인
         expect(result.state.conversations[0]?.startSettings).toEqual( // 시작 설정 확인
@@ -242,6 +272,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
     it("스키마 6 대화마다 원본 버전과 연결 메시지를 만든다", () => // 스키마 7 변환 검증
     { // 테스트 시작
         const legacy = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 이전 상태 복사
+        restoreLegacyConversationFields(legacy); // 이전 대화 구조 복원
         legacy.schemaVersion = 6; // 이전 버전 적용
         delete legacy.conversationVersions; // 버전 목록 제거
         const conversations = legacy.conversations as Array<Record<string, unknown>>; // 대화 목록 접근
@@ -264,6 +295,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
     it("메시지가 없는 스키마 6 대화를 손상 원본으로 보존한다", () => // 메시지 누락 검증
     { // 테스트 시작
         const legacy = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 이전 상태 복사
+        restoreLegacyConversationFields(legacy); // 이전 대화 구조 복원
         legacy.schemaVersion = 6; // 이전 버전 적용
         delete legacy.conversationVersions; // 버전 목록 제거
         const conversations = legacy.conversations as Array<Record<string, unknown>>; // 대화 목록 접근
@@ -280,6 +312,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
     it("캐릭터가 없는 스키마 6 대화를 손상 원본으로 보존한다", () => // 캐릭터 누락 검증
     { // 테스트 시작
         const legacy = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 이전 상태 복사
+        restoreLegacyConversationFields(legacy); // 이전 대화 구조 복원
         legacy.schemaVersion = 6; // 이전 버전 적용
         delete legacy.conversationVersions; // 버전 목록 제거
         const conversations = legacy.conversations as Array<Record<string, unknown>>; // 대화 목록 접근
@@ -296,6 +329,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
     it("손상된 스키마 5 원본을 백업하고 안전한 최신 상태로 복구한다", () => // 손상 이전 검증
     { // 테스트 시작
         const legacy = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 이전 상태 복사
+        restoreLegacyConversationFields(legacy); // 이전 대화 구조 복원
         legacy.schemaVersion = 5; // 이전 버전 적용
         delete legacy.memories; // 기억 필드 제거
         delete legacy.likedCharacterIds; // 좋아요 필드 제거
@@ -434,12 +468,12 @@ describe("로컬 Repository 공급자", () => // 공급자 묶음
     it("대화방과 메시지 조회·저장·삭제를 공유 상태에 반영한다", () => // 대화 저장소 검증
     { // 검증 시작
         const provider = createLocalRepositoryProvider(localStorage); // 공급자 생성
-        const conversation = { ...provider.conversations.list()[0], id: "conversation-custom", characterId: "harin", currentVersionId: "conversation-custom-version-1" }; // 새 대화 생성
+        const conversation = { ...provider.conversations.list()[0], title: "수정한 대화 제목" }; // 기존 대화 수정
         const message: Message = { id: "message-custom", conversationId: conversation.id, versionId: conversation.currentVersionId, sourceMessageId: null, role: "user", content: "안녕", emotion: null, sceneEvent: null, createdAt: "2026-09-22T10:00:00.000Z" }; // 새 메시지 생성
         provider.conversations.saveConversation(conversation); // 대화 저장
         provider.conversations.saveMessage(message); // 메시지 저장
-        expect(provider.conversations.findById(conversation.id)?.characterId).toBe("harin"); // 대화 조회 확인
-        expect(provider.conversations.listMessages(conversation.id)).toEqual([message]); // 메시지 조회 확인
+        expect(provider.conversations.findById(conversation.id)?.title).toBe("수정한 대화 제목"); // 대화 조회 확인
+        expect(provider.conversations.listMessages(conversation.id)).toContainEqual(message); // 메시지 조회 확인
         provider.conversations.remove(conversation.id); // 대화 삭제
         expect(provider.conversations.findById(conversation.id)).toBeNull(); // 대화 삭제 확인
         expect(provider.conversations.listMessages(conversation.id)).toEqual([]); // 메시지 연쇄 삭제 확인

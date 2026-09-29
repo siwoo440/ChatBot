@@ -6,6 +6,7 @@ import type { Route } from "next"; // 경로 타입
 import { useState } from "react"; // 리액트 상태
 import { getCharacterDetailProfile } from "@/features/character/character-detail-model"; // 상세 프로필 조회
 import { createConversationExport } from "@/features/conversation/conversation-export"; // 대화 내보내기
+import { getConversationSummary, type ConversationSummary } from "@/features/conversation/conversation-versioning"; // 대화 요약 조회
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import type { Character, Conversation } from "@/features/core/types"; // 도메인 타입
 import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 다운로드
@@ -99,6 +100,11 @@ function ConversationGrid() // 대화 목록
     const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null); // 삭제 대상
     const active = state.conversations.filter((conversation) => conversation.archivedAt === null); // 진행 대화 목록
     const archived = state.conversations.filter((conversation) => conversation.archivedAt !== null); // 보관 대화 목록
+    const summaries = new Map(state.conversations.flatMap((conversation) => // 대화 요약 색인
+    { // 변환 시작
+        const summary = getConversationSummary(state, conversation.id); // 대화 요약 조회
+        return summary === null ? [] : [[conversation.id, summary] as const]; // 유효 요약 반환
+    })); // 변환 종료
     const startRename = (conversation: Conversation) => // 이름 변경 시작
     { // 함수 시작
         setRenameTarget(conversation); // 대상 설정
@@ -135,14 +141,14 @@ function ConversationGrid() // 대화 목록
     } // 조건 종료
     return ( // 목록 반환
         <div className={styles.conversationSections}> {/* 대화 구역 */}
-            <ConversationSection title="진행 중인 대화" conversations={active} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} /> {/* 진행 대화 */}
-            {archived.length === 0 ? null : <ConversationSection title="보관한 대화" conversations={archived} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} />} {/* 보관 대화 */}
+            <ConversationSection title="진행 중인 대화" conversations={active} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} /> {/* 진행 대화 */}
+            {archived.length === 0 ? null : <ConversationSection title="보관한 대화" conversations={archived} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} />} {/* 보관 대화 */}
             {deleteTarget === null ? null : <div className={styles.dialogBackdrop}><section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="conversation-delete-title"><span>DELETE CONVERSATION</span><h2 id="conversation-delete-title">대화 삭제</h2><p><strong>{deleteTarget.title}</strong>과 연결된 메시지 {messageCount}개를 삭제합니다.</p><div><button type="button" onClick={() => setDeleteTarget(null)}>취소</button><button type="button" className={styles.danger} onClick={deleteConversation}>대화 삭제 확인</button></div></section></div>} {/* 삭제 대화상자 */}
         </div> // 구역 종료
     ); // 반환 종료
 } // 함수 종료
 
-function ConversationSection({ title, conversations, characters, renameTarget, renameDraft, onRenameDraft, onStartRename, onSaveRename, onCancelRename, onSelect, onArchive, onRestore, onExport, onDelete }: { title: string; conversations: Conversation[]; characters: Character[]; renameTarget: Conversation | null; renameDraft: string; onRenameDraft(value: string): void; onStartRename(conversation: Conversation): void; onSaveRename(): void; onCancelRename(): void; onSelect(conversation: Conversation): void; onArchive(conversation: Conversation): void; onRestore(conversation: Conversation): void; onExport(conversation: Conversation): void; onDelete(conversation: Conversation): void }) // 대화 구역
+function ConversationSection({ title, conversations, summaries, characters, renameTarget, renameDraft, onRenameDraft, onStartRename, onSaveRename, onCancelRename, onSelect, onArchive, onRestore, onExport, onDelete }: { title: string; conversations: Conversation[]; summaries: Map<string, ConversationSummary>; characters: Character[]; renameTarget: Conversation | null; renameDraft: string; onRenameDraft(value: string): void; onStartRename(conversation: Conversation): void; onSaveRename(): void; onCancelRename(): void; onSelect(conversation: Conversation): void; onArchive(conversation: Conversation): void; onRestore(conversation: Conversation): void; onExport(conversation: Conversation): void; onDelete(conversation: Conversation): void }) // 대화 구역
 { // 함수 시작
     if (conversations.length === 0) // 빈 구역 확인
     { // 조건 시작
@@ -155,15 +161,16 @@ function ConversationSection({ title, conversations, characters, renameTarget, r
                 {conversations.map((conversation) => // 대화 순회
                 { // 순회 시작
                     const character = characters.find((item) => item.id === conversation.characterId); // 캐릭터 조회
-                    if (character === undefined) // 캐릭터 부재 확인
+                    const summary = summaries.get(conversation.id); // 대화 요약 조회
+                    if (character === undefined || summary === undefined) // 캐릭터 부재 확인
                     { // 조건 시작
                         return null; // 카드 생략
                     } // 조건 종료
                     const editing = renameTarget?.id === conversation.id; // 편집 상태 확인
                     const profile = getCharacterDetailProfile(character); // 상세 프로필 조회
                     const presetName = profile.startPresets.find((preset) => preset.id === conversation.startSettings.presetId)?.name ?? "기본 설정"; // 시작 설정 이름
-                    const recentTime = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(conversation.updatedAt)); // 최근 시각 표시
-                    return <article key={conversation.id} className={styles.conversationCard}><Link href={`/chat/${character.id}` as Route} onClick={() => onSelect(conversation)}><Image src={character.coverImage} alt="" width={88} height={88} /><span><strong>{conversation.title}</strong><small>{character.name} · {conversation.relationshipStage} · {conversation.emotion}</small><small className={styles.conversationMeta}>시작: {presetName} · 최근 {recentTime}</small><p>{conversation.lastMessage}</p></span></Link>{editing ? <div className={styles.renameRow}><label>대화 이름<input value={renameDraft} maxLength={60} onChange={(event) => onRenameDraft(event.target.value)} /></label><button type="button" onClick={onSaveRename}>이름 저장</button><button type="button" onClick={onCancelRename}>취소</button></div> : null}<div className={styles.conversationActions}><button type="button" aria-label={`${conversation.title} 이름 변경`} onClick={() => onStartRename(conversation)}>이름 변경</button>{conversation.archivedAt === null ? <button type="button" aria-label={`${conversation.title} 보관`} onClick={() => onArchive(conversation)}>보관</button> : <button type="button" aria-label={`${conversation.title} 복구`} onClick={() => onRestore(conversation)}>복구</button>}<button type="button" aria-label={`${conversation.title} 내보내기`} onClick={() => onExport(conversation)}>내보내기</button><button type="button" aria-label={`${conversation.title} 삭제`} onClick={() => onDelete(conversation)}>삭제</button></div></article>; // 대화 카드 반환
+                    const recentTime = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(summary.updatedAt)); // 최근 시각 표시
+                    return <article key={conversation.id} className={styles.conversationCard}><Link href={`/chat/${character.id}` as Route} onClick={() => onSelect(conversation)}><Image src={character.coverImage} alt="" width={88} height={88} /><span><strong>{conversation.title}</strong><small>{character.name} · {summary.relationshipStage} · {summary.emotion}</small><small className={styles.conversationMeta}>시작: {presetName} · 최근 {recentTime}</small><p>{summary.lastMessage}</p></span></Link>{editing ? <div className={styles.renameRow}><label>대화 이름<input value={renameDraft} maxLength={60} onChange={(event) => onRenameDraft(event.target.value)} /></label><button type="button" onClick={onSaveRename}>이름 저장</button><button type="button" onClick={onCancelRename}>취소</button></div> : null}<div className={styles.conversationActions}><button type="button" aria-label={`${conversation.title} 이름 변경`} onClick={() => onStartRename(conversation)}>이름 변경</button>{conversation.archivedAt === null ? <button type="button" aria-label={`${conversation.title} 보관`} onClick={() => onArchive(conversation)}>보관</button> : <button type="button" aria-label={`${conversation.title} 복구`} onClick={() => onRestore(conversation)}>복구</button>}<button type="button" aria-label={`${conversation.title} 내보내기`} onClick={() => onExport(conversation)}>내보내기</button><button type="button" aria-label={`${conversation.title} 삭제`} onClick={() => onDelete(conversation)}>삭제</button></div></article>; // 대화 카드 반환
                 })} {/* 순회 종료 */}
             </div> {/* 격자 종료 */}
         </section> // 그룹 종료

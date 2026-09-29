@@ -1,15 +1,17 @@
-import type { Character, Conversation, Message } from "@/features/core/types"; // 도메인 타입
+import type { Character, Conversation, ConversationVersion, Message } from "@/features/core/types"; // 도메인 타입
 
 export interface LLMInput // 대화 입력
 { // 구조 시작
     character: Character; // 캐릭터
     conversation: Conversation; // 대화방
+    version: ConversationVersion; // 대화 버전
     messages: Message[]; // 최근 메시지
 } // 구조 종료
 
 export interface SummaryInput // 요약 입력
 { // 구조 시작
     conversation: Conversation; // 대화방
+    version: ConversationVersion; // 대화 버전
     messages: Message[]; // 요약 메시지
 } // 구조 종료
 
