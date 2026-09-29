@@ -69,6 +69,90 @@ export class ConversationVersionError extends Error // 버전 오류 클래스
     } // 생성자 종료
 } // 클래스 종료
 
+export function isConversationVersionGraphValid(state: Pick<AppState, "conversations" | "conversationVersions" | "messages">): boolean // 버전 그래프 검증
+{ // 함수 시작
+    const conversationIds = state.conversations.map((conversation) => conversation.id); // 대화 식별자 목록
+    const versionIds = state.conversationVersions.map((version) => version.id); // 버전 식별자 목록
+    const messageIds = state.messages.map((message) => message.id); // 메시지 식별자 목록
+    if (new Set(conversationIds).size !== conversationIds.length || new Set(versionIds).size !== versionIds.length || new Set(messageIds).size !== messageIds.length) // 중복 식별자 판정
+    { // 조건 시작
+        return false; // 중복 거부
+    } // 조건 종료
+    const conversationIdSet = new Set(conversationIds); // 대화 식별자 집합
+    const versionById = new Map(state.conversationVersions.map((version) => [version.id, version])); // 버전 색인
+    const messageIdSet = new Set(messageIds); // 메시지 식별자 집합
+    if (state.conversationVersions.some((version) => !conversationIdSet.has(version.conversationId)) || state.messages.some((message) => versionById.get(message.versionId)?.conversationId !== message.conversationId || !conversationIdSet.has(message.conversationId) || message.sourceMessageId !== null && !messageIdSet.has(message.sourceMessageId))) // 기본 연결 판정
+    { // 조건 시작
+        return false; // 연결 오류 반환
+    } // 조건 종료
+    for (const conversation of state.conversations) // 대화 순회
+    { // 순회 시작
+        const versions = state.conversationVersions.filter((version) => version.conversationId === conversation.id); // 대화 버전 목록
+        const roots = versions.filter((version) => version.parentVersionId === null); // 루트 버전 목록
+        if (roots.length !== 1 || versionById.get(conversation.currentVersionId)?.conversationId !== conversation.id) // 루트와 현재 버전 판정
+        { // 조건 시작
+            return false; // 대화 그래프 오류 반환
+        } // 조건 종료
+        const groupCounts = new Map<string, number>(); // 분기 그룹 개수
+        for (const version of versions) // 버전 순회
+        { // 버전 시작
+            const versionMessages = state.messages.filter((message) => message.versionId === version.id); // 버전 메시지 목록
+            if (versionMessages.length === 0 || !Number.isInteger(version.ordinal) || version.ordinal < 1) // 버전 기본 판정
+            { // 조건 시작
+                return false; // 버전 기본 오류 반환
+            } // 조건 종료
+            if (version.parentVersionId === null) // 루트 버전 판정
+            { // 루트 시작
+                if (version.forkRootVersionId !== null || version.forkedFromMessageId !== null) // 루트 분기 필드 판정
+                { // 조건 시작
+                    return false; // 루트 분기 오류 반환
+                } // 조건 종료
+                continue; // 다음 버전 이동
+            } // 루트 종료
+            if (version.forkRootVersionId === null || version.forkedFromMessageId === null) // 수정 버전 분기 필드 판정
+            { // 조건 시작
+                return false; // 수정 분기 오류 반환
+            } // 조건 종료
+            const parent = versionById.get(version.parentVersionId); // 부모 버전 조회
+            const forkRoot = versionById.get(version.forkRootVersionId); // 분기 원본 조회
+            if (parent?.conversationId !== conversation.id || forkRoot?.conversationId !== conversation.id) // 부모와 분기 원본 판정
+            { // 조건 시작
+                return false; // 외부 버전 연결 거부
+            } // 조건 종료
+            let ancestorId: string | null = version.parentVersionId; // 조상 탐색 시작
+            const visited = new Set<string>(); // 조상 방문 집합
+            let hasForkRootAncestor = false; // 분기 원본 조상 표시
+            while (ancestorId !== null) // 조상 순회
+            { // 반복 시작
+                if (visited.has(ancestorId)) // 순환 판정
+                { // 조건 시작
+                    return false; // 순환 거부
+                } // 조건 종료
+                visited.add(ancestorId); // 조상 방문 기록
+                if (ancestorId === version.forkRootVersionId) // 분기 원본 도달 판정
+                { // 조건 시작
+                    hasForkRootAncestor = true; // 분기 원본 확인
+                } // 조건 종료
+                ancestorId = versionById.get(ancestorId)?.parentVersionId ?? null; // 다음 조상 이동
+            } // 반복 종료
+            const matchesAnchor = (message: Message) => message.role === "user" && (message.id === version.forkedFromMessageId || message.sourceMessageId === version.forkedFromMessageId); // 분기 기준 판정
+            const parentHasAnchor = state.messages.some((message) => message.versionId === parent.id && matchesAnchor(message)); // 부모 기준 메시지 확인
+            const rootHasAnchor = state.messages.some((message) => message.versionId === forkRoot.id && matchesAnchor(message)); // 원본 기준 메시지 확인
+            if (!hasForkRootAncestor || !parentHasAnchor || !rootHasAnchor) // 분기 기준 판정
+            { // 조건 시작
+                return false; // 분기 기준 오류 반환
+            } // 조건 종료
+            const groupKey = `${version.forkRootVersionId}:${version.forkedFromMessageId}`; // 분기 그룹 키
+            groupCounts.set(groupKey, (groupCounts.get(groupKey) ?? 1) + 1); // 원본 포함 개수 증가
+        } // 버전 종료
+        if ([...groupCounts.values()].some((count) => count > CHAT_VERSION_LIMIT)) // 분기 제한 판정
+        { // 조건 시작
+            return false; // 분기 제한 오류 반환
+        } // 조건 종료
+    } // 순회 종료
+    return true; // 그래프 검증 성공
+} // 함수 종료
+
 export function getConversationVersion(state: AppState, conversationId: string, requestedVersionId?: string | null): ConversationVersion | null // 대화 버전 조회
 { // 함수 시작
     const conversation = state.conversations.find((item) => item.id === conversationId); // 대화 조회
@@ -189,12 +273,33 @@ export function removeMessageFromVersion(state: AppState, versionId: string, mes
         return state; // 기존 상태 반환
     } // 조건 종료
     const target = versionMessages[targetIndex]; // 대상 메시지 조회
-    const removedIds = new Set((target.role === "user" ? versionMessages.slice(targetIndex) : [target]).map((message) => message.id)); // 삭제 식별자 집합
-    const messages = state.messages.filter((message) => !removedIds.has(message.id)); // 남은 메시지 목록
+    const removedMessages = target.role === "user" ? versionMessages.slice(targetIndex) : [target]; // 삭제 메시지 목록
+    const removedSourceMessageIds = new Set(removedMessages.filter((message) => message.role === "user").map((message) => message.sourceMessageId ?? message.id)); // 삭제 사용자 원본 집합
+    const removesForkAnchor = version.parentVersionId !== null && version.forkedFromMessageId !== null && removedSourceMessageIds.has(version.forkedFromMessageId); // 분기 기준 삭제 판정
+    if (removesForkAnchor) // 분기 기준 삭제 처리
+    { // 조건 시작
+        return removeVersionTree(state, version.conversationId, version.id).state; // 분기 트리 삭제 반환
+    } // 조건 종료
+    const removedIds = new Set(removedMessages.map((message) => message.id)); // 삭제 식별자 집합
+    if (removedIds.size >= versionMessages.length) // 마지막 메시지 삭제 판정
+    { // 조건 시작
+        return state; // 빈 버전 생성 차단
+    } // 조건 종료
+    const removedAssistantIds = new Set(removedMessages.filter((message) => message.role === "assistant").map((message) => message.id)); // 삭제 응답 식별자 집합
+    const messages = state.messages.filter((message) => !removedIds.has(message.id)).map((message) => message.sourceMessageId !== null && removedAssistantIds.has(message.sourceMessageId) ? { ...message, sourceMessageId: null } : message); // 남은 메시지와 응답 참조 정리
     const remaining = versionMessages.filter((message) => !removedIds.has(message.id)); // 현재 버전 잔여 목록
     const lastMessage = remaining.at(-1)?.content ?? ""; // 최근 메시지 결정
     const conversationVersions = state.conversationVersions.map((item) => item.id === versionId ? { ...item, lastMessage } : item); // 버전 요약 갱신
-    return { ...state, messages, conversationVersions }; // 삭제 상태 반환
+    let nextState = { ...state, messages, conversationVersions }; // 기본 삭제 상태 생성
+    const invalidChildren = state.conversationVersions.filter((item) => item.parentVersionId === versionId && item.forkedFromMessageId !== null && !remaining.some((message) => message.role === "user" && (message.id === item.forkedFromMessageId || message.sourceMessageId === item.forkedFromMessageId))); // 기준 소실 하위 분기 조회
+    invalidChildren.forEach((child) => // 무효 하위 분기 순회
+    { // 순회 시작
+        if (nextState.conversationVersions.some((item) => item.id === child.id)) // 잔여 분기 판정
+        { // 조건 시작
+            nextState = removeVersionTree(nextState, version.conversationId, child.id).state; // 하위 분기 트리 제거
+        } // 조건 종료
+    }); // 순회 종료
+    return nextState; // 삭제 상태 반환
 } // 함수 종료
 
 export function removeVersionTree(state: AppState, conversationId: string, versionId: string): VersionDeletionResult // 버전 트리 삭제

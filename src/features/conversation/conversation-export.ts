@@ -1,5 +1,8 @@
-import { CHAT_VERSION_LIMIT } from "@/features/conversation/conversation-versioning"; // 버전 제한
+import { CHAT_VERSION_LIMIT, isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 도메인 검증
 import type { AppState, Conversation, ConversationVersion, Message } from "@/features/core/types"; // 대화 타입
+import { isAppState } from "@/lib/repositories/local-storage-gateway"; // 앱 상태 검증
+
+const relationshipStages = ["첫 만남", "아는 사이", "가까운 사이", "특별한 사이"] as const; // 관계 단계 목록
 
 export interface ConversationExport // 대화 내보내기 구조
 { // 구조 시작
@@ -20,19 +23,35 @@ function hasString(record: Record<string, unknown>, key: string): boolean // 문
     return typeof record[key] === "string"; // 문자열 여부 반환
 } // 함수 종료
 
+function hasNonEmptyString(record: Record<string, unknown>, key: string): boolean // 필수 문자열 판정
+{ // 함수 시작
+    return typeof record[key] === "string" && record[key].trim().length > 0; // 필수 문자열 여부 반환
+} // 함수 종료
+
+function hasRelationshipLevel(record: Record<string, unknown>, key: string): boolean // 관계 수치 판정
+{ // 함수 시작
+    const value = record[key]; // 필드 값 조회
+    return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100; // 유효 범위 반환
+} // 함수 종료
+
+function isStartSettings(value: unknown): boolean // 시작 설정 판정
+{ // 함수 시작
+    return isRecord(value) && hasNonEmptyString(value, "profileId") && hasNonEmptyString(value, "presetId") && relationshipStages.includes(value.relationshipStage as typeof relationshipStages[number]) && hasRelationshipLevel(value, "relationshipLevel") && hasNonEmptyString(value, "emotion") && hasNonEmptyString(value, "scene") && hasNonEmptyString(value, "greeting"); // 시작 설정 필드 확인
+} // 함수 종료
+
 function isConversation(value: unknown): value is Conversation // 대화 구조 판정
 { // 함수 시작
-    return isRecord(value) && hasString(value, "id") && hasString(value, "characterId") && hasString(value, "userId") && hasString(value, "title") && hasString(value, "currentVersionId") && isRecord(value.startSettings) && (value.archivedAt === null || typeof value.archivedAt === "string") && hasString(value, "createdAt") && hasString(value, "updatedAt"); // 핵심 필드 확인
+    return isRecord(value) && hasNonEmptyString(value, "id") && hasNonEmptyString(value, "characterId") && hasNonEmptyString(value, "userId") && hasNonEmptyString(value, "title") && hasNonEmptyString(value, "currentVersionId") && isStartSettings(value.startSettings) && (value.archivedAt === null || typeof value.archivedAt === "string") && hasNonEmptyString(value, "createdAt") && hasNonEmptyString(value, "updatedAt"); // 핵심 필드 확인
 } // 함수 종료
 
 function isVersion(value: unknown): value is ConversationVersion // 버전 구조 판정
 { // 함수 시작
-    return isRecord(value) && hasString(value, "id") && hasString(value, "conversationId") && (value.parentVersionId === null || typeof value.parentVersionId === "string") && (value.forkRootVersionId === null || typeof value.forkRootVersionId === "string") && (value.forkedFromMessageId === null || typeof value.forkedFromMessageId === "string") && typeof value.ordinal === "number" && typeof value.relationshipLevel === "number" && hasString(value, "relationshipStage") && hasString(value, "emotion") && hasString(value, "currentScene") && hasString(value, "lastMessage") && hasString(value, "createdAt") && hasString(value, "updatedAt"); // 핵심 필드 확인
+    return isRecord(value) && hasNonEmptyString(value, "id") && hasNonEmptyString(value, "conversationId") && (value.parentVersionId === null || typeof value.parentVersionId === "string") && (value.forkRootVersionId === null || typeof value.forkRootVersionId === "string") && (value.forkedFromMessageId === null || typeof value.forkedFromMessageId === "string") && Number.isInteger(value.ordinal) && Number(value.ordinal) > 0 && hasRelationshipLevel(value, "relationshipLevel") && relationshipStages.includes(value.relationshipStage as typeof relationshipStages[number]) && hasNonEmptyString(value, "emotion") && hasNonEmptyString(value, "currentScene") && hasString(value, "lastMessage") && hasNonEmptyString(value, "createdAt") && hasNonEmptyString(value, "updatedAt"); // 핵심 필드 확인
 } // 함수 종료
 
 function isMessage(value: unknown): value is Message // 메시지 구조 판정
 { // 함수 시작
-    return isRecord(value) && hasString(value, "id") && hasString(value, "conversationId") && hasString(value, "versionId") && (value.sourceMessageId === null || typeof value.sourceMessageId === "string") && (value.role === "user" || value.role === "assistant") && hasString(value, "content") && (value.emotion === null || typeof value.emotion === "string") && (value.sceneEvent === null || typeof value.sceneEvent === "string") && hasString(value, "createdAt"); // 핵심 필드 확인
+    return isRecord(value) && hasString(value, "id") && hasString(value, "conversationId") && hasString(value, "versionId") && (value.sourceMessageId === null || typeof value.sourceMessageId === "string") && (value.role === "user" || value.role === "assistant") && hasString(value, "content") && (value.emotion === null || typeof value.emotion === "string") && (value.sceneEvent === null || typeof value.sceneEvent === "string") && (value.scenePath === undefined || value.scenePath === null || typeof value.scenePath === "string") && hasString(value, "createdAt"); // 핵심 필드 확인
 } // 함수 종료
 
 function assertUnique(values: string[], label: string): void // 식별자 중복 검증
@@ -91,6 +110,11 @@ function validateConversationExport(value: unknown): asserts value is Conversati
     { // 조건 시작
         throw new Error("부모 대화 버전을 찾을 수 없습니다."); // 부모 오류
     } // 조건 종료
+    if (versions.some((version) => version.parentVersionId === null ? version.forkRootVersionId !== null || version.forkedFromMessageId !== null : version.forkRootVersionId === null || version.forkedFromMessageId === null)) // 분기 필드 짝 판정
+    { // 조건 시작
+        throw new Error("대화 버전 분기 정보가 올바르지 않습니다."); // 분기 구조 오류
+    } // 조건 종료
+    assertNoParentCycle(versions); // 부모 순환 검증
     if (messages.some((message) => !versionIds.has(message.versionId)) || versions.some((version) => !messages.some((message) => message.versionId === version.id))) // 메시지 연결 판정
     { // 조건 시작
         throw new Error("대화 버전 메시지를 찾을 수 없습니다."); // 메시지 오류
@@ -101,20 +125,41 @@ function validateConversationExport(value: unknown): asserts value is Conversati
         throw new Error("분기 메시지를 찾을 수 없습니다."); // 분기 오류
     } // 조건 종료
     const groupCounts = new Map<string, number>(); // 분기 그룹 개수
-    versions.filter((version) => version.forkRootVersionId !== null && version.forkedFromMessageId !== null).forEach((version) => // 수정 버전 순회
+    versions.filter((version) => version.parentVersionId !== null).forEach((version) => // 수정 버전 순회
     { // 순회 시작
-        if (!versionIds.has(version.forkRootVersionId!)) // 분기 원본 판정
+        const forkRootVersionId = version.forkRootVersionId!; // 분기 원본 식별자
+        const forkedFromMessageId = version.forkedFromMessageId!; // 분기 메시지 식별자
+        const forkRootMessages = messages.filter((message) => message.versionId === forkRootVersionId); // 분기 원본 메시지 목록
+        let ancestorId = version.parentVersionId; // 부모 탐색 시작
+        let hasForkRootAncestor = false; // 분기 원본 조상 표시
+        while (ancestorId !== null) // 부모 계보 순회
+        { // 반복 시작
+            if (ancestorId === forkRootVersionId) // 분기 원본 도달 판정
+            { // 조건 시작
+                hasForkRootAncestor = true; // 분기 조상 확인
+                break; // 계보 탐색 종료
+            } // 조건 종료
+            ancestorId = versions.find((candidate) => candidate.id === ancestorId)?.parentVersionId ?? null; // 다음 부모 이동
+        } // 반복 종료
+        if (!versionIds.has(forkRootVersionId) || !hasForkRootAncestor) // 분기 원본 판정
         { // 조건 시작
             throw new Error("분기 원본 버전을 찾을 수 없습니다."); // 분기 원본 오류
         } // 조건 종료
-        const key = `${version.forkRootVersionId}:${version.forkedFromMessageId}`; // 그룹 키 생성
+        if (!forkRootMessages.some((message) => message.id === forkedFromMessageId || message.sourceMessageId === forkedFromMessageId)) // 분기 기준 메시지 판정
+        { // 조건 시작
+            throw new Error("분기 원본 메시지를 찾을 수 없습니다."); // 분기 메시지 오류
+        } // 조건 종료
+        const key = `${forkRootVersionId}:${forkedFromMessageId}`; // 그룹 키 생성
         groupCounts.set(key, (groupCounts.get(key) ?? 1) + 1); // 원본 포함 개수 증가
     }); // 순회 종료
     if ([...groupCounts.values()].some((count) => count > CHAT_VERSION_LIMIT)) // 분기 제한 판정
     { // 조건 시작
         throw new Error("대화 버전 개수 제한을 초과했습니다."); // 제한 오류
     } // 조건 종료
-    assertNoParentCycle(versions); // 부모 순환 검증
+    if (!isConversationVersionGraphValid({ conversations: [conversation], conversationVersions: versions, messages })) // 전체 버전 그래프 판정
+    { // 조건 시작
+        throw new Error("대화 버전 그래프가 올바르지 않습니다."); // 그래프 오류
+    } // 조건 종료
 } // 함수 종료
 
 export function createConversationExport(state: AppState, conversationId: string): ConversationExport // 대화 내보내기 함수
@@ -160,7 +205,12 @@ export function mergeConversationExport(state: AppState, imported: ConversationE
     const collision = existingConversationIds.has(imported.conversation.id) || imported.versions.some((version) => existingVersionIds.has(version.id)) || imported.messages.some((message) => existingMessageIds.has(message.id)); // 전체 충돌 판정
     if (!collision) // 충돌 없음 판정
     { // 조건 시작
-        return { ...state, conversations: [...state.conversations, structuredClone(imported.conversation)], conversationVersions: [...state.conversationVersions, ...structuredClone(imported.versions)], messages: [...state.messages, ...structuredClone(imported.messages)], selectedConversationId: imported.conversation.id }; // 원본 식별자 병합
+        const candidate = { ...state, conversations: [...state.conversations, structuredClone(imported.conversation)], conversationVersions: [...state.conversationVersions, ...structuredClone(imported.versions)], messages: [...state.messages, ...structuredClone(imported.messages)], selectedConversationId: imported.conversation.id }; // 원본 식별자 후보
+        if (!isAppState(candidate)) // 전체 상태 판정
+        { // 조건 시작
+            throw new Error("가져온 대화가 현재 앱 데이터와 연결되지 않습니다."); // 전체 상태 오류
+        } // 조건 종료
+        return candidate; // 원본 식별자 병합
     } // 조건 종료
     const conversationId = createImportedConversationId(state, imported.conversation.id); // 새 대화 식별자 생성
     const versionIds = new Map(imported.versions.map((version, index) => [version.id, `${conversationId}-version-${index + 1}`])); // 버전 식별자 대응표
@@ -168,5 +218,10 @@ export function mergeConversationExport(state: AppState, imported: ConversationE
     const versions = imported.versions.map((version) => ({ ...version, id: versionIds.get(version.id)!, conversationId, parentVersionId: version.parentVersionId === null ? null : versionIds.get(version.parentVersionId)!, forkRootVersionId: version.forkRootVersionId === null ? null : versionIds.get(version.forkRootVersionId)!, forkedFromMessageId: version.forkedFromMessageId === null ? null : messageIds.get(version.forkedFromMessageId) ?? version.forkedFromMessageId })); // 버전 재매핑
     const messages = imported.messages.map((message) => ({ ...message, id: messageIds.get(message.id)!, conversationId, versionId: versionIds.get(message.versionId)!, sourceMessageId: message.sourceMessageId === null ? null : messageIds.get(message.sourceMessageId) ?? message.sourceMessageId })); // 메시지 재매핑
     const conversation = { ...imported.conversation, id: conversationId, currentVersionId: versionIds.get(imported.currentVersionId)!, title: `${imported.conversation.title} · 가져옴` }; // 대화 재매핑
-    return { ...state, conversations: [...state.conversations, conversation], conversationVersions: [...state.conversationVersions, ...versions], messages: [...state.messages, ...messages], selectedConversationId: conversationId }; // 재매핑 상태 반환
+    const candidate = { ...state, conversations: [...state.conversations, conversation], conversationVersions: [...state.conversationVersions, ...versions], messages: [...state.messages, ...messages], selectedConversationId: conversationId }; // 재매핑 상태 후보
+    if (!isAppState(candidate)) // 전체 상태 판정
+    { // 조건 시작
+        throw new Error("가져온 대화가 현재 앱 데이터와 연결되지 않습니다."); // 전체 상태 오류
+    } // 조건 종료
+    return candidate; // 재매핑 상태 반환
 } // 함수 종료

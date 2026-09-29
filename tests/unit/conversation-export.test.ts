@@ -51,6 +51,11 @@ describe("대화 내보내기와 가져오기", () => // 파일 묶음
         ["누락 부모", (value: ReturnType<typeof createConversationExport>) => { value.versions[0].parentVersionId = "missing-version"; }], // 누락 부모 변조
         ["누락 메시지", (value: ReturnType<typeof createConversationExport>) => { value.messages = []; }], // 누락 메시지 변조
         ["원본 버전 부재", (value: ReturnType<typeof createConversationExport>) => { value.versions[0].parentVersionId = "missing-version"; }], // 원본 부재 변조
+        ["원본의 분기 정보", (value: ReturnType<typeof createConversationExport>) => { value.versions[0].forkRootVersionId = value.versions[0].id; value.versions[0].forkedFromMessageId = value.messages[0].id; }], // 원본 분기 변조
+        ["수정 버전의 분기 정보 누락", (value: ReturnType<typeof createConversationExport>) => { addFork(value, 1); value.versions.at(-1)!.forkRootVersionId = null; value.versions.at(-1)!.forkedFromMessageId = null; }], // 수정 분기 누락
+        ["조상이 아닌 분기 원본", (value: ReturnType<typeof createConversationExport>) => { addFork(value, 1); addFork(value, 2); value.versions.at(-1)!.forkRootVersionId = value.versions.at(-2)!.id; }], // 분기 조상 변조
+        ["AI 응답 분기 기준", (value: ReturnType<typeof createConversationExport>) => { addFork(value, 1); value.versions.at(-1)!.forkedFromMessageId = value.messages.find((message) => message.role === "assistant")!.id; }], // AI 분기 변조
+        ["부모에 없는 분기 기준", (value: ReturnType<typeof createConversationExport>) => { addFork(value, 1); addFork(value, 2); const parent = value.versions.at(-2)!; value.versions.at(-1)!.parentVersionId = parent.id; value.messages = value.messages.filter((message) => message.versionId !== parent.id || message.role !== "user"); }], // 부모 기준 제거
     ])("%s 파일을 거부한다", (_label, mutate) => // 악성 파일 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 생성
@@ -69,5 +74,17 @@ describe("대화 내보내기와 가져오기", () => // 파일 묶음
         const overLimit = createConversationExport(state, state.conversations[0].id); // 제한 파일 생성
         Array.from({ length: 10 }, (_value, index) => index + 1).forEach((suffix) => addFork(overLimit, suffix)); // 열 개 수정 버전 추가
         expect(() => parseConversationExport(JSON.stringify(overLimit))).toThrow(); // 제한 초과 거부 확인
+    }); // 검증 종료
+
+    it("잘못된 시작 설정과 현재 앱에 없는 캐릭터 대화를 거부한다", () => // 전체 상태 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const invalidSettings = createConversationExport(state, state.conversations[0].id); // 설정 오류 파일 생성
+        invalidSettings.conversation.startSettings = {} as typeof invalidSettings.conversation.startSettings; // 빈 시작 설정 적용
+        expect(() => parseConversationExport(JSON.stringify(invalidSettings))).toThrow(); // 시작 설정 거부 확인
+        const missingCharacter = createConversationExport(state, state.conversations[0].id); // 캐릭터 오류 파일 생성
+        missingCharacter.conversation.characterId = "missing-character"; // 없는 캐릭터 적용
+        expect(() => mergeConversationExport(state, missingCharacter)).toThrow(); // 전체 상태 연결 거부 확인
+        expect(state.conversations).toHaveLength(createInitialState().conversations.length); // 기존 상태 불변 확인
     }); // 검증 종료
 }); // 묶음 종료

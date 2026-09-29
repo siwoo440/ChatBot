@@ -6,6 +6,7 @@ import type { ChatProgress } from "@/features/chat/chat-controller"; // 진행 �
 import { ChatController } from "@/features/chat/chat-controller"; // 채팅 제어기
 import { CHAT_MESSAGE_MAX_LENGTH, CHAT_VERSION_LIMIT, createVersionFork } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 생성
+import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태 훅
 import type { LLMAdapter, LLMInput, SummaryInput } from "@/lib/adapters/llm-adapter"; // 대화 어댑터 타입
 import { MockImageAdapter } from "@/lib/adapters/mock-image-adapter"; // 이미지 어댑터
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // Mock 대화 어댑터
@@ -18,6 +19,14 @@ vi.mock("next/navigation", () => // 경로 도구 대체
 ({ // 대체 시작
     useRouter: () => ({ replace: routerReplace }), // 주소 교체 제공
 })); // 대체 종료
+
+function VersionStateProbe() // 버전 상태 표시
+{ // 함수 시작
+    const { state } = useAppStore(); // 앱 상태 조회
+    const conversation = state.conversations.find((item) => item.id === "conversation-rian"); // 리안 대화 조회
+    const versions = state.conversationVersions.filter((version) => version.conversationId === "conversation-rian"); // 리안 버전 조회
+    return <output aria-label="리안 버전 상태">{versions.length}:{conversation?.currentVersionId}:{state.wallet.balance}</output>; // 버전 상태 반환
+} // 함수 종료
 
 class ControlledLLMAdapter implements LLMAdapter // 제어형 대화 어댑터
 { // 클래스 시작
@@ -43,6 +52,23 @@ class ControlledLLMAdapter implements LLMAdapter // 제어형 대화 어댑터
         yield "첫 조각"; // 첫 응답 조각
         await this.waiting; // 다음 조각 대기
         yield " 두 번째 조각"; // 둘째 응답 조각
+    } // 함수 종료
+
+    public async summarizeConversation(_input: SummaryInput): Promise<string> // 대화 요약
+    { // 함수 시작
+        void _input; // 입력 사용 표시
+        return Promise.resolve("테스트 요약"); // 요약 반환
+    } // 함수 종료
+} // 클래스 종료
+
+class CapturingLLMAdapter implements LLMAdapter // 입력 기록 대화 어댑터
+{ // 클래스 시작
+    public lastInput: LLMInput | null = null; // 최근 입력 기록
+
+    public async *streamReply(input: LLMInput): AsyncIterable<string> // 응답 스트림
+    { // 함수 시작
+        this.lastInput = input; // 입력 저장
+        yield "분기 시점 응답"; // 테스트 응답
     } // 함수 종료
 
     public async summarizeConversation(_input: SummaryInput): Promise<string> // 대화 요약
@@ -87,12 +113,10 @@ class AbortAwareLLMAdapter implements LLMAdapter // 중단 가능 대화 어댑�
         void _input; // 입력 사용 표시
         yield "중단 전 조각"; // 첫 응답 조각
         this.markFirstChunk(); // 첫 조각 알림
-        await new Promise<void>((resolve, reject) => // 후속 조각 대기
+        await new Promise<void>((_resolve, reject) => // 중단 신호 대기
         { // 약속 시작
-            const timeout = setTimeout(resolve, 60); // 기본 완료 예약
             signal?.addEventListener("abort", () => // 중단 감지
             { // 감지 시작
-                clearTimeout(timeout); // 완료 예약 해제
                 reject(new DOMException("응답 중단", "AbortError")); // 중단 오류 반환
             }, { once: true }); // 일회 감지
         }); // 약속 종료
@@ -375,7 +399,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         expect(screen.getByText("중단 전 조각")).toBeInTheDocument(); // 부분 응답 유지 확인
         expect(screen.getByLabelText("메시지")).toBeEnabled(); // 입력 활성화 확인
         expect(screen.getByRole("list", { name: "대화 메시지" })).toHaveAttribute("aria-busy", "false"); // 응답 상태 해제 확인
-    }); // 검증 종료
+    }, 10_000); // 검증 종료
 
     it("수정 응답 성공 뒤에만 새 버전과 토큰 차감을 확정한다", async () => // 수정 원자성 검증
     { // 검증 시작
@@ -390,6 +414,27 @@ describe("채팅 흐름", () => // 채팅 묶음
         expect(after.conversationVersions).toHaveLength(before.conversationVersions.length + 1); // 버전 추가 확인
         expect(after.messages.filter((message) => message.versionId === target.versionId)).toEqual(before.messages.filter((message) => message.versionId === target.versionId)); // 원본 메시지 유지 확인
         expect(after.messages.some((message) => message.sourceMessageId === target.id && message.content === "수정한 기록 이야기")).toBe(true); // 수정 메시지 확인
+    }); // 검증 종료
+
+    it("과거 메시지 수정은 시작 상태부터 분기 시점 관계와 장면을 복원한다", async () => // 분기 시점 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const version = state.conversationVersions.find((item) => item.id === conversation.currentVersionId)!; // 기준 버전 조회
+        version.relationshipLevel = 90; // 이후 관계 상태 적용
+        version.relationshipStage = "특별한 사이"; // 이후 관계 단계 적용
+        version.currentScene = "/images/scenes/later-scene.svg"; // 이후 장면 적용
+        const adapter = new CapturingLLMAdapter(); // 입력 기록 어댑터 생성
+        const controller = new ChatController({ state, conversationId: conversation.id, llm: adapter, images: new MockImageAdapter() }); // 제어기 생성
+        const target = controller.getMessages().find((message) => message.role === "user")!; // 과거 사용자 메시지 조회
+        const result = await controller.editUserMessage(target.id, "분기 시점에서 다시 시작", undefined); // 과거 메시지 수정
+        expect(result.ok).toBe(true); // 수정 성공 확인
+        const nextConversation = controller.snapshot().conversations.find((item) => item.id === conversation.id)!; // 수정 대화 조회
+        const nextVersion = controller.snapshot().conversationVersions.find((item) => item.id === nextConversation.currentVersionId)!; // 수정 버전 조회
+        expect(adapter.lastInput?.version.relationshipLevel).toBe(conversation.startSettings.relationshipLevel); // 응답 관계 입력 확인
+        expect(adapter.lastInput?.version.currentScene).toBe(conversation.startSettings.scene); // 응답 장면 입력 확인
+        expect(nextVersion.relationshipLevel).toBe(conversation.startSettings.relationshipLevel + 1); // 분기 관계 확인
+        expect(nextVersion.currentScene).toBe(conversation.startSettings.scene); // 분기 장면 확인
     }); // 검증 종료
 
     it("빈 값과 같은 문장과 길이 초과와 토큰 부족은 상태를 바꾸지 않는다", async () => // 수정 검증 오류 확인
@@ -513,6 +558,79 @@ describe("채팅 흐름", () => // 채팅 묶음
         await user.click(within(targetItem).getByRole("button", { name: "삭제" })); // 삭제 시도
         expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 원본 유지 확인
         expect(screen.getByRole("status")).toHaveTextContent("백업하지 못해 메시지 삭제를 중단했습니다."); // 중단 안내 확인
+        confirm.mockRestore(); // 확인 함수 복원
+    }); // 검증 종료
+
+    it("버전의 마지막 메시지 삭제를 안내와 함께 차단한다", async () => // 마지막 메시지 삭제 화면 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations.find((item) => item.id === "conversation-rian")!; // 리안 대화 조회
+        const onlyMessage = state.messages.find((message) => message.versionId === conversation.currentVersionId)!; // 단일 메시지 조회
+        state.messages = state.messages.filter((message) => message.versionId !== conversation.currentVersionId || message.id === onlyMessage.id); // 단일 메시지 상태 적용
+        const confirm = vi.spyOn(window, "confirm").mockReturnValue(true); // 삭제 확인 대체
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />, state); // 단일 메시지 화면 렌더
+        const targetItem = screen.getByText(onlyMessage.content).closest("li"); // 삭제 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("마지막 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "삭제" })); // 마지막 메시지 삭제 시도
+        expect(screen.getByText(onlyMessage.content)).toBeVisible(); // 마지막 메시지 유지 확인
+        expect(screen.getByRole("status")).toHaveTextContent("대화 버전의 마지막 메시지는 삭제할 수 없습니다."); // 차단 안내 확인
+        confirm.mockRestore(); // 확인 함수 복원
+    }); // 검증 종료
+
+    it("저장 실패 시 수정 버전과 토큰을 메모리에도 반영하지 않는다", async () => // 저장 실패 원자성 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const repository = // 실패 저장소 생성
+        { // 저장소 시작
+            load: () => state, // 초기 상태 반환
+            save: () => // 저장 실패 함수
+            { // 함수 시작
+                throw new Error("저장 실패"); // 저장 오류 발생
+            }, // 함수 종료
+        }; // 저장소 종료
+        renderWithApp(<><ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} /><VersionStateProbe /></>, state, repository); // 채팅 화면 렌더
+        const targetItem = screen.getByText("오늘 기록할 이야기가 많아.").closest("li"); // 수정 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("수정 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "수정" })); // 수정 시작
+        await user.clear(within(targetItem).getByLabelText("메시지 수정")); // 기존 내용 제거
+        await user.type(within(targetItem).getByLabelText("메시지 수정"), "저장 실패 수정"); // 수정 내용 입력
+        await user.click(within(targetItem).getByRole("button", { name: "수정 전송" })); // 수정 전송
+        expect(await screen.findByRole("alert")).toHaveTextContent("저장하지 못해 원본 대화를 유지했습니다."); // 실패 안내 확인
+        expect(screen.getByLabelText("리안 버전 상태")).toHaveTextContent("1:conversation-rian-version-1:1240"); // 원본 상태 확인
+        expect(screen.queryByLabelText(/대화 버전/)).toBeNull(); // 수정 버전 부재 확인
+    }); // 검증 종료
+
+    it("수정 분기의 기준 메시지 삭제 뒤 해당 분기를 제거하고 원본으로 복귀한다", async () => // 분기 기준 삭제 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const confirm = vi.spyOn(window, "confirm").mockReturnValue(true); // 삭제 확인 대체
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />); // 채팅 화면 렌더
+        const originalItem = screen.getByText("오늘 기록할 이야기가 많아.").closest("li"); // 원본 항목 조회
+        if (originalItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("원본 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(originalItem).getByRole("button", { name: "수정" })); // 수정 시작
+        await user.clear(within(originalItem).getByLabelText("메시지 수정")); // 기존 내용 제거
+        await user.type(within(originalItem).getByLabelText("메시지 수정"), "삭제할 분기 기준 메시지"); // 수정 내용 입력
+        await user.click(within(originalItem).getByRole("button", { name: "수정 전송" })); // 수정 전송
+        const modifiedItem = (await screen.findByText("삭제할 분기 기준 메시지")).closest("li"); // 수정 항목 조회
+        if (modifiedItem === null) // 수정 항목 부재 판정
+        { // 조건 시작
+            throw new Error("수정 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(modifiedItem).getByRole("button", { name: "삭제" })); // 분기 기준 삭제
+        expect(await screen.findByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 원본 메시지 복귀 확인
+        expect(screen.queryByLabelText(/대화 버전/)).toBeNull(); // 삭제 분기 전환기 제거 확인
+        expect(routerReplace).toHaveBeenLastCalledWith("/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1", { scroll: false }); // 원본 주소 확인
         confirm.mockRestore(); // 확인 함수 복원
     }); // 검증 종료
 
