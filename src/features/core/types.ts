@@ -182,6 +182,7 @@ export interface Message // 메시지 구조
     content: string; // 메시지 내용
     emotion: string | null; // 감정 정보
     sceneEvent: string | null; // 장면 사건
+    scenePath?: string | null; // 장면 경로 기록
     createdAt: string; // 생성 시각
 } // 구조 종료
 

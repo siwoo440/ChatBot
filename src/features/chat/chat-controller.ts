@@ -1,4 +1,4 @@
-import { CHAT_MESSAGE_MAX_LENGTH, CHAT_VERSION_LIMIT, createVersionFork, getConversationVersion, getMessageVersionGroup, getVersionMessages } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
+import { CHAT_MESSAGE_MAX_LENGTH, CHAT_VERSION_LIMIT, createVersionFork, getConversationVersion, getMessageVersionGroup, getVersionMessages, type VersionStateInput } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
 import type { AppState, Character, Conversation, ConversationVersion, Message } from "@/features/core/types"; // 앱 타입
 import type { ImageGenerationAdapter } from "@/lib/adapters/image-generation-adapter"; // 이미지 계약
 import type { LLMAdapter } from "@/lib/adapters/llm-adapter"; // 대화 계약
@@ -6,7 +6,7 @@ import { evaluateStory } from "@/lib/story/story-engine"; // 스토리 판정
 import { trySpend } from "@/lib/story/token-policy"; // 토큰 정책
 
 export type SendResult = { ok: true } | { ok: false; reason: "empty" | "too-long" | "busy" | "cancelled" | "insufficient-token" | "missing-conversation" | "missing-message" }; // 전송 결과
-export type EditMessageResult = { ok: true; versionId: string } | { ok: false; reason: "empty" | "unchanged" | "too-long" | "busy" | "cancelled" | "insufficient-token" | "missing-message" | "version-limit" }; // 수정 결과
+export type EditMessageResult = { ok: true; versionId: string } | { ok: false; reason: "empty" | "unchanged" | "too-long" | "busy" | "cancelled" | "insufficient-token" | "missing-message" | "version-limit" | "storage-failed" }; // 수정 결과
 export type SceneResult = { ok: true; path: string } | { ok: false; reason: "busy" | "insufficient-token" | "missing-conversation" }; // 장면 결과
 export type ChatProgressPhase = "user" | "assistant" | "complete"; // 진행 단계
 
@@ -27,6 +27,24 @@ interface ChatAttempt // 채팅 요청 정보
     assistantMessageId: string; // 응답 메시지 식별자
     status: AttemptStatus; // 요청 상태
 } // 구조 종료
+
+function replayForkState(conversation: Conversation, baseVersion: ConversationVersion, messages: Message[]): VersionStateInput // 분기 시점 상태 복원
+{ // 함수 시작
+    let replayVersion: ConversationVersion = { ...baseVersion, relationshipLevel: conversation.startSettings.relationshipLevel, relationshipStage: conversation.startSettings.relationshipStage, emotion: conversation.startSettings.emotion, currentScene: conversation.startSettings.scene, lastMessage: conversation.startSettings.greeting }; // 시작 상태 생성
+    let userMessageCount = 0; // 사용자 메시지 수
+    messages.forEach((message) => // 이전 메시지 순회
+    { // 순회 시작
+        if (message.role === "user") // 사용자 메시지 판정
+        { // 사용자 시작
+            userMessageCount += 1; // 사용자 메시지 증가
+            const story = evaluateStory({ conversation, version: replayVersion, userMessage: message.content, userMessageCount }); // 이전 이야기 재계산
+            replayVersion = { ...replayVersion, relationshipLevel: story.relationshipLevel, relationshipStage: story.relationshipStage, emotion: story.emotion, lastMessage: message.content }; // 관계 상태 반영
+            return; // 다음 메시지 이동
+        } // 사용자 종료
+        replayVersion = { ...replayVersion, emotion: message.emotion ?? replayVersion.emotion, currentScene: message.scenePath ?? replayVersion.currentScene, lastMessage: message.content }; // 응답 상태 반영
+    }); // 순회 종료
+    return { relationshipLevel: replayVersion.relationshipLevel, relationshipStage: replayVersion.relationshipStage, emotion: replayVersion.emotion, currentScene: replayVersion.currentScene, lastMessage: replayVersion.lastMessage }; // 분기 상태 반환
+} // 함수 종료
 
 interface ChatControllerOptions // 제어기 설정
 { // 구조 시작
@@ -132,7 +150,7 @@ export class ChatController // 채팅 제어기
         const now = new Date().toISOString(); // 생성 시각
         const previousAssistant = this.state.messages.find((message) => message.id === assistantMessageId); // 기존 응답 조회
         const promptMessages = this.getMessages().filter((message) => message.id !== assistantMessageId); // 응답 입력 메시지
-        const pendingAssistantMessage: Message = { id: assistantMessageId, conversationId: conversation.id, versionId: version.id, sourceMessageId: null, role: "assistant", content: "", emotion: previousAssistant?.emotion ?? null, sceneEvent: previousAssistant?.sceneEvent ?? null, createdAt: now }; // 임시 응답 메시지
+        const pendingAssistantMessage: Message = { id: assistantMessageId, conversationId: conversation.id, versionId: version.id, sourceMessageId: null, role: "assistant", content: "", emotion: previousAssistant?.emotion ?? null, sceneEvent: previousAssistant?.sceneEvent ?? null, scenePath: previousAssistant?.scenePath ?? version.currentScene, createdAt: now }; // 임시 응답 메시지
         const hasAssistant = this.state.messages.some((message) => message.id === assistantMessageId); // 기존 응답 존재 여부
         const messages = hasAssistant ? this.state.messages.map((message) => message.id === assistantMessageId ? pendingAssistantMessage : message) : [...this.state.messages, pendingAssistantMessage]; // 임시 응답 목록
         this.state = { ...this.state, messages }; // 임시 응답 반영
@@ -209,7 +227,7 @@ export class ChatController // 채팅 제어기
             } // 중요 사건 종료
         } // 조건 종료
         const createdAt = new Date().toISOString(); // 완료 시각
-        const assistantMessage: Message = { id: assistantMessageId, conversationId: conversation.id, versionId: version.id, sourceMessageId: null, role: "assistant", content: reply, emotion, sceneEvent, createdAt }; // 캐릭터 메시지
+        const assistantMessage: Message = { id: assistantMessageId, conversationId: conversation.id, versionId: version.id, sourceMessageId: null, role: "assistant", content: reply, emotion, sceneEvent, scenePath: currentScene, createdAt }; // 캐릭터 메시지
         const updatedVersion = { ...version, relationshipLevel, relationshipStage, emotion, currentScene, lastMessage: reply, updatedAt: createdAt }; // 버전 갱신
         this.state = { ...this.state, messages: this.state.messages.map((message) => message.id === assistantMessageId ? assistantMessage : message), conversationVersions: this.state.conversationVersions.map((item) => item.id === version.id ? updatedVersion : item) }; // 응답 상태 반영
         this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "complete" }; // 완료 상태 기록
@@ -270,6 +288,8 @@ export class ChatController // 채팅 제어기
         const originalState = this.snapshot(); // 원본 상태 보존
         const baseMessages = getVersionMessages(originalState, conversation.id, version.id); // 기준 메시지 조회
         const targetIndex = baseMessages.findIndex((message) => message.id === target.id); // 수정 위치 조회
+        const forkBaseState = replayForkState(conversation, version, baseMessages.slice(0, targetIndex)); // 분기 시점 상태 복원
+        const forkBaseVersion = { ...version, ...forkBaseState }; // 분기 기준 버전 생성
         const editedMessage = { ...target, content }; // 수정 입력 메시지 생성
         const promptMessages = [...baseMessages.slice(0, targetIndex), editedMessage]; // 수정 문맥 생성
         const assistantMessageId = this.nextId("assistant"); // 응답 식별자 생성
@@ -293,7 +313,7 @@ export class ChatController // 채팅 제어기
                     throw new DOMException("응답이 중단되었습니다.", "AbortError"); // 중단 오류 발생
                 } // 조건 종료
                 reply += result.value; // 응답 조각 누적
-                const progressFork = createVersionFork(originalState, { conversationId: conversation.id, baseVersionId: version.id, targetMessageId: target.id, content, assistantMessage: { id: assistantMessageId, role: "assistant", content: reply, emotion: version.emotion, sceneEvent: null, createdAt: now }, versionState: { relationshipLevel: version.relationshipLevel, relationshipStage: version.relationshipStage, emotion: version.emotion, currentScene: version.currentScene, lastMessage: reply }, now }); // 임시 분기 생성
+                const progressFork = createVersionFork(originalState, { conversationId: conversation.id, baseVersionId: version.id, targetMessageId: target.id, content, assistantMessage: { id: assistantMessageId, role: "assistant", content: reply, emotion: forkBaseState.emotion, sceneEvent: null, scenePath: forkBaseState.currentScene, createdAt: now }, versionState: { ...forkBaseState, lastMessage: reply }, now }); // 임시 분기 생성
                 onProgress?.({ state: progressFork.state, phase: "assistant", messageId: assistantMessageId }); // 임시 진행 전달
             } // 순회 종료
             if (abortController.signal.aborted) // 완료 후 중단 판정
@@ -301,8 +321,8 @@ export class ChatController // 채팅 제어기
                 return { ok: false, reason: "cancelled" }; // 중단 결과 반환
             } // 조건 종료
             const userMessageCount = promptMessages.filter((message) => message.role === "user").length; // 사용자 메시지 수 계산
-            const story = evaluateStory({ conversation, version, userMessage: content, userMessageCount }); // 수정 스토리 판정
-            const fork = createVersionFork(originalState, { conversationId: conversation.id, baseVersionId: version.id, targetMessageId: target.id, content, assistantMessage: { id: assistantMessageId, role: "assistant", content: reply, emotion: story.emotion, sceneEvent: null, createdAt: now }, versionState: { relationshipLevel: story.relationshipLevel, relationshipStage: story.relationshipStage, emotion: story.emotion, currentScene: version.currentScene, lastMessage: reply }, now }); // 최종 분기 생성
+            const story = evaluateStory({ conversation, version: forkBaseVersion, userMessage: content, userMessageCount }); // 수정 스토리 판정
+            const fork = createVersionFork(originalState, { conversationId: conversation.id, baseVersionId: version.id, targetMessageId: target.id, content, assistantMessage: { id: assistantMessageId, role: "assistant", content: reply, emotion: story.emotion, sceneEvent: null, scenePath: forkBaseState.currentScene, createdAt: now }, versionState: { relationshipLevel: story.relationshipLevel, relationshipStage: story.relationshipStage, emotion: story.emotion, currentScene: forkBaseState.currentScene, lastMessage: reply }, now }); // 최종 분기 생성
             this.state = { ...fork.state, wallet: spending.wallet }; // 원자적 수정 확정
             this.reportProgress(onProgress, "complete", assistantMessageId); // 완료 상태 전달
             return { ok: true, versionId: fork.version.id }; // 성공 결과 반환

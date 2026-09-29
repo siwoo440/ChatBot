@@ -307,6 +307,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(true); // 복구 상태 확인
         expect(localStorage.getItem(backupKey)).toBe(raw); // 원본 백업 확인
+        expect(localStorage.getItem(stateKey)).toBe(raw); // 원본 상태 유지 확인
     }); // 테스트 종료
 
     it("캐릭터가 없는 스키마 6 대화를 손상 원본으로 보존한다", () => // 캐릭터 누락 검증
@@ -423,6 +424,27 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const snapshot = gateway.createBackupFromState(state, "message-delete", "2026-09-29T14:00:00.000Z"); // 상태 백업 생성
         expect(snapshot.reason).toBe("message-delete"); // 백업 사유 확인
         expect(localStorage.getItem(backupKey)).toBe(JSON.stringify(state)); // 백업 원본 확인
+    }); // 검증 종료
+
+    it("백업이 세 개여도 마이그레이션 실패 원본을 보존한다", () => // 실패 원본 보존 검증
+    { // 검증 시작
+        const gateway = new LocalStorageGateway(localStorage); // 저장소 생성
+        gateway.createBackupFromState(createInitialState(), "manual", "2026-09-29T01:00:00.000Z"); // 첫 백업 생성
+        gateway.createBackupFromState(createInitialState(), "manual", "2026-09-29T02:00:00.000Z"); // 둘째 백업 생성
+        gateway.createBackupFromState(createInitialState(), "manual", "2026-09-29T03:00:00.000Z"); // 셋째 백업 생성
+        const legacy = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 이전 상태 복사
+        restoreLegacyConversationFields(legacy); // 이전 대화 구조 복원
+        legacy.schemaVersion = 6; // 이전 버전 적용
+        delete legacy.conversationVersions; // 버전 목록 제거
+        const conversations = legacy.conversations as Array<Record<string, unknown>>; // 대화 목록 접근
+        conversations.forEach((conversation) => delete conversation.currentVersionId); // 현재 버전 제거
+        legacy.messages = []; // 연결 메시지 제거
+        const raw = JSON.stringify(legacy); // 실패 원본 직렬화
+        localStorage.setItem(stateKey, raw); // 실패 원본 저장
+        gateway.load(); // 마이그레이션 시도
+        expect(localStorage.getItem(stateKey)).toBe(raw); // 원본 상태 유지 확인
+        const exported = JSON.parse(gateway.exportBackupJson() ?? "null") as { backups: string[] }; // 백업 원본 분석
+        expect(exported.backups).toContain(raw); // 복구 백업 확인
     }); // 검증 종료
 
     it("저장공간 오류를 명시적인 쓰기 오류로 변환한다", () => // 저장 실패 검증

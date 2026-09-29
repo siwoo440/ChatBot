@@ -329,7 +329,7 @@ type VersionFourState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 4; 
 type VersionFiveState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 5; conversations: VersionFiveConversation[]; messages: LegacyMessage[] }; // 버전 5 상태 타입
 type VersionSixState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 6; conversations: VersionSixConversation[]; messages: LegacyMessage[]; memories: CharacterMemory[]; likedCharacterIds: string[]; followedCreatorIds: string[]; localReports: CharacterReport[] }; // 버전 6 상태 타입
 
-function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
+export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== 7 // 버전 7 확인
@@ -691,7 +691,13 @@ function preserveCorruptedData(raw: string, storage: Storage): void // 손상 �
         return; // 중복 저장 생략
     } // 중복 원본 종료
     const entry: StoredBackup = { id: `recovery-${backups.length + 1}`, createdAt: null, reason: "recovery", summary: null, raw }; // 복구 백업 생성
-    writeStoredBackups(storage, [...backups, entry]); // 복구 백업 저장
+    writeStoredBackups(storage, [...backups.slice(0, 2), entry]); // 복구 백업 저장
+} // 함수 종료
+
+function rejectStoredState(raw: string, storage: Storage): LoadResult // 저장 상태 거부 함수
+{ // 함수 시작
+    preserveCorruptedData(raw, storage); // 원본 백업
+    return { state: createInitialState(), recovered: true, warning: "저장 데이터가 올바르지 않아 원본을 유지했습니다. 백업 내보내기로 확인해 주세요." }; // 비파괴 결과 반환
 } // 함수 종료
 
 function recoverState(raw: string, storage: Storage): LoadResult // 손상 복구 함수
@@ -723,7 +729,7 @@ function parseAndMigrate(raw: string, storage: Storage): LoadResult // 분석 �
         } // 저장 필요 종료
         return { state: migrated, recovered: false, warning: changed ? "저장 데이터를 최신 버전으로 업데이트했습니다." : null }; // 변환 결과 반환
     } // 변환 성공 종료
-    return recoverState(raw, storage); // 잘못된 상태 복구
+    return rejectStoredState(raw, storage); // 잘못된 상태 비파괴 거부
 } // 함수 종료
 
 export class LocalStorageGateway // 로컬 저장소 클래스

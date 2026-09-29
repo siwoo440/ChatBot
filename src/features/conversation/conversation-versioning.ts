@@ -194,7 +194,10 @@ export function removeMessageFromVersion(state: AppState, versionId: string, mes
     const remaining = versionMessages.filter((message) => !removedIds.has(message.id)); // 현재 버전 잔여 목록
     const lastMessage = remaining.at(-1)?.content ?? ""; // 최근 메시지 결정
     const conversationVersions = state.conversationVersions.map((item) => item.id === versionId ? { ...item, lastMessage } : item); // 버전 요약 갱신
-    return { ...state, messages, conversationVersions }; // 삭제 상태 반환
+    const sourceMessageId = target.sourceMessageId ?? target.id; // 원본 메시지 식별자 조회
+    const returnToRoot = version.forkRootVersionId !== null && version.forkedFromMessageId === sourceMessageId; // 분기 기준 삭제 판정
+    const conversations = returnToRoot ? state.conversations.map((conversation) => conversation.id === version.conversationId ? { ...conversation, currentVersionId: version.forkRootVersionId as string } : conversation) : state.conversations; // 원본 버전 복귀
+    return { ...state, conversations, messages, conversationVersions }; // 삭제 상태 반환
 } // 함수 종료
 
 export function removeVersionTree(state: AppState, conversationId: string, versionId: string): VersionDeletionResult // 버전 트리 삭제

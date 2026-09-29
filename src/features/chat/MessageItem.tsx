@@ -22,7 +22,7 @@ interface MessageItemProps // 메시지 항목 속성
 
 function editError(result: Exclude<EditMessageResult, { ok: true }>): string // 수정 오류 문구 생성
 { // 함수 시작
-    const messages = { empty: "수정할 내용을 입력해 주세요.", unchanged: "기존 메시지와 같은 내용입니다.", "too-long": `메시지는 ${CHAT_MESSAGE_MAX_LENGTH.toLocaleString("ko-KR")}자까지 입력할 수 있습니다.`, busy: "응답 중에는 수정할 수 없습니다.", cancelled: "수정 응답을 중단했습니다.", "insufficient-token": "수정에 사용할 토큰이 부족합니다.", "missing-message": "수정할 메시지를 찾지 못했습니다.", "version-limit": "같은 메시지의 대화 버전은 10개까지 만들 수 있습니다." }; // 오류 문구 목록
+    const messages = { empty: "수정할 내용을 입력해 주세요.", unchanged: "기존 메시지와 같은 내용입니다.", "too-long": `메시지는 ${CHAT_MESSAGE_MAX_LENGTH.toLocaleString("ko-KR")}자까지 입력할 수 있습니다.`, busy: "응답 중에는 수정할 수 없습니다.", cancelled: "수정 응답을 중단했습니다.", "insufficient-token": "수정에 사용할 토큰이 부족합니다.", "missing-message": "수정할 메시지를 찾지 못했습니다.", "version-limit": "같은 메시지의 대화 버전은 10개까지 만들 수 있습니다.", "storage-failed": "저장하지 못해 원본 대화를 유지했습니다." }; // 오류 문구 목록
     return messages[result.reason]; // 오류 문구 반환
 } // 함수 종료
 

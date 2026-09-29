@@ -19,6 +19,7 @@ interface AppStore // 앱 저장소
     dispatch: Dispatch<AppAction>; // 동작 전달
     storageError: string | null; // 저장 오류
     createBackup(reason: BackupReason): boolean; // 현재 상태 백업
+    commitState(nextState: AppState): boolean; // 원자적 상태 저장
 } // 구조 종료
 
 interface AppProviderProps // 공급자 속성
@@ -105,7 +106,34 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             return false; // 백업 실패 반환
         } // 오류 종료
     }, [repository, state]); // 함수 종료
-    const value = useMemo(() => ({ state, dispatch, storageError, createBackup }), [createBackup, state, storageError]); // 문맥 값
+    const commitState = useCallback((nextState: AppState): boolean => // 원자적 상태 저장 함수
+    { // 함수 시작
+        try // 저장 시도
+        { // 시도 시작
+            if (repository !== undefined) // 주입 저장소 판정
+            { // 조건 시작
+                repository.save(nextState); // 주입 저장 실행
+            } // 조건 종료
+            else // 기본 저장소 선택
+            { // 기본 시작
+                new LocalStorageGateway(window.localStorage).save(nextState); // 브라우저 저장 실행
+            } // 기본 종료
+            hydrated.current = false; // 중복 저장 보류
+            dispatch({ type: "replace-state", state: nextState }); // 메모리 상태 확정
+            queueMicrotask(() => // 저장 상태 정리 예약
+            { // 작업 시작
+                hydrated.current = true; // 자동 저장 재개
+                setStorageError(null); // 저장 오류 해제
+            }); // 작업 종료
+            return true; // 저장 성공 반환
+        } // 시도 종료
+        catch // 저장 실패 처리
+        { // 실패 시작
+            setStorageError("저장하지 못해 변경 내용을 적용하지 않았습니다."); // 저장 오류 안내
+            return false; // 저장 실패 반환
+        } // 실패 종료
+    }, [repository]); // 함수 종료
+    const value = useMemo(() => ({ state, dispatch, storageError, createBackup, commitState }), [commitState, createBackup, state, storageError]); // 문맥 값
     return <AppContext.Provider value={value}>{restored ? children : <p role="status">로컬 대화를 불러오는 중입니다.</p>}</AppContext.Provider>; // 공급자 반환
 } // 함수 종료
 

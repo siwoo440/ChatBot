@@ -70,4 +70,16 @@ describe("대화 내보내기와 가져오기", () => // 파일 묶음
         Array.from({ length: 10 }, (_value, index) => index + 1).forEach((suffix) => addFork(overLimit, suffix)); // 열 개 수정 버전 추가
         expect(() => parseConversationExport(JSON.stringify(overLimit))).toThrow(); // 제한 초과 거부 확인
     }); // 검증 종료
+
+    it("잘못된 시작 설정과 현재 앱에 없는 캐릭터 대화를 거부한다", () => // 전체 상태 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const invalidSettings = createConversationExport(state, state.conversations[0].id); // 설정 오류 파일 생성
+        invalidSettings.conversation.startSettings = {} as typeof invalidSettings.conversation.startSettings; // 빈 시작 설정 적용
+        expect(() => parseConversationExport(JSON.stringify(invalidSettings))).toThrow(); // 시작 설정 거부 확인
+        const missingCharacter = createConversationExport(state, state.conversations[0].id); // 캐릭터 오류 파일 생성
+        missingCharacter.conversation.characterId = "missing-character"; // 없는 캐릭터 적용
+        expect(() => mergeConversationExport(state, missingCharacter)).toThrow(); // 전체 상태 연결 거부 확인
+        expect(state.conversations).toHaveLength(createInitialState().conversations.length); // 기존 상태 불변 확인
+    }); // 검증 종료
 }); // 묶음 종료

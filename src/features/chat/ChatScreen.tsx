@@ -31,7 +31,7 @@ interface ChatScreenProps // 채팅 화면 속성
 
 export function ChatScreen({ characterId, initialConversationId, initialVersionId, llm, images }: ChatScreenProps) // 채팅 화면
 { // 함수 시작
-    const { state, dispatch, createBackup } = useAppStore(); // 앱 상태
+    const { state, dispatch, createBackup, commitState } = useAppStore(); // 앱 상태
     const router = useRouter(); // 경로 이동기
     const [prepared] = useState(() => // 초기 대화 준비
     { // 초기화 시작
@@ -114,6 +114,7 @@ export function ChatScreen({ characterId, initialConversationId, initialVersionI
     }; // 함수 종료
     const editMessage = async (messageId: string, text: string): Promise<EditMessageResult> => // 메시지 수정
     { // 함수 시작
+        const originalState = controller.snapshot(); // 수정 전 상태 보존
         setBusy(true); // 응답 상태 시작
         setNotice(""); // 기존 안내 해제
         const updateProgress = (progress: ChatProgress) => // 수정 진행 처리
@@ -124,11 +125,23 @@ export function ChatScreen({ characterId, initialConversationId, initialVersionI
         try // 수정 요청 시도
         { // 시도 시작
             const result = await controller.editUserMessage(messageId, text, updateProgress); // 수정 요청 실행
-            sync(); // 확정 상태 동기화
             if (result.ok) // 수정 성공 판정
             { // 조건 시작
+                const nextState = controller.snapshot(); // 수정 상태 조회
+                if (!commitState(nextState)) // 저장 실패 판정
+                { // 실패 시작
+                    controller.replaceState(originalState); // 제어 상태 복원
+                    setSnapshot(originalState); // 화면 상태 복원
+                    setNotice("저장하지 못해 원본 대화를 유지했습니다."); // 저장 실패 안내
+                    return { ok: false, reason: "storage-failed" }; // 저장 실패 반환
+                } // 실패 종료
+                setSnapshot(nextState); // 확정 화면 반영
                 replaceRoute(createConversationHref(characterId, conversation.id, result.versionId) as Route, { scroll: false }); // 새 버전 주소 적용
             } // 조건 종료
+            else // 수정 실패 판정
+            { // 실패 시작
+                sync(); // 원본 상태 동기화
+            } // 실패 종료
             setNotice(result.ok ? "새 대화 버전을 만들었습니다." : result.reason === "cancelled" ? "수정 응답을 중단했습니다." : "메시지를 수정하지 못했습니다."); // 수정 안내 갱신
             return result; // 수정 결과 반환
         } // 시도 종료
@@ -157,6 +170,11 @@ export function ChatScreen({ characterId, initialConversationId, initialVersionI
         } // 조건 종료
         const nextState = appReducer(controller.snapshot(), { type: "delete-version-message", versionId: version.id, messageId: message.id }); // 메시지 삭제 상태 생성
         applyControllerState(nextState); // 삭제 상태 적용
+        const nextConversation = nextState.conversations.find((item) => item.id === conversation.id); // 삭제 후 대화 조회
+        if (nextConversation !== undefined && nextConversation.currentVersionId !== version.id) // 원본 복귀 판정
+        { // 조건 시작
+            replaceRoute(createConversationHref(characterId, nextConversation.id, nextConversation.currentVersionId) as Route, { scroll: false }); // 복귀 주소 적용
+        } // 조건 종료
         setNotice("현재 버전에서 메시지를 삭제했습니다."); // 삭제 안내
     }; // 함수 종료
     const selectVersion = (versionId: string, direction: "previous" | "next") => // 대화 버전 선택
