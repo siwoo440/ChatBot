@@ -90,6 +90,7 @@ export function createLocalRepositoryProvider(storage: Storage): LocalRepository
             updateState((state) => // 상태 변경
             { // 변경 시작
                 state.conversations = state.conversations.filter((conversation) => conversation.id !== id); // 대화 제거
+                state.conversationVersions = state.conversationVersions.filter((version) => version.conversationId !== id); // 버전 제거
                 state.messages = state.messages.filter((message) => message.conversationId !== id); // 메시지 제거
                 state.selectedConversationId = state.selectedConversationId === id ? null : state.selectedConversationId; // 선택 상태 정리
             }); // 변경 종료

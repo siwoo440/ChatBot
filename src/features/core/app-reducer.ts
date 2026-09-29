@@ -1,4 +1,5 @@
-import type { AppSettings, AppState, Character, CharacterReport, Conversation, Message, PublicationStatus, UserProfile } from "@/features/core/types"; // 상태 타입
+import { removeMessageFromVersion, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 변경 함수
+import type { AppSettings, AppState, Character, CharacterReport, Conversation, ConversationVersion, Message, PublicationStatus, UserProfile } from "@/features/core/types"; // 상태 타입
 import { trySpend, type TokenAction } from "@/lib/story/token-policy"; // 토큰 정책
 
 export type AppAction = // 앱 동작
@@ -17,6 +18,10 @@ export type AppAction = // 앱 동작
     | { type: "add-character-report"; report: CharacterReport } // 캐릭터 신고 추가
     | { type: "set-publication-status"; characterId: string; status: PublicationStatus } // 발행 상태 변경
     | { type: "select-conversation"; conversationId: string | null } // 대화 선택
+    | { type: "select-conversation-version"; conversationId: string; versionId: string } // 대화 버전 선택
+    | { type: "apply-conversation-version"; conversationId: string; version: ConversationVersion; messages: Message[] } // 대화 버전 적용
+    | { type: "delete-conversation-version"; conversationId: string; versionId: string } // 대화 버전 삭제
+    | { type: "delete-version-message"; versionId: string; messageId: string } // 버전 메시지 삭제
     | { type: "rename-conversation"; conversationId: string; title: string } // 대화 이름 변경
     | { type: "archive-conversation"; conversationId: string; archivedAt: string } // 대화 보관
     | { type: "restore-conversation"; conversationId: string } // 대화 복구
@@ -62,6 +67,7 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
                 ...state, // 기존 상태 복사
                 characters: state.characters.filter((character) => character.id !== action.characterId), // 캐릭터 제거
                 conversations: state.conversations.filter((conversation) => conversation.characterId !== action.characterId), // 연결 대화 제거
+                conversationVersions: state.conversationVersions.filter((version) => !conversationIds.includes(version.conversationId)), // 연결 버전 제거
                 messages: state.messages.filter((message) => !conversationIds.includes(message.conversationId)), // 연결 메시지 제거
                 bookmarkedCharacterIds: state.bookmarkedCharacterIds.filter((id) => id !== action.characterId), // 보관 상태 제거
                 likedCharacterIds: state.likedCharacterIds.filter((id) => id !== action.characterId), // 좋아요 상태 제거
@@ -118,6 +124,37 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             return { ...state, characters: state.characters.map((character) => character.id === action.characterId ? { ...character, publicationStatus: action.status } : character) }; // 발행 상태 반환
         case "select-conversation": // 대화 선택
             return { ...state, selectedConversationId: action.conversationId }; // 선택 상태 반환
+        case "select-conversation-version": // 대화 버전 선택
+        { // 선택 범위 시작
+            const valid = state.conversationVersions.some((version) => version.id === action.versionId && version.conversationId === action.conversationId); // 버전 연결 확인
+            return valid ? { ...state, conversations: state.conversations.map((conversation) => conversation.id === action.conversationId ? { ...conversation, currentVersionId: action.versionId } : conversation) } : state; // 선택 상태 반환
+        } // 선택 범위 종료
+        case "apply-conversation-version": // 대화 버전 적용
+        { // 적용 범위 시작
+            const validConversation = state.conversations.some((conversation) => conversation.id === action.conversationId); // 대화 존재 확인
+            const validPayload = action.version.conversationId === action.conversationId && action.messages.every((message) => message.conversationId === action.conversationId && message.versionId === action.version.id); // 버전 연결 확인
+            if (!validConversation || !validPayload) // 잘못된 입력 판정
+            { // 조건 시작
+                return state; // 기존 상태 반환
+            } // 조건 종료
+            const conversationVersions = [...state.conversationVersions.filter((version) => version.id !== action.version.id), structuredClone(action.version)]; // 버전 목록 생성
+            const messages = [...state.messages.filter((message) => message.versionId !== action.version.id), ...structuredClone(action.messages)]; // 메시지 목록 생성
+            const conversations = state.conversations.map((conversation) => conversation.id === action.conversationId ? { ...conversation, currentVersionId: action.version.id, updatedAt: action.version.updatedAt } : conversation); // 대화 선택 갱신
+            return { ...state, conversations, conversationVersions, messages }; // 적용 상태 반환
+        } // 적용 범위 종료
+        case "delete-conversation-version": // 대화 버전 삭제
+        { // 삭제 범위 시작
+            try // 삭제 시도
+            { // 시도 시작
+                return removeVersionTree(state, action.conversationId, action.versionId).state; // 삭제 상태 반환
+            } // 시도 종료
+            catch // 삭제 오류 처리
+            { // 오류 시작
+                return state; // 기존 상태 반환
+            } // 오류 종료
+        } // 삭제 범위 종료
+        case "delete-version-message": // 버전 메시지 삭제
+            return removeMessageFromVersion(state, action.versionId, action.messageId); // 메시지 삭제 상태 반환
         case "rename-conversation": // 대화 이름 변경
         { // 변경 범위 시작
             const title = action.title.trim(); // 이름 공백 정리
@@ -132,7 +169,7 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
         case "restore-conversation": // 대화 복구
             return { ...state, conversations: state.conversations.map((conversation) => conversation.id === action.conversationId ? { ...conversation, archivedAt: null } : conversation) }; // 복구 상태 반환
         case "delete-conversation": // 대화 삭제
-            return { ...state, conversations: state.conversations.filter((conversation) => conversation.id !== action.conversationId), messages: state.messages.filter((message) => message.conversationId !== action.conversationId), selectedConversationId: state.selectedConversationId === action.conversationId ? null : state.selectedConversationId }; // 삭제 상태 반환
+            return { ...state, conversations: state.conversations.filter((conversation) => conversation.id !== action.conversationId), conversationVersions: state.conversationVersions.filter((version) => version.conversationId !== action.conversationId), messages: state.messages.filter((message) => message.conversationId !== action.conversationId), selectedConversationId: state.selectedConversationId === action.conversationId ? null : state.selectedConversationId }; // 삭제 상태 반환
         case "spend-token": // 토큰 차감
         { // 차감 범위 시작
             const result = trySpend(state.wallet, action.action); // 차감 실행

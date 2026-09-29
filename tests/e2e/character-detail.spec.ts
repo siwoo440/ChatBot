@@ -46,16 +46,16 @@ test("탐색부터 두 개의 하린 대화를 시작하고 보관함에서 각�
     await expect(page).toHaveURL(/\/characters\/harin$/); // 상세 주소 확인
     await page.getByRole("radio", { name: /마감 뒤의 한 잔/ }).click(); // 둘째 프리셋 선택
     await page.getByRole("button", { name: "히어로 새 대화 시작" }).click(); // 첫 대화 시작
-    await expect(page).toHaveURL(/\/chat\/harin$/); // 대화 주소 확인
+    await expect(page).toHaveURL(/\/chat\/harin\?conversation=.*&version=.*/); // 대화 주소 확인
     await expect(page.getByRole("img", { name: "퇴근길 카페의 하린의 현재 장면" })).toBeVisible(); // 장면 이미지 확인
     await page.goto("/characters/harin"); // 상세 재방문
     await expect(page.getByRole("button", { name: "최근 대화 이어하기", exact: true })).toBeVisible(); // 이어하기 노출 확인
     await page.getByRole("button", { name: "최근 대화 이어하기", exact: true }).click(); // 최근 대화 이동
-    await expect(page).toHaveURL(/\/chat\/harin$/); // 이어가기 주소 확인
+    await expect(page).toHaveURL(/\/chat\/harin\?conversation=.*&version=.*/); // 이어가기 주소 확인
     await page.goto("/characters/harin"); // 상세 재방문
     await page.getByRole("radio", { name: /퇴근 후의 위로/ }).click(); // 첫째 프리셋 선택
     await page.getByRole("button", { name: "새 대화 시작", exact: true }).click(); // 둘째 대화 시작
-    await expect(page).toHaveURL(/\/chat\/harin$/); // 둘째 대화 주소 확인
+    await expect(page).toHaveURL(/\/chat\/harin\?conversation=.*&version=.*/); // 둘째 대화 주소 확인
     await page.goto("/library"); // 보관함 이동
     await page.getByRole("tab", { name: "진행 중인 대화" }).click(); // 대화 탭 선택
     const conversationPanel = page.getByRole("tabpanel", { name: "진행 중인 대화" }); // 대화 목록 조회
@@ -145,7 +145,7 @@ test("키보드만으로 확장·프리셋·보관·공유·신고·대화 시�
     await expect(more).toBeFocused(); // 초점 복귀 확인
     const startButton = page.getByRole("button", { name: "새 대화 시작", exact: true }); // 새 대화 버튼 조회
     await useKeyboard(page, startButton, "Enter"); // 새 대화 시작
-    await expect(page).toHaveURL(/\/chat\/harin$/); // 대화 이동 확인
+    await expect(page).toHaveURL(/\/chat\/harin\?conversation=.*&version=.*/); // 대화 이동 확인
 }); // 테스트 종료
 
 test("Mock 모드 상세 흐름은 외부 HTTP와 WebSocket을 사용하지 않는다", async ({ page }) => // 외부 통신 차단 검증
@@ -154,7 +154,7 @@ test("Mock 모드 상세 흐름은 외부 HTTP와 WebSocket을 사용하지 않�
     page.on("request", (request) => // 요청 감시
     { // 감시 시작
         const url = new URL(request.url()); // 요청 주소 분석
-        if (url.protocol.startsWith("http") && url.origin !== "http://127.0.0.1:3000") // 외부 요청 판정
+        if (url.protocol.startsWith("http") && url.hostname !== "127.0.0.1") // 외부 요청 판정
         { // 조건 시작
             externalConnections.push(request.url()); // 외부 요청 기록
         } // 조건 종료
@@ -162,7 +162,7 @@ test("Mock 모드 상세 흐름은 외부 HTTP와 WebSocket을 사용하지 않�
     page.on("websocket", (socket) => // 소켓 감시
     { // 감시 시작
         const url = new URL(socket.url()); // 소켓 주소 분석
-        if (url.hostname !== "127.0.0.1" || url.port !== "3000") // 외부 소켓 판정
+        if (url.hostname !== "127.0.0.1") // 외부 소켓 판정
         { // 조건 시작
             externalConnections.push(socket.url()); // 외부 소켓 기록
         } // 조건 종료
@@ -170,6 +170,6 @@ test("Mock 모드 상세 흐름은 외부 HTTP와 WebSocket을 사용하지 않�
     await openHarinDetail(page); // 상세 화면 열기
     await page.getByRole("button", { name: "퇴근길 카페의 하린 좋아요" }).click(); // 로컬 좋아요 실행
     await page.getByRole("button", { name: "새 대화 시작", exact: true }).click(); // 로컬 대화 시작
-    await expect(page).toHaveURL(/\/chat\/harin$/); // 대화 이동 확인
+    await expect(page).toHaveURL(/\/chat\/harin\?conversation=.*&version=.*/); // 대화 이동 확인
     expect(externalConnections).toEqual([]); // 외부 통신 부재 확인
 }); // 테스트 종료

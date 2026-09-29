@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"; // 사용자 동작 도구
 import { beforeEach, describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import { CharacterDetail } from "@/features/character/CharacterDetail"; // 캐릭터 상세
+import { resolveConversationRoute } from "@/features/character/character-detail-model"; // 대화 주소 선택
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태 훅
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더 도구
 
@@ -33,6 +34,16 @@ describe("캐릭터 상세 대화 시작", () => // 상세 묶음
         routerPush.mockReset(); // 이동 기록 초기화
         Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined }); // 클립보드 초기화
     }); // 초기화 종료
+
+    it("다른 캐릭터 버전 주소를 요청하면 대상 캐릭터의 원본 버전으로 복구한다", () => // 교차 주소 복구 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const selection = resolveConversationRoute(state, "rian", "conversation-sera", "conversation-sera-version-1"); // 잘못된 주소 선택
+        expect(selection.conversation.id).toBe("conversation-rian"); // 대상 대화 확인
+        expect(selection.version.id).toBe("conversation-rian-version-1"); // 원본 버전 확인
+        expect(selection.canonicalHref).toBe("/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 정규 주소 확인
+        expect(selection.recovered).toBe(true); // 복구 여부 확인
+    }); // 검증 종료
 
     it("하린의 히어로 정보와 샘플 지표를 표시한다", () => // 히어로 표시 검증
     { // 검증 시작
@@ -120,12 +131,15 @@ describe("캐릭터 상세 대화 시작", () => // 상세 묶음
         const user = userEvent.setup(); // 사용자 도구 생성
         const state = createInitialState(); // 초기 상태 생성
         const base = state.conversations[0]; // 기준 대화 조회
-        state.conversations.push({ ...base, id: "conversation-harin-older", characterId: "harin", title: "오래된 하린 대화", updatedAt: "2026-09-28T09:00:00.000Z" }); // 이전 대화 추가
-        state.conversations.push({ ...base, id: "conversation-harin-latest", characterId: "harin", title: "최근 하린 대화", updatedAt: "2026-09-29T09:00:00.000Z" }); // 최신 대화 추가
+        const baseVersion = state.conversationVersions[0]; // 기준 버전 조회
+        state.conversations.push({ ...base, id: "conversation-harin-older", characterId: "harin", title: "오래된 하린 대화", currentVersionId: "conversation-harin-older-version-1", updatedAt: "2026-09-28T09:00:00.000Z" }); // 이전 대화 추가
+        state.conversationVersions.push({ ...baseVersion, id: "conversation-harin-older-version-1", conversationId: "conversation-harin-older" }); // 이전 버전 추가
+        state.conversations.push({ ...base, id: "conversation-harin-latest", characterId: "harin", title: "최근 하린 대화", currentVersionId: "conversation-harin-latest-version-1", updatedAt: "2026-09-29T09:00:00.000Z" }); // 최신 대화 추가
+        state.conversationVersions.push({ ...baseVersion, id: "conversation-harin-latest-version-1", conversationId: "conversation-harin-latest" }); // 최신 버전 추가
         renderWithApp(<><CharacterDetail characterId="harin" /><CharacterConversationProbe characterId="harin" /></>, state); // 상세 화면 렌더
         expect(screen.getByText("최근 하린 대화")).toBeVisible(); // 최근 대화 표시 확인
         await user.click(screen.getByRole("button", { name: "최근 대화 이어하기" })); // 이어하기 실행
-        expect(routerPush).toHaveBeenCalledWith("/chat/harin"); // 대화 경로 확인
+        expect(routerPush).toHaveBeenCalledWith("/chat/harin?conversation=conversation-harin-latest&version=conversation-harin-latest-version-1"); // 대화 경로 확인
     }); // 검증 종료
 
     it("새 대화 시작을 빠르게 두 번 눌러도 대화를 하나만 만든다", async () => // 중복 생성 검증

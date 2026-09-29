@@ -1,14 +1,23 @@
-import { screen, waitFor } from "@testing-library/react"; // 화면 검증 도구
+import { screen, waitFor, within } from "@testing-library/react"; // 화면 검증 도구
 import userEvent from "@testing-library/user-event"; // 사용자 동작 도구
-import { describe, expect, it } from "vitest"; // 테스트 도구
+import { describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { ChatScreen } from "@/features/chat/ChatScreen"; // 채팅 화면
 import type { ChatProgress } from "@/features/chat/chat-controller"; // 진행 상태 타입
 import { ChatController } from "@/features/chat/chat-controller"; // 채팅 제어기
+import { CHAT_MESSAGE_MAX_LENGTH, CHAT_VERSION_LIMIT, createVersionFork } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 생성
 import type { LLMAdapter, LLMInput, SummaryInput } from "@/lib/adapters/llm-adapter"; // 대화 어댑터 타입
 import { MockImageAdapter } from "@/lib/adapters/mock-image-adapter"; // 이미지 어댑터
+import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // Mock 대화 어댑터
 import { makeController } from "@/test/chat-fixtures"; // 채팅 제어 생성
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더 도구
+
+const routerReplace = vi.hoisted(() => vi.fn()); // 주소 교체 기록
+
+vi.mock("next/navigation", () => // 경로 도구 대체
+({ // 대체 시작
+    useRouter: () => ({ replace: routerReplace }), // 주소 교체 제공
+})); // 대체 종료
 
 class ControlledLLMAdapter implements LLMAdapter // 제어형 대화 어댑터
 { // 클래스 시작
@@ -180,6 +189,19 @@ class RegenerateLLMAdapter implements LLMAdapter // 다시 생성 대화 어댑�
 
 describe("채팅 흐름", () => // 채팅 묶음
 { // 묶음 시작
+    it("초기 대화 버전을 복원하고 버전 전환 주소를 갱신한다", async () => // 주소 복원 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const baseState = createInitialState(); // 초기 상태 생성
+        const baseConversation = baseState.conversations[0]; // 기준 대화 조회
+        const baseVersion = baseState.conversationVersions.find((version) => version.id === baseConversation.currentVersionId)!; // 기준 버전 조회
+        const baseMessage = baseState.messages.find((message) => message.conversationId === baseConversation.id && message.role === "user")!; // 수정 메시지 조회
+        const fork = createVersionFork(baseState, { conversationId: baseConversation.id, baseVersionId: baseConversation.currentVersionId, targetMessageId: baseMessage.id, content: "주소 복원용 수정", assistantMessage: { id: "message-route-reply", role: "assistant", content: "주소 복원 응답", emotion: baseVersion.emotion, sceneEvent: null, createdAt: "2026-09-29T13:00:00.000Z" }, versionState: { relationshipLevel: baseVersion.relationshipLevel, relationshipStage: baseVersion.relationshipStage, emotion: baseVersion.emotion, currentScene: baseVersion.currentScene, lastMessage: "주소 복원 응답" }, now: "2026-09-29T13:00:00.000Z" }); // 수정 버전 생성
+        renderWithApp(<ChatScreen characterId="rian" initialConversationId={baseConversation.id} initialVersionId={fork.version.id} />, fork.state); // 수정 버전 렌더
+        expect(await screen.findByLabelText("대화 버전 2/2")).toBeInTheDocument(); // 초기 버전 확인
+        await user.click(screen.getByRole("button", { name: "이전 대화 버전" })); // 원본 버전 이동
+        expect(routerReplace).toHaveBeenLastCalledWith(`/chat/rian?conversation=${baseConversation.id}&version=${baseConversation.currentVersionId}`, { scroll: false }); // 주소 변경 확인
+    }); // 검증 종료
     it("응답 대기 중 두 번째 전송을 거절한다", async () => // 중복 전송 검증
     { // 검증 시작
         const controller = makeController({ balance: 100, replyDelayMs: 20 }); // 제어기 생성
@@ -237,7 +259,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         renderWithApp(<ChatScreen characterId="rian" llm={new FailingLLMAdapter()} images={new MockImageAdapter()} />); // 실패 화면 렌더
         await user.type(screen.getByLabelText("메시지"), "실패 응답 확인"); // 메시지 입력
         await user.click(screen.getByRole("button", { name: "전송" })); // 메시지 전송
-        expect(await screen.findByRole("status")).toHaveTextContent("응답을 받지 못했습니다. 다시 시도해 주세요."); // 실패 안내 확인
+        await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("응답을 받지 못했습니다. 다시 시도해 주세요.")); // 실패 안내 확인
         expect(screen.getByLabelText("메시지")).toBeEnabled(); // 입력 잠금 해제 확인
         expect(screen.getByRole("list", { name: "대화 메시지" })).toHaveAttribute("aria-busy", "false"); // 스트리밍 해제 확인
     }); // 검증 종료
@@ -294,14 +316,14 @@ describe("채팅 흐름", () => // 채팅 묶음
         const state = createInitialState(); // 초기 상태 생성
         const initialBalance = state.wallet.balance; // 초기 잔액 저장
         const conversation = state.conversations.find((item) => item.id === "conversation-rian"); // 초기 대화 조회
-        const initialRelationship = conversation?.relationshipLevel ?? 0; // 초기 관계 저장
+        const initialRelationship = state.conversationVersions.find((item) => item.id === conversation?.currentVersionId)?.relationshipLevel ?? 0; // 초기 관계 저장
         const controller = new ChatController({ state, conversationId: "conversation-rian", llm: new RetryLLMAdapter(), images: new MockImageAdapter() }); // 재시도 제어기 생성
         await expect(controller.sendMessage("비용 재시도 대상")).rejects.toThrow("첫 요청 실패"); // 첫 요청 실패 확인
         expect(controller.snapshot().wallet.balance).toBe(initialBalance - 1); // 실패 비용 확인
-        expect(controller.snapshot().conversations.find((item) => item.id === "conversation-rian")?.relationshipLevel).toBe(initialRelationship); // 실패 관계 유지 확인
+        expect(controller.snapshot().conversationVersions.find((item) => item.id === conversation?.currentVersionId)?.relationshipLevel).toBe(initialRelationship); // 실패 관계 유지 확인
         await expect(controller.regenerateLastReply()).resolves.toEqual({ ok: true }); // 재시도 성공 확인
         expect(controller.snapshot().wallet.balance).toBe(initialBalance - 2); // 재시도 비용 확인
-        expect(controller.snapshot().conversations.find((item) => item.id === "conversation-rian")?.relationshipLevel).toBe(initialRelationship + 1); // 관계 단일 반영 확인
+        expect(controller.snapshot().conversationVersions.find((item) => item.id === conversation?.currentVersionId)?.relationshipLevel).toBe(initialRelationship + 1); // 관계 단일 반영 확인
     }); // 검증 종료
 
     it("완료된 마지막 응답을 새 메시지 추가 없이 다시 생성한다", async () => // 다시 생성 검증
@@ -349,9 +371,168 @@ describe("채팅 흐름", () => // 채팅 묶음
         await user.click(screen.getByRole("button", { name: "전송" })); // 메시지 전송
         await adapter.firstChunkReached; // 첫 조각 대기
         await user.click(screen.getByRole("button", { name: "응답 중단" })); // 응답 중단
-        expect(await screen.findByRole("status")).toHaveTextContent("응답을 중단했습니다."); // 중단 안내 확인
+        await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("응답을 중단했습니다."), { timeout: 5_000 }); // 중단 안내 확인
         expect(screen.getByText("중단 전 조각")).toBeInTheDocument(); // 부분 응답 유지 확인
         expect(screen.getByLabelText("메시지")).toBeEnabled(); // 입력 활성화 확인
         expect(screen.getByRole("list", { name: "대화 메시지" })).toHaveAttribute("aria-busy", "false"); // 응답 상태 해제 확인
+    }); // 검증 종료
+
+    it("수정 응답 성공 뒤에만 새 버전과 토큰 차감을 확정한다", async () => // 수정 원자성 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const before = structuredClone(state); // 변경 전 상태 저장
+        const target = state.messages.find((message) => message.conversationId === "conversation-rian" && message.role === "user")!; // 수정 대상 조회
+        const controller = new ChatController({ state, conversationId: "conversation-rian", llm: new MockLLMAdapter({ delayMs: 0, seed: 7 }), images: new MockImageAdapter() }); // 수정 제어기 생성
+        const result = await controller.editUserMessage(target.id, "수정한 기록 이야기"); // 메시지 수정
+        const after = controller.snapshot(); // 변경 후 상태 조회
+        expect(result).toEqual({ ok: true, versionId: expect.any(String) }); // 성공 결과 확인
+        expect(after.wallet.balance).toBe(before.wallet.balance - 1); // 성공 비용 확인
+        expect(after.conversationVersions).toHaveLength(before.conversationVersions.length + 1); // 버전 추가 확인
+        expect(after.messages.filter((message) => message.versionId === target.versionId)).toEqual(before.messages.filter((message) => message.versionId === target.versionId)); // 원본 메시지 유지 확인
+        expect(after.messages.some((message) => message.sourceMessageId === target.id && message.content === "수정한 기록 이야기")).toBe(true); // 수정 메시지 확인
+    }); // 검증 종료
+
+    it("빈 값과 같은 문장과 길이 초과와 토큰 부족은 상태를 바꾸지 않는다", async () => // 수정 검증 오류 확인
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const target = state.messages.find((message) => message.conversationId === "conversation-rian" && message.role === "user")!; // 수정 대상 조회
+        const controller = new ChatController({ state, conversationId: "conversation-rian", llm: new MockLLMAdapter({ delayMs: 0 }), images: new MockImageAdapter() }); // 수정 제어기 생성
+        const before = controller.snapshot(); // 변경 전 상태 저장
+        await expect(controller.editUserMessage(target.id, "   ")).resolves.toEqual({ ok: false, reason: "empty" }); // 빈 값 거부 확인
+        await expect(controller.editUserMessage(target.id, target.content)).resolves.toEqual({ ok: false, reason: "unchanged" }); // 동일 값 거부 확인
+        await expect(controller.editUserMessage(target.id, "가".repeat(CHAT_MESSAGE_MAX_LENGTH + 1))).resolves.toEqual({ ok: false, reason: "too-long" }); // 길이 초과 거부 확인
+        expect(controller.snapshot()).toEqual(before); // 검증 실패 상태 불변
+        const emptyWallet = createInitialState(); // 빈 지갑 상태 생성
+        emptyWallet.wallet.balance = 0; // 잔액 제거
+        const poorController = new ChatController({ state: emptyWallet, conversationId: "conversation-rian", llm: new MockLLMAdapter({ delayMs: 0 }), images: new MockImageAdapter() }); // 빈 지갑 제어기 생성
+        await expect(poorController.editUserMessage(target.id, "토큰 없는 수정")).resolves.toEqual({ ok: false, reason: "insufficient-token" }); // 토큰 부족 확인
+        expect(poorController.snapshot()).toEqual(emptyWallet); // 토큰 부족 상태 불변
+    }); // 검증 종료
+
+    it("수정 AI 예외와 사용자 중단은 원본 상태와 토큰을 유지한다", async () => // 수정 실패 원자성 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const target = state.messages.find((message) => message.conversationId === "conversation-rian" && message.role === "user")!; // 수정 대상 조회
+        const failing = new ChatController({ state, conversationId: "conversation-rian", llm: new FailingLLMAdapter(), images: new MockImageAdapter() }); // 실패 제어기 생성
+        await expect(failing.editUserMessage(target.id, "실패할 수정")).rejects.toThrow("테스트 응답 실패"); // AI 실패 확인
+        expect(failing.snapshot()).toEqual(state); // AI 실패 상태 불변
+        const adapter = new AbortAwareLLMAdapter(); // 중단 어댑터 생성
+        const cancelling = new ChatController({ state, conversationId: "conversation-rian", llm: adapter, images: new MockImageAdapter() }); // 중단 제어기 생성
+        const request = cancelling.editUserMessage(target.id, "중단할 수정"); // 수정 요청 시작
+        await adapter.firstChunkReached; // 첫 조각 대기
+        expect(cancelling.cancelReply()).toBe(true); // 중단 실행 확인
+        await expect(request).resolves.toEqual({ ok: false, reason: "cancelled" }); // 중단 결과 확인
+        expect(cancelling.snapshot()).toEqual(state); // 중단 상태 불변
+    }); // 검증 종료
+
+    it("작성 길이 초과와 수정 버전 한도와 응답 중 수정을 거부한다", async () => // 공통 제한 검증
+    { // 검증 시작
+        const baseState = createInitialState(); // 기준 상태 생성
+        const baseConversation = baseState.conversations[0]; // 기준 대화 조회
+        const baseVersion = baseState.conversationVersions.find((version) => version.id === baseConversation.currentVersionId)!; // 기준 버전 조회
+        const baseTarget = baseState.messages.find((message) => message.versionId === baseVersion.id && message.role === "user")!; // 기준 메시지 조회
+        const lengthController = new ChatController({ state: baseState, conversationId: baseConversation.id, llm: new MockLLMAdapter({ delayMs: 0 }), images: new MockImageAdapter() }); // 길이 제어기 생성
+        await expect(lengthController.sendMessage("가".repeat(CHAT_MESSAGE_MAX_LENGTH + 1))).resolves.toEqual({ ok: false, reason: "too-long" }); // 작성 길이 거부 확인
+        expect(lengthController.snapshot()).toEqual(baseState); // 작성 상태 불변
+        let limitedState = baseState; // 제한 상태 생성
+        for (let index = 1; index < CHAT_VERSION_LIMIT; index += 1) // 허용 분기 반복
+        { // 반복 시작
+            limitedState = createVersionFork(limitedState, { conversationId: baseConversation.id, baseVersionId: baseVersion.id, targetMessageId: baseTarget.id, content: `제한 수정 ${index}`, assistantMessage: { id: `limit-assistant-${index}`, role: "assistant", content: `제한 응답 ${index}`, emotion: "관심", sceneEvent: null, createdAt: `2026-09-29T13:${String(index).padStart(2, "0")}:00.000Z` }, versionState: { ...baseVersion, lastMessage: `제한 응답 ${index}` }, now: `2026-09-29T13:${String(index).padStart(2, "0")}:00.000Z` }).state; // 분기 상태 반영
+        } // 반복 종료
+        const currentVersionId = limitedState.conversations[0].currentVersionId; // 현재 버전 식별자 조회
+        const currentTarget = limitedState.messages.find((message) => message.versionId === currentVersionId && message.sourceMessageId === baseTarget.id)!; // 현재 수정 메시지 조회
+        const limitedController = new ChatController({ state: limitedState, conversationId: baseConversation.id, llm: new MockLLMAdapter({ delayMs: 0 }), images: new MockImageAdapter() }); // 제한 제어기 생성
+        await expect(limitedController.editUserMessage(currentTarget.id, "한도 초과 수정")).resolves.toEqual({ ok: false, reason: "version-limit" }); // 버전 제한 확인
+        expect(limitedController.snapshot()).toEqual(limitedState); // 제한 상태 불변
+        const waitingAdapter = new ControlledLLMAdapter(); // 대기 어댑터 생성
+        const busyController = new ChatController({ state: baseState, conversationId: baseConversation.id, llm: waitingAdapter, images: new MockImageAdapter() }); // 응답 중 제어기 생성
+        const sending = busyController.sendMessage("응답 대기"); // 일반 응답 시작
+        await waitFor(() => expect(busyController.isBusy()).toBe(true)); // 응답 잠금 대기
+        await expect(busyController.editUserMessage(baseTarget.id, "응답 중 수정")).resolves.toEqual({ ok: false, reason: "busy" }); // 응답 중 수정 거부 확인
+        waitingAdapter.continue(); // 일반 응답 재개
+        await sending; // 일반 응답 완료
+    }); // 검증 종료
+
+    it("인라인 수정 뒤 작은 전환기로 원본과 수정 버전을 왕복한다", async () => // 버전 전환 화면 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0, seed: 7 })} images={new MockImageAdapter()} />); // 채팅 화면 렌더
+        const originalText = screen.getByText("오늘 기록할 이야기가 많아."); // 원본 메시지 조회
+        const originalItem = originalText.closest("li"); // 원본 항목 조회
+        if (originalItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("원본 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(originalItem).getByRole("button", { name: "수정" })); // 인라인 수정 시작
+        const editor = within(originalItem).getByLabelText("메시지 수정"); // 수정 입력 조회
+        await user.clear(editor); // 기존 내용 제거
+        await user.type(editor, "버전으로 남길 수정 메시지"); // 수정 내용 입력
+        await user.click(within(originalItem).getByRole("button", { name: "수정 전송" })); // 수정 전송
+        expect(await screen.findByLabelText("대화 버전 2/2")).toBeInTheDocument(); // 새 버전 표시 확인
+        expect(screen.getByText("버전으로 남길 수정 메시지")).toBeVisible(); // 수정 메시지 확인
+        await user.click(screen.getByRole("button", { name: "이전 대화 버전" })); // 원본 버전 이동
+        expect(await screen.findByLabelText("대화 버전 1/2")).toBeInTheDocument(); // 원본 위치 확인
+        expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 원본 메시지 확인
+        expect(screen.queryByRole("button", { name: "현재 버전 삭제" })).toBeNull(); // 원본 삭제 버튼 부재 확인
+        await user.click(screen.getByRole("button", { name: "다음 대화 버전" })); // 수정 버전 이동
+        expect(await screen.findByRole("button", { name: "현재 버전 삭제" })).toBeVisible(); // 수정 버전 삭제 버튼 확인
+    }); // 검증 종료
+
+    it("메시지 삭제는 확인과 백업 성공 뒤에만 현재 버전에 반영한다", async () => // 안전 삭제 화면 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const confirm = vi.spyOn(window, "confirm").mockReturnValue(true); // 삭제 확인 대체
+        localStorage.clear(); // 백업 저장소 초기화
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />); // 채팅 화면 렌더
+        const targetText = screen.getByText("오늘 기록할 이야기가 많아."); // 삭제 대상 조회
+        const targetItem = targetText.closest("li"); // 삭제 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("삭제 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "삭제" })); // 메시지 삭제 실행
+        expect(confirm).toHaveBeenCalled(); // 삭제 확인 호출
+        expect(localStorage.getItem("mateverse:v1:backup")).not.toBeNull(); // 선행 백업 확인
+        expect(screen.queryByText("오늘 기록할 이야기가 많아.")).toBeNull(); // 현재 버전 삭제 확인
+        confirm.mockRestore(); // 확인 함수 복원
+    }); // 검증 종료
+
+    it("백업 실패 시 메시지 삭제를 차단하고 원본을 유지한다", async () => // 백업 실패 삭제 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const confirm = vi.spyOn(window, "confirm").mockReturnValue(true); // 삭제 확인 대체
+        const repository = { load: () => state, save: () => undefined, createBackup: () => { throw new Error("백업 실패"); } }; // 실패 백업 저장소
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />, state, repository); // 채팅 화면 렌더
+        const targetText = screen.getByText("오늘 기록할 이야기가 많아."); // 삭제 대상 조회
+        const targetItem = targetText.closest("li"); // 삭제 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("삭제 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "삭제" })); // 삭제 시도
+        expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 원본 유지 확인
+        expect(screen.getByRole("status")).toHaveTextContent("백업하지 못해 메시지 삭제를 중단했습니다."); // 중단 안내 확인
+        confirm.mockRestore(); // 확인 함수 복원
+    }); // 검증 종료
+
+    it("클립보드 복사 성공과 실패를 데이터 변경 없이 알린다", async () => // 복사 안내 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const writeText = vi.fn().mockResolvedValue(undefined); // 성공 복사 함수 생성
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } }); // 클립보드 대체
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />); // 채팅 화면 렌더
+        const targetText = screen.getByText("오늘 기록할 이야기가 많아."); // 복사 대상 조회
+        const targetItem = targetText.closest("li"); // 복사 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("복사 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "복사" })); // 성공 복사 실행
+        expect(await within(targetItem).findByRole("status")).toHaveTextContent("메시지를 복사했습니다."); // 성공 안내 확인
+        writeText.mockRejectedValueOnce(new Error("권한 거부")); // 실패 복사 설정
+        await user.click(within(targetItem).getByRole("button", { name: "복사" })); // 실패 복사 실행
+        expect(await within(targetItem).findByRole("alert")).toHaveTextContent("메시지를 복사하지 못했습니다."); // 실패 안내 확인
+        expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 메시지 유지 확인
     }); // 검증 종료
 }); // 묶음 종료

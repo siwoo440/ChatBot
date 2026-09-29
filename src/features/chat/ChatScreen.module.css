@@ -55,20 +55,6 @@
     list-style: none; /* 번호 제거 */
 } /* 목록 종료 */
 
-.story li /* 메시지 항목 */
-{ /* 항목 시작 */
-    max-width: 82%; /* 메시지 너비 */
-    padding: 12px 14px; /* 내부 여백 */
-    border-radius: 16px; /* 말풍선 모서리 */
-    background: #1a1f2b; /* 말풍선 배경 */
-} /* 항목 종료 */
-
-.story li[data-role="user"] /* 사용자 메시지 */
-{ /* 사용자 시작 */
-    align-self: flex-end; /* 오른쪽 정렬 */
-    background: #6d42c7; /* 사용자 배경 */
-} /* 사용자 종료 */
-
 .story li[data-streaming="true"] /* 스트리밍 메시지 */
 { /* 스트리밍 시작 */
     border: 1px solid #8f72dc; /* 진행 테두리 */
@@ -87,16 +73,6 @@
     vertical-align: -0.12em; /* 글자 기준 정렬 */
     animation: streaming-pulse 900ms ease-in-out infinite; /* 진행 동작 */
 } /* 표시 종료 */
-
-.story li button /* 메시지 동작 버튼 */
-{ /* 버튼 시작 */
-    margin-top: 8px; /* 상단 간격 */
-    padding: 6px 10px; /* 내부 여백 */
-    border: 1px solid #62558a; /* 버튼 테두리 */
-    border-radius: 10px; /* 둥근 모서리 */
-    background: #171321; /* 버튼 배경 */
-    color: #ded5ff; /* 버튼 글자 */
-} /* 버튼 종료 */
 
 .requestActions /* 요청 동작 영역 */
 { /* 영역 시작 */

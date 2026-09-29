@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
             <AppHeader leftOpen={state.settings.leftPanelOpen} rightOpen={state.settings.rightPanelOpen} onToggleLeft={toggleLeft} onToggleRight={toggleRight} onNavigate={closePanelsForNavigation} leftButtonRef={leftButtonRef} rightButtonRef={rightButtonRef} /> {/* 앱 헤더 */}
             {storageError === null ? null : <p className={styles.storageError} role="alert">{storageError}</p>} {/* 저장 오류 */}
             <div className={styles.grid}> {/* 패널 그리드 */}
-                <ConversationPanel conversations={state.conversations} open={state.settings.leftPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 대화 패널 */}
+                <ConversationPanel state={state} open={state.settings.leftPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 대화 패널 */}
                 <div className={styles.content}>{children}</div> {/* 중앙 콘텐츠 */}
                 <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 사용자 패널 */}
             </div> {/* 그리드 종료 */}

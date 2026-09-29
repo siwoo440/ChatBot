@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest"; // 테스트 도구
 import { MockImageAdapter } from "@/lib/adapters/mock-image-adapter"; // 이미지 어댑터
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // 대화 어댑터
 import type { LLMInput } from "@/lib/adapters/llm-adapter"; // 대화 입력
-import { mockCharacters, mockConversations } from "@/mocks/fixtures"; // Mock 데이터
+import { mockCharacters, mockConversations, mockConversationVersions } from "@/mocks/fixtures"; // Mock 데이터
 
 function makeInput(content: string): LLMInput // 입력 생성
 { // 함수 시작
-    return { character: mockCharacters[0], conversation: mockConversations[0], messages: [{ id: "test-user-message", conversationId: mockConversations[0].id, role: "user", content, emotion: null, sceneEvent: null, createdAt: "2026-09-22T00:00:00.000Z" }] }; // 입력 반환
+    return { character: mockCharacters[0], conversation: mockConversations[0], version: mockConversationVersions[0], messages: [{ id: "test-user-message", conversationId: mockConversations[0].id, versionId: mockConversationVersions[0].id, sourceMessageId: null, role: "user", content, emotion: null, sceneEvent: null, createdAt: "2026-09-22T00:00:00.000Z" }] }; // 입력 반환
 } // 함수 종료
 
 async function collect(chunks: AsyncIterable<string>): Promise<string> // 스트림 수집

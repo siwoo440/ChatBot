@@ -1,6 +1,7 @@
 "use client"; // 클라이언트 컴포넌트
 
 import { useState, type FormEvent } from "react"; // 리액트 상태
+import { CHAT_MESSAGE_MAX_LENGTH } from "@/features/conversation/conversation-versioning"; // 메시지 길이 제한
 
 interface ChatComposerProps // 채팅 입력 속성
 { // 구조 시작
@@ -25,7 +26,7 @@ export function ChatComposer({ busy, onSend, onCancel }: ChatComposerProps) // �
     }; // 함수 종료
     return ( // 입력 반환
         <form onSubmit={submit}> {/* 전송 양식 */}
-            <label><span className="sr-only">메시지</span><textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="이야기를 이어가세요" disabled={busy} /></label> {/* 메시지 입력 */}
+            <label><span className="sr-only">메시지</span><textarea value={text} maxLength={CHAT_MESSAGE_MAX_LENGTH} onChange={(event) => setText(event.target.value)} placeholder="이야기를 이어가세요" disabled={busy} /></label> {/* 메시지 입력 */}
             {busy ? <button type="button" onClick={onCancel}>응답 중단</button> : <button type="submit" disabled={text.trim().length === 0}>전송</button>} {/* 요청 제어 버튼 */}
         </form> // 양식 종료
     ); // 반환 종료

@@ -1,15 +1,16 @@
 "use client"; // 클라이언트 컴포넌트
 
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type ReactNode } from "react"; // 리액트 도구
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type ReactNode } from "react"; // 리액트 도구
 import { appReducer, type AppAction } from "@/features/core/app-reducer"; // 앱 리듀서
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import type { AppState } from "@/features/core/types"; // 상태 타입
-import { LocalStorageGateway } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
+import { LocalStorageGateway, type BackupReason } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
 
 export interface StateRepository // 상태 저장 계약
 { // 구조 시작
     load(): AppState; // 상태 읽기
     save(state: AppState): void; // 상태 저장
+    createBackup?(state: AppState, reason: BackupReason): void; // 상태 백업
 } // 구조 종료
 
 interface AppStore // 앱 저장소
@@ -17,6 +18,7 @@ interface AppStore // 앱 저장소
     state: AppState; // 현재 상태
     dispatch: Dispatch<AppAction>; // 동작 전달
     storageError: string | null; // 저장 오류
+    createBackup(reason: BackupReason): boolean; // 현재 상태 백업
 } // 구조 종료
 
 interface AppProviderProps // 공급자 속성
@@ -32,6 +34,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
 { // 함수 시작
     const [state, dispatch] = useReducer(appReducer, initialState); // 상태 리듀서
     const [storageError, setStorageError] = useState<string | null>(null); // 저장 오류 상태
+    const [restored, setRestored] = useState(repository !== undefined); // 저장 복원 상태
     const hydrated = useRef(false); // 복원 완료 표시
     useEffect(() => // 최초 복원 효과
     { // 효과 시작
@@ -51,6 +54,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             } // 조건 종료
             dispatch({ type: "replace-state", state: restoredState }); // 저장 상태 복원
             hydrated.current = true; // 복원 완료
+            setRestored(true); // 화면 복원 완료
         }); // 작업 종료
         return () => // 효과 정리
         { // 정리 시작
@@ -80,8 +84,29 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             queueMicrotask(() => setStorageError("저장하지 못했습니다. 브라우저 저장공간을 확인해 주세요.")); // 오류 안내 예약
         } // 오류 종료
     }, [repository, state]); // 상태 변경 의존
-    const value = useMemo(() => ({ state, dispatch, storageError }), [state, storageError]); // 문맥 값
-    return <AppContext.Provider value={value}>{children}</AppContext.Provider>; // 공급자 반환
+    const createBackup = useCallback((reason: BackupReason): boolean => // 상태 백업 함수
+    { // 함수 시작
+        try // 백업 시도
+        { // 시도 시작
+            if (repository?.createBackup !== undefined) // 주입 백업 확인
+            { // 주입 백업 시작
+                repository.createBackup(state, reason); // 주입 상태 백업
+            } // 주입 백업 종료
+            else // 기본 백업 선택
+            { // 기본 백업 시작
+                new LocalStorageGateway(window.localStorage).createBackupFromState(state, reason); // 브라우저 상태 백업
+            } // 기본 백업 종료
+            setStorageError(null); // 백업 오류 해제
+            return true; // 백업 성공 반환
+        } // 시도 종료
+        catch // 백업 오류 처리
+        { // 오류 시작
+            setStorageError("백업하지 못했습니다. 삭제를 중단했습니다."); // 백업 오류 안내
+            return false; // 백업 실패 반환
+        } // 오류 종료
+    }, [repository, state]); // 함수 종료
+    const value = useMemo(() => ({ state, dispatch, storageError, createBackup }), [createBackup, state, storageError]); // 문맥 값
+    return <AppContext.Provider value={value}>{restored ? children : <p role="status">로컬 대화를 불러오는 중입니다.</p>}</AppContext.Provider>; // 공급자 반환
 } // 함수 종료
 
 export function useAppStore(): AppStore // 앱 저장소 훅

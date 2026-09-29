@@ -17,6 +17,12 @@ function StorageErrorProbe() // 저장 오류 표시
     return storageError === null ? <span>정상</span> : <p role="alert">{storageError}</p>; // 오류 상태 반환
 } // 함수 종료
 
+function BackupProbe() // 백업 동작 표시
+{ // 함수 시작
+    const { createBackup } = useAppStore(); // 백업 함수 조회
+    return <button type="button" onClick={() => createBackup("version-delete")}>백업 실행</button>; // 백업 버튼 반환
+} // 함수 종료
+
 describe("앱 상태 복원", () => // 복원 묶음
 { // 묶음 시작
     it("복원 상태를 적용하기 전에 초기 상태를 저장하지 않는다", async () => // 덮어쓰기 방지 검증
@@ -43,5 +49,16 @@ describe("앱 상태 복원", () => // 복원 묶음
         }; // 저장소 종료
         render(<AppProvider repository={repository}><StorageErrorProbe /></AppProvider>); // 공급자 렌더
         await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("저장하지 못했습니다.")); // 오류 안내 확인
+    }); // 검증 종료
+
+    it("현재 상태 백업 성공 여부를 화면 동작에 제공한다", async () => // 백업 계약 검증
+    { // 검증 시작
+        const restored = createInitialState(); // 복원 상태 생성
+        const events: string[] = []; // 호출 기록 생성
+        const repository: StateRepository = { load: () => restored, save: () => events.push("save"), createBackup: (_state, reason) => events.push(`backup:${reason}`) }; // 백업 저장소 생성
+        render(<AppProvider repository={repository}><BackupProbe /></AppProvider>); // 공급자 렌더
+        await waitFor(() => expect(events).toContain("save")); // 복원 완료 대기
+        screen.getByRole("button", { name: "백업 실행" }).click(); // 백업 실행
+        expect(events).toContain("backup:version-delete"); // 백업 호출 확인
     }); // 검증 종료
 }); // 묶음 종료

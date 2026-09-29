@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { CharacterDetail } from "@/features/character/CharacterDetail"; // 캐릭터 상세
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태 훅
 import { LibraryScreen } from "@/features/library/LibraryScreen"; // 보관함 대상
+import { createConversationExport } from "@/features/conversation/conversation-export"; // 대화 내보내기
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더
 
@@ -84,13 +85,48 @@ describe("로컬 보관함", () => // 보관함 묶음
         expect(screen.getByLabelText("대화 개수")).toHaveTextContent(`${state.conversations.length - 1}:${state.messages.length - expectedMessages}`); // 연결 데이터 제거 확인
     }); // 검증 종료
 
+    it("대화 카드가 마지막 선택 버전 주소와 요약을 사용한다", async () => // 버전 카드 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const original = state.conversationVersions[0]; // 원본 버전 조회
+        const versionId = `${conversation.id}-version-2`; // 수정 버전 식별자
+        state.conversationVersions.push({ ...original, id: versionId, parentVersionId: original.id, forkRootVersionId: original.id, ordinal: 2, lastMessage: "수정 버전의 최근 대화", updatedAt: "2026-09-29T12:00:00.000Z" }); // 수정 버전 추가
+        conversation.currentVersionId = versionId; // 현재 버전 변경
+        renderWithApp(<LibraryScreen />, state); // 보관함 렌더
+        await user.click(screen.getByRole("tab", { name: "진행 중인 대화" })); // 대화 탭 이동
+        const link = screen.getByRole("link", { name: /새벽 도서관의 리안/ }); // 대화 링크 조회
+        expect(link).toHaveAttribute("href", `/chat/rian?conversation=${conversation.id}&version=${versionId}`); // 버전 주소 확인
+        expect(link).toHaveTextContent("수정 버전의 최근 대화"); // 버전 요약 확인
+    }); // 검증 종료
+
+    it("JSON 대화 파일을 안전하게 가져오고 잘못된 파일은 상태를 유지한다", async () => // 파일 가져오기 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const exported = createConversationExport(state, state.conversations[0].id); // 정상 파일 생성
+        renderWithApp(<><LibraryScreen /><ConversationProbe /></>, state); // 보관함 렌더
+        await user.click(screen.getByRole("tab", { name: "진행 중인 대화" })); // 대화 탭 이동
+        const input = screen.getByLabelText("대화 가져오기"); // 파일 입력 조회
+        await user.upload(input, new File([JSON.stringify(exported)], "conversation.json", { type: "application/json" })); // 정상 파일 선택
+        expect(await screen.findByRole("status")).toHaveTextContent("가져왔습니다"); // 성공 안내 확인
+        expect(screen.getByLabelText("대화 개수")).toHaveTextContent(`${state.conversations.length + 1}:`); // 대화 추가 확인
+        await user.upload(input, new File(["{not-json"], "broken.json", { type: "application/json" })); // 오류 파일 선택
+        expect(await screen.findByRole("status")).toHaveTextContent("가져오지 못했습니다"); // 실패 안내 확인
+        expect(screen.getByLabelText("대화 개수")).toHaveTextContent(`${state.conversations.length + 1}:`); // 기존 상태 유지 확인
+    }); // 검증 종료
+
     it("같은 캐릭터의 여러 대화에 제목과 시작 설정과 최근 시각을 구분해 표시한다", async () => // 다중 대화 표시 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구 생성
         const state = createInitialState(); // 초기 상태 준비
         const base = state.conversations[0]; // 기준 대화 조회
-        state.conversations.push({ ...base, id: "conversation-harin-first", characterId: "harin", title: "하린과 비 오는 저녁", startSettings: { ...base.startSettings, presetId: "after-work-comfort" }, updatedAt: "2026-09-28T09:00:00.000Z" }); // 첫 대화 추가
-        state.conversations.push({ ...base, id: "conversation-harin-second", characterId: "harin", title: "하린과 마감 뒤", startSettings: { ...base.startSettings, presetId: "closing-time" }, updatedAt: "2026-09-29T10:30:00.000Z" }); // 둘째 대화 추가
+        const baseVersion = state.conversationVersions.find((version) => version.id === base.currentVersionId)!; // 기준 버전 조회
+        state.conversations.push({ ...base, id: "conversation-harin-first", characterId: "harin", title: "하린과 비 오는 저녁", currentVersionId: "conversation-harin-first-version-1", startSettings: { ...base.startSettings, presetId: "after-work-comfort" }, updatedAt: "2026-09-28T09:00:00.000Z" }); // 첫 대화 추가
+        state.conversationVersions.push({ ...baseVersion, id: "conversation-harin-first-version-1", conversationId: "conversation-harin-first", updatedAt: "2026-09-28T09:00:00.000Z" }); // 첫 버전 추가
+        state.conversations.push({ ...base, id: "conversation-harin-second", characterId: "harin", title: "하린과 마감 뒤", currentVersionId: "conversation-harin-second-version-1", startSettings: { ...base.startSettings, presetId: "closing-time" }, updatedAt: "2026-09-29T10:30:00.000Z" }); // 둘째 대화 추가
+        state.conversationVersions.push({ ...baseVersion, id: "conversation-harin-second-version-1", conversationId: "conversation-harin-second", updatedAt: "2026-09-29T10:30:00.000Z" }); // 둘째 버전 추가
         renderWithApp(<LibraryScreen />, state); // 보관함 렌더
         await user.click(screen.getByRole("tab", { name: "진행 중인 대화" })); // 대화 탭 이동
         expect(screen.getByText("하린과 비 오는 저녁")).toBeVisible(); // 첫 제목 확인
