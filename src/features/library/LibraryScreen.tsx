@@ -3,9 +3,9 @@
 import Image from "next/image"; // 최적화 이미지
 import Link from "next/link"; // 내부 링크
 import type { Route } from "next"; // 경로 타입
-import { useState } from "react"; // 리액트 상태
+import { useState, type ChangeEvent } from "react"; // 리액트 상태
 import { createConversationHref, getCharacterDetailProfile } from "@/features/character/character-detail-model"; // 상세 프로필 조회
-import { createConversationExport } from "@/features/conversation/conversation-export"; // 대화 내보내기
+import { createConversationExport, mergeConversationExport, parseConversationExport } from "@/features/conversation/conversation-export"; // 대화 파일 도구
 import { getConversationSummary, type ConversationSummary } from "@/features/conversation/conversation-versioning"; // 대화 요약 조회
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import type { Character, Conversation } from "@/features/core/types"; // 도메인 타입
@@ -13,6 +13,17 @@ import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 
 import styles from "@/features/library/LibraryScreen.module.css"; // 보관함 스타일
 
 type LibraryTab = "created" | "drafts" | "bookmarks" | "conversations"; // 보관함 탭
+
+function readTextFile(file: File): Promise<string> // 텍스트 파일 읽기
+{ // 함수 시작
+    return new Promise((resolve, reject) => // 읽기 약속 생성
+    { // 약속 시작
+        const reader = new FileReader(); // 파일 읽기 도구 생성
+        reader.addEventListener("load", () => resolve(typeof reader.result === "string" ? reader.result : "")); // 읽기 완료 처리
+        reader.addEventListener("error", () => reject(reader.error ?? new Error("file-read-failed"))); // 읽기 실패 처리
+        reader.readAsText(file); // 텍스트 읽기 시작
+    }); // 약속 종료
+} // 함수 종료
 
 const tabs: Array<{ id: LibraryTab; label: string }> = // 탭 목록
 [ // 목록 시작
@@ -98,6 +109,7 @@ function ConversationGrid() // 대화 목록
     const [renameTarget, setRenameTarget] = useState<Conversation | null>(null); // 이름 변경 대상
     const [renameDraft, setRenameDraft] = useState(""); // 이름 변경 초안
     const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null); // 삭제 대상
+    const [importStatus, setImportStatus] = useState(""); // 가져오기 안내
     const active = state.conversations.filter((conversation) => conversation.archivedAt === null); // 진행 대화 목록
     const archived = state.conversations.filter((conversation) => conversation.archivedAt !== null); // 보관 대화 목록
     const summaries = new Map(state.conversations.flatMap((conversation) => // 대화 요약 색인
@@ -121,9 +133,31 @@ function ConversationGrid() // 대화 목록
     }; // 함수 종료
     const exportConversation = (conversation: Conversation) => // 대화 내보내기 함수
     { // 함수 시작
-        const content = JSON.stringify(createConversationExport(conversation, state.messages), null, 2); // 내보내기 JSON 생성
+        const content = JSON.stringify(createConversationExport(state, conversation.id), null, 2); // 내보내기 JSON 생성
         const filename = `${conversation.title.replace(/[^0-9A-Za-z가-힣_-]+/g, "-") || "conversation"}.json`; // 안전한 파일명 생성
         downloadJsonFile(filename, content); // 파일 다운로드
+    }; // 함수 종료
+    const importConversation = async (event: ChangeEvent<HTMLInputElement>) => // 대화 가져오기 함수
+    { // 함수 시작
+        const input = event.currentTarget; // 파일 입력 참조
+        const file = input.files?.[0]; // 선택 파일 조회
+        if (file === undefined) // 파일 부재 판정
+        { // 조건 시작
+            return; // 가져오기 중단
+        } // 조건 종료
+        try // 가져오기 시도
+        { // 시도 시작
+            const raw = await readTextFile(file); // 파일 내용 읽기
+            const imported = parseConversationExport(raw); // 대화 파일 검증
+            const nextState = mergeConversationExport(state, imported); // 대화 상태 병합
+            dispatch({ type: "replace-state", state: nextState }); // 가져오기 상태 저장
+            setImportStatus(`대화 “${nextState.conversations.at(-1)?.title ?? imported.conversation.title}”을 가져왔습니다.`); // 성공 안내
+        } // 시도 종료
+        catch // 가져오기 실패 처리
+        { // 실패 시작
+            setImportStatus("대화 파일을 가져오지 못했습니다. 형식과 버전 관계를 확인해 주세요."); // 실패 안내
+        } // 실패 종료
+        input.value = ""; // 파일 선택 초기화
     }; // 함수 종료
     const deleteConversation = () => // 대화 삭제 함수
     { // 함수 시작
@@ -135,12 +169,14 @@ function ConversationGrid() // 대화 목록
         setDeleteTarget(null); // 대화상자 닫기
     }; // 함수 종료
     const messageCount = deleteTarget === null ? 0 : state.messages.filter((message) => message.conversationId === deleteTarget.id).length; // 삭제 메시지 수
-    if (state.conversations.length === 0) // 빈 목록 판정
-    { // 조건 시작
-        return <div className={styles.empty}><strong>진행 중인 대화가 없습니다.</strong><p>캐릭터 상세 화면에서 첫 대화를 시작해 보세요.</p><Link href="/">캐릭터 탐색하기</Link></div>; // 빈 화면
-    } // 조건 종료
     return ( // 목록 반환
         <div className={styles.conversationSections}> {/* 대화 구역 */}
+            <div className={styles.importToolbar}> {/* 가져오기 도구 */}
+                <div><strong>대화 파일 가져오기</strong><span>내보낸 JSON 파일의 모든 대화 버전을 복원합니다.</span></div> {/* 가져오기 설명 */}
+                <label>JSON 파일 선택<input type="file" accept="application/json,.json" aria-label="대화 가져오기" onChange={importConversation} /></label> {/* 파일 입력 */}
+                {importStatus.length === 0 ? null : <p role="status">{importStatus}</p>} {/* 가져오기 안내 */}
+            </div> {/* 가져오기 도구 종료 */}
+            {state.conversations.length === 0 ? <div className={styles.empty}><strong>진행 중인 대화가 없습니다.</strong><p>캐릭터 상세 화면에서 첫 대화를 시작하거나 JSON 파일을 가져오세요.</p><Link href="/">캐릭터 탐색하기</Link></div> : null} {/* 빈 화면 */}
             <ConversationSection title="진행 중인 대화" conversations={active} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} /> {/* 진행 대화 */}
             {archived.length === 0 ? null : <ConversationSection title="보관한 대화" conversations={archived} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} />} {/* 보관 대화 */}
             {deleteTarget === null ? null : <div className={styles.dialogBackdrop}><section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="conversation-delete-title"><span>DELETE CONVERSATION</span><h2 id="conversation-delete-title">대화 삭제</h2><p><strong>{deleteTarget.title}</strong>과 연결된 메시지 {messageCount}개를 삭제합니다.</p><div><button type="button" onClick={() => setDeleteTarget(null)}>취소</button><button type="button" className={styles.danger} onClick={deleteConversation}>대화 삭제 확인</button></div></section></div>} {/* 삭제 대화상자 */}

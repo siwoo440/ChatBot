@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { CharacterDetail } from "@/features/character/CharacterDetail"; // 캐릭터 상세
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태 훅
 import { LibraryScreen } from "@/features/library/LibraryScreen"; // 보관함 대상
+import { createConversationExport } from "@/features/conversation/conversation-export"; // 대화 내보내기
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더
 
@@ -98,6 +99,22 @@ describe("로컬 보관함", () => // 보관함 묶음
         const link = screen.getByRole("link", { name: /새벽 도서관의 리안/ }); // 대화 링크 조회
         expect(link).toHaveAttribute("href", `/chat/rian?conversation=${conversation.id}&version=${versionId}`); // 버전 주소 확인
         expect(link).toHaveTextContent("수정 버전의 최근 대화"); // 버전 요약 확인
+    }); // 검증 종료
+
+    it("JSON 대화 파일을 안전하게 가져오고 잘못된 파일은 상태를 유지한다", async () => // 파일 가져오기 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const exported = createConversationExport(state, state.conversations[0].id); // 정상 파일 생성
+        renderWithApp(<><LibraryScreen /><ConversationProbe /></>, state); // 보관함 렌더
+        await user.click(screen.getByRole("tab", { name: "진행 중인 대화" })); // 대화 탭 이동
+        const input = screen.getByLabelText("대화 가져오기"); // 파일 입력 조회
+        await user.upload(input, new File([JSON.stringify(exported)], "conversation.json", { type: "application/json" })); // 정상 파일 선택
+        expect(await screen.findByRole("status")).toHaveTextContent("가져왔습니다"); // 성공 안내 확인
+        expect(screen.getByLabelText("대화 개수")).toHaveTextContent(`${state.conversations.length + 1}:`); // 대화 추가 확인
+        await user.upload(input, new File(["{not-json"], "broken.json", { type: "application/json" })); // 오류 파일 선택
+        expect(await screen.findByRole("status")).toHaveTextContent("가져오지 못했습니다"); // 실패 안내 확인
+        expect(screen.getByLabelText("대화 개수")).toHaveTextContent(`${state.conversations.length + 1}:`); // 기존 상태 유지 확인
     }); // 검증 종료
 
     it("같은 캐릭터의 여러 대화에 제목과 시작 설정과 최근 시각을 구분해 표시한다", async () => // 다중 대화 표시 검증
