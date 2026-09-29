@@ -38,7 +38,7 @@ export interface PreparedImport // 가져오기 준비 구조
     summary: DataSummary; // 데이터 요약
 } // 구조 종료
 
-export type BackupReason = "manual" | "import" | "reset" | "restore" | "recovery"; // 백업 사유
+export type BackupReason = "manual" | "import" | "reset" | "restore" | "recovery" | "message-delete" | "version-delete"; // 백업 사유
 
 export interface BackupSnapshot // 백업 구조
 { // 구조 시작
@@ -408,8 +408,7 @@ export function migrateVersionSix(value: Record<string, unknown>): AppState | nu
     const versionIds = new Map(value.conversations.map((conversation) => [conversation.id, `${conversation.id}-version-1`])); // 최초 버전 식별자 색인
     const conversations: Conversation[] = value.conversations.map((conversation) => // 대화 버전 연결
     { // 변환 시작
-        const { relationshipLevel: _relationshipLevel, relationshipStage: _relationshipStage, emotion: _emotion, currentScene: _currentScene, lastMessage: _lastMessage, ...sharedConversation } = conversation; // 버전 필드 분리
-        return { ...sharedConversation, currentVersionId: versionIds.get(conversation.id) as string }; // 공통 대화 반환
+        return { id: conversation.id, characterId: conversation.characterId, userId: conversation.userId, title: conversation.title, startSettings: conversation.startSettings, currentVersionId: versionIds.get(conversation.id) as string, archivedAt: conversation.archivedAt, createdAt: conversation.createdAt, updatedAt: conversation.updatedAt }; // 공통 대화 반환
     }); // 변환 종료
     const conversationVersions: ConversationVersion[] = value.conversations.map((conversation) => // 최초 버전 생성
     { // 변환 시작
@@ -629,7 +628,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
 
 function isBackupReason(value: unknown): value is BackupReason // 백업 사유 판정 함수
 { // 함수 시작
-    return isOneOf(value, ["manual", "import", "reset", "restore", "recovery"] as const); // 사유 여부 반환
+    return isOneOf(value, ["manual", "import", "reset", "restore", "recovery", "message-delete", "version-delete"] as const); // 사유 여부 반환
 } // 함수 종료
 
 function isStoredBackup(value: unknown): value is StoredBackup // 저장 백업 판정 함수
@@ -799,6 +798,19 @@ export class LocalStorageGateway // 로컬 저장소 클래스
         }; // 백업 종료
         writeStoredBackups(this.storage, [entry, ...backups]); // 최근 백업 저장
         return { id: entry.id, createdAt: entry.createdAt, reason: entry.reason, summary: this.getBackupSummary(entry.raw) }; // 백업 정보 반환
+    } // 함수 종료
+
+    public createBackupFromState(state: AppState, reason: BackupReason, now = new Date().toISOString()): BackupSnapshot // 전달 상태 백업
+    { // 함수 시작
+        if (!isAppState(state)) // 상태 유효성 판정
+        { // 잘못된 상태 시작
+            throw new TypeError("유효한 앱 상태만 백업할 수 있습니다."); // 상태 오류 발생
+        } // 잘못된 상태 종료
+        const raw = JSON.stringify(state); // 상태 원본 생성
+        const backups = readStoredBackups(this.storage); // 기존 백업 조회
+        const entry: StoredBackup = { id: `backup-${now}-${reason}-${backups.length}`, createdAt: now, reason, summary: null, raw }; // 새 백업 생성
+        writeStoredBackups(this.storage, [entry, ...backups]); // 최근 백업 저장
+        return { id: entry.id, createdAt: entry.createdAt, reason: entry.reason, summary: summarizeState(state) }; // 백업 정보 반환
     } // 함수 종료
 
     public listBackups(): BackupSnapshot[] // 백업 목록 조회

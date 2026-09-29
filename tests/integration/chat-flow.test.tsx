@@ -1,6 +1,6 @@
-import { screen, waitFor } from "@testing-library/react"; // 화면 검증 도구
+import { screen, waitFor, within } from "@testing-library/react"; // 화면 검증 도구
 import userEvent from "@testing-library/user-event"; // 사용자 동작 도구
-import { describe, expect, it } from "vitest"; // 테스트 도구
+import { describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { ChatScreen } from "@/features/chat/ChatScreen"; // 채팅 화면
 import type { ChatProgress } from "@/features/chat/chat-controller"; // 진행 상태 타입
 import { ChatController } from "@/features/chat/chat-controller"; // 채팅 제어기
@@ -239,7 +239,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         renderWithApp(<ChatScreen characterId="rian" llm={new FailingLLMAdapter()} images={new MockImageAdapter()} />); // 실패 화면 렌더
         await user.type(screen.getByLabelText("메시지"), "실패 응답 확인"); // 메시지 입력
         await user.click(screen.getByRole("button", { name: "전송" })); // 메시지 전송
-        expect(await screen.findByRole("status")).toHaveTextContent("응답을 받지 못했습니다. 다시 시도해 주세요."); // 실패 안내 확인
+        await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("응답을 받지 못했습니다. 다시 시도해 주세요.")); // 실패 안내 확인
         expect(screen.getByLabelText("메시지")).toBeEnabled(); // 입력 잠금 해제 확인
         expect(screen.getByRole("list", { name: "대화 메시지" })).toHaveAttribute("aria-busy", "false"); // 스트리밍 해제 확인
     }); // 검증 종료
@@ -351,7 +351,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         await user.click(screen.getByRole("button", { name: "전송" })); // 메시지 전송
         await adapter.firstChunkReached; // 첫 조각 대기
         await user.click(screen.getByRole("button", { name: "응답 중단" })); // 응답 중단
-        expect(await screen.findByRole("status")).toHaveTextContent("응답을 중단했습니다."); // 중단 안내 확인
+        await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("응답을 중단했습니다.")); // 중단 안내 확인
         expect(screen.getByText("중단 전 조각")).toBeInTheDocument(); // 부분 응답 유지 확인
         expect(screen.getByLabelText("메시지")).toBeEnabled(); // 입력 활성화 확인
         expect(screen.getByRole("list", { name: "대화 메시지" })).toHaveAttribute("aria-busy", "false"); // 응답 상태 해제 확인
@@ -431,5 +431,88 @@ describe("채팅 흐름", () => // 채팅 묶음
         await expect(busyController.editUserMessage(baseTarget.id, "응답 중 수정")).resolves.toEqual({ ok: false, reason: "busy" }); // 응답 중 수정 거부 확인
         waitingAdapter.continue(); // 일반 응답 재개
         await sending; // 일반 응답 완료
+    }); // 검증 종료
+
+    it("인라인 수정 뒤 작은 전환기로 원본과 수정 버전을 왕복한다", async () => // 버전 전환 화면 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0, seed: 7 })} images={new MockImageAdapter()} />); // 채팅 화면 렌더
+        const originalText = screen.getByText("오늘 기록할 이야기가 많아."); // 원본 메시지 조회
+        const originalItem = originalText.closest("li"); // 원본 항목 조회
+        if (originalItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("원본 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(originalItem).getByRole("button", { name: "수정" })); // 인라인 수정 시작
+        const editor = within(originalItem).getByLabelText("메시지 수정"); // 수정 입력 조회
+        await user.clear(editor); // 기존 내용 제거
+        await user.type(editor, "버전으로 남길 수정 메시지"); // 수정 내용 입력
+        await user.click(within(originalItem).getByRole("button", { name: "수정 전송" })); // 수정 전송
+        expect(await screen.findByLabelText("대화 버전 2/2")).toBeInTheDocument(); // 새 버전 표시 확인
+        expect(screen.getByText("버전으로 남길 수정 메시지")).toBeVisible(); // 수정 메시지 확인
+        await user.click(screen.getByRole("button", { name: "이전 대화 버전" })); // 원본 버전 이동
+        expect(await screen.findByLabelText("대화 버전 1/2")).toBeInTheDocument(); // 원본 위치 확인
+        expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 원본 메시지 확인
+        expect(screen.queryByRole("button", { name: "현재 버전 삭제" })).toBeNull(); // 원본 삭제 버튼 부재 확인
+        await user.click(screen.getByRole("button", { name: "다음 대화 버전" })); // 수정 버전 이동
+        expect(await screen.findByRole("button", { name: "현재 버전 삭제" })).toBeVisible(); // 수정 버전 삭제 버튼 확인
+    }); // 검증 종료
+
+    it("메시지 삭제는 확인과 백업 성공 뒤에만 현재 버전에 반영한다", async () => // 안전 삭제 화면 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const confirm = vi.spyOn(window, "confirm").mockReturnValue(true); // 삭제 확인 대체
+        localStorage.clear(); // 백업 저장소 초기화
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />); // 채팅 화면 렌더
+        const targetText = screen.getByText("오늘 기록할 이야기가 많아."); // 삭제 대상 조회
+        const targetItem = targetText.closest("li"); // 삭제 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("삭제 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "삭제" })); // 메시지 삭제 실행
+        expect(confirm).toHaveBeenCalled(); // 삭제 확인 호출
+        expect(localStorage.getItem("mateverse:v1:backup")).not.toBeNull(); // 선행 백업 확인
+        expect(screen.queryByText("오늘 기록할 이야기가 많아.")).toBeNull(); // 현재 버전 삭제 확인
+        confirm.mockRestore(); // 확인 함수 복원
+    }); // 검증 종료
+
+    it("백업 실패 시 메시지 삭제를 차단하고 원본을 유지한다", async () => // 백업 실패 삭제 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const confirm = vi.spyOn(window, "confirm").mockReturnValue(true); // 삭제 확인 대체
+        const repository = { load: () => state, save: () => undefined, createBackup: () => { throw new Error("백업 실패"); } }; // 실패 백업 저장소
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />, state, repository); // 채팅 화면 렌더
+        const targetText = screen.getByText("오늘 기록할 이야기가 많아."); // 삭제 대상 조회
+        const targetItem = targetText.closest("li"); // 삭제 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("삭제 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "삭제" })); // 삭제 시도
+        expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 원본 유지 확인
+        expect(screen.getByRole("status")).toHaveTextContent("백업하지 못해 메시지 삭제를 중단했습니다."); // 중단 안내 확인
+        confirm.mockRestore(); // 확인 함수 복원
+    }); // 검증 종료
+
+    it("클립보드 복사 성공과 실패를 데이터 변경 없이 알린다", async () => // 복사 안내 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const writeText = vi.fn().mockResolvedValue(undefined); // 성공 복사 함수 생성
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } }); // 클립보드 대체
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />); // 채팅 화면 렌더
+        const targetText = screen.getByText("오늘 기록할 이야기가 많아."); // 복사 대상 조회
+        const targetItem = targetText.closest("li"); // 복사 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("복사 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "복사" })); // 성공 복사 실행
+        expect(await within(targetItem).findByRole("status")).toHaveTextContent("메시지를 복사했습니다."); // 성공 안내 확인
+        writeText.mockRejectedValueOnce(new Error("권한 거부")); // 실패 복사 설정
+        await user.click(within(targetItem).getByRole("button", { name: "복사" })); // 실패 복사 실행
+        expect(await within(targetItem).findByRole("alert")).toHaveTextContent("메시지를 복사하지 못했습니다."); // 실패 안내 확인
+        expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 메시지 유지 확인
     }); // 검증 종료
 }); // 묶음 종료

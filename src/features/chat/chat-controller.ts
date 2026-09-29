@@ -217,6 +217,15 @@ export class ChatController // 채팅 제어기
         return { ok: true }; // 성공 반환
     } // 함수 종료
 
+    public replaceState(state: AppState): void // 외부 상태 교체
+    { // 함수 시작
+        if (this.busy) // 응답 중 판정
+        { // 조건 시작
+            return; // 교체 중단
+        } // 조건 종료
+        this.state = structuredClone(state); // 상태 복사 반영
+    } // 함수 종료
+
     public async editUserMessage(messageId: string, text: string, onProgress?: ChatProgressHandler): Promise<EditMessageResult> // 사용자 메시지 수정
     { // 함수 시작
         const content = text.trim(); // 수정 내용 정리

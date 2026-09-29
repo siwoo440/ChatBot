@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from "react"; // 리액트 도구
 import { ChatComposer } from "@/features/chat/ChatComposer"; // 채팅 입력
-import { ChatController, type ChatProgress, type SendResult } from "@/features/chat/chat-controller"; // 채팅 제어기
+import { ChatController, type ChatProgress, type EditMessageResult, type SendResult } from "@/features/chat/chat-controller"; // 채팅 제어기
 import { LayoutSelector } from "@/features/chat/LayoutSelector"; // 레이아웃 선택기
 import { MessageList } from "@/features/chat/MessageList"; // 메시지 목록
 import { SceneViewer } from "@/features/chat/SceneViewer"; // 장면 보기
 import { ensureConversationForCharacter } from "@/features/character/character-detail-model"; // 대화 준비
-import { getConversationVersion, getVersionMessages } from "@/features/conversation/conversation-versioning"; // 버전 조회 함수
+import { getConversationVersion, getMessageVersionGroup, getVersionMessages, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
+import { appReducer } from "@/features/core/app-reducer"; // 앱 리듀서
+import type { AppState, Message } from "@/features/core/types"; // 앱 타입
 import { recommendLayout } from "@/features/chat/layout-resolver"; // 레이아웃 추천
 import type { ImageGenerationAdapter } from "@/lib/adapters/image-generation-adapter"; // 이미지 계약
 import type { LLMAdapter } from "@/lib/adapters/llm-adapter"; // 대화 계약
@@ -25,7 +27,7 @@ interface ChatScreenProps // 채팅 화면 속성
 
 export function ChatScreen({ characterId, llm, images }: ChatScreenProps) // 채팅 화면
 { // 함수 시작
-    const { state, dispatch } = useAppStore(); // 앱 상태
+    const { state, dispatch, createBackup } = useAppStore(); // 앱 상태
     const prepared = useMemo(() => ensureConversationForCharacter(state, characterId), [characterId, state]); // 대화 준비
     const [controller] = useState(() => new ChatController({ state: prepared.state, conversationId: prepared.conversation.id, llm: llm ?? new MockLLMAdapter(), images: images ?? new MockImageAdapter() })); // 제어기 생성
     const [snapshot, setSnapshot] = useState(prepared.state); // 화면 상태
@@ -46,6 +48,12 @@ export function ChatScreen({ characterId, llm, images }: ChatScreenProps) // 채
     const sync = () => // 상태 동기화
     { // 함수 시작
         const nextState = controller.snapshot(); // 제어 상태 조회
+        setSnapshot(nextState); // 화면 상태 갱신
+        dispatch({ type: "replace-state", state: nextState }); // 전역 상태 갱신
+    }; // 함수 종료
+    const applyControllerState = (nextState: AppState) => // 제어 상태 적용
+    { // 함수 시작
+        controller.replaceState(nextState); // 제어기 상태 교체
         setSnapshot(nextState); // 화면 상태 갱신
         dispatch({ type: "replace-state", state: nextState }); // 전역 상태 갱신
     }; // 함수 종료
@@ -85,6 +93,71 @@ export function ChatScreen({ characterId, llm, images }: ChatScreenProps) // 채
     { // 함수 시작
         await runRequest((onProgress) => controller.regenerateLastReply(onProgress)); // 마지막 응답 요청
     }; // 함수 종료
+    const editMessage = async (messageId: string, text: string): Promise<EditMessageResult> => // 메시지 수정
+    { // 함수 시작
+        setBusy(true); // 응답 상태 시작
+        setNotice(""); // 기존 안내 해제
+        const updateProgress = (progress: ChatProgress) => // 수정 진행 처리
+        { // 처리 시작
+            setSnapshot(progress.state); // 임시 상태 반영
+            setStreamingMessageId(progress.phase === "assistant" ? progress.messageId : null); // 스트리밍 표시 반영
+        }; // 처리 종료
+        try // 수정 요청 시도
+        { // 시도 시작
+            const result = await controller.editUserMessage(messageId, text, updateProgress); // 수정 요청 실행
+            sync(); // 확정 상태 동기화
+            setNotice(result.ok ? "새 대화 버전을 만들었습니다." : result.reason === "cancelled" ? "수정 응답을 중단했습니다." : "메시지를 수정하지 못했습니다."); // 수정 안내 갱신
+            return result; // 수정 결과 반환
+        } // 시도 종료
+        catch (error) // 수정 실패 처리
+        { // 실패 시작
+            sync(); // 원본 상태 복원
+            setNotice("수정 응답을 만들지 못했습니다."); // 실패 안내
+            throw error; // 오류 전달
+        } // 실패 종료
+        finally // 수정 정리
+        { // 정리 시작
+            setStreamingMessageId(null); // 스트리밍 상태 해제
+            setBusy(false); // 응답 상태 종료
+        } // 정리 종료
+    }; // 함수 종료
+    const deleteMessage = (message: Message) => // 메시지 삭제
+    { // 함수 시작
+        if (!window.confirm("이 메시지를 현재 대화 버전에서 삭제할까요?")) // 삭제 확인 판정
+        { // 조건 시작
+            return; // 삭제 취소
+        } // 조건 종료
+        if (!createBackup("message-delete")) // 백업 실패 판정
+        { // 조건 시작
+            setNotice("백업하지 못해 메시지 삭제를 중단했습니다."); // 백업 오류 안내
+            return; // 삭제 중단
+        } // 조건 종료
+        const nextState = appReducer(controller.snapshot(), { type: "delete-version-message", versionId: version.id, messageId: message.id }); // 메시지 삭제 상태 생성
+        applyControllerState(nextState); // 삭제 상태 적용
+        setNotice("현재 버전에서 메시지를 삭제했습니다."); // 삭제 안내
+    }; // 함수 종료
+    const selectVersion = (versionId: string, direction: "previous" | "next") => // 대화 버전 선택
+    { // 함수 시작
+        const nextState = appReducer(controller.snapshot(), { type: "select-conversation-version", conversationId: conversation.id, versionId }); // 선택 상태 생성
+        applyControllerState(nextState); // 선택 상태 적용
+        const focusLabel = direction === "previous" ? "이전 대화 버전" : "다음 대화 버전"; // 포커스 이름 결정
+        window.setTimeout(() => (document.querySelector(`[aria-label="${focusLabel}"]`) as HTMLButtonElement | null)?.focus(), 0); // 전환 버튼 포커스 복원
+    }; // 함수 종료
+    const deleteVersion = (versionId: string) => // 대화 버전 삭제
+    { // 함수 시작
+        const preview = removeVersionTree(controller.snapshot(), conversation.id, versionId); // 삭제 범위 계산
+        if (!window.confirm(`현재 수정 버전과 하위 버전 ${preview.versionCount}개, 메시지 ${preview.messageCount}개를 삭제할까요?`)) // 삭제 확인 판정
+        { // 조건 시작
+            return; // 삭제 취소
+        } // 조건 종료
+        if (!createBackup("version-delete")) // 백업 실패 판정
+        { // 조건 시작
+            setNotice("백업하지 못해 버전 삭제를 중단했습니다."); // 백업 오류 안내
+            return; // 삭제 중단
+        } // 조건 종료
+        applyControllerState(preview.state); // 삭제 상태 적용
+        setNotice("수정 대화 버전을 삭제했습니다."); // 삭제 안내
+    }; // 함수 종료
     const cancel = () => // 응답 중단
     { // 함수 시작
         controller.cancelReply(); // 활성 요청 중단
@@ -103,7 +176,7 @@ export function ChatScreen({ characterId, llm, images }: ChatScreenProps) // 채
             </section> {/* 장면 종료 */}
             <section className={styles.story}> {/* 대화 영역 */}
                 <header><div><span>{version.relationshipStage}</span><h1>{character.name}</h1></div><div><span>{version.emotion}</span><strong>{snapshot.wallet.balance} 토큰</strong></div></header> {/* 캐릭터 상태 */}
-                <MessageList messages={getVersionMessages(snapshot, conversation.id, version.id)} streamingMessageId={streamingMessageId} allowRegenerate={!busy && !retryAvailable} onRegenerate={regenerate} /> {/* 메시지 목록 */}
+                <MessageList messages={getVersionMessages(snapshot, conversation.id, version.id)} streamingMessageId={streamingMessageId} busy={busy} allowRegenerate={!busy && !retryAvailable} onRegenerate={regenerate} getVersionGroup={(message) => getMessageVersionGroup(snapshot, version.id, message.id)} onEdit={editMessage} onDelete={deleteMessage} onSelectVersion={selectVersion} onDeleteVersion={deleteVersion} /> {/* 메시지 목록 */}
                 <p role="status">{notice}</p> {/* 상태 안내 */}
                 {retryAvailable ? <div className={styles.requestActions}><button type="button" onClick={regenerate}>다시 시도</button></div> : null} {/* 재시도 영역 */}
                 <ChatComposer busy={busy} onSend={send} onCancel={cancel} /> {/* 메시지 입력 */}

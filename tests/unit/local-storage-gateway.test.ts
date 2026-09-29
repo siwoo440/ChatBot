@@ -415,6 +415,16 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         expect(gateway.listBackups()[0]?.createdAt).toBe("2026-09-24T04:00:00.000Z"); // 최신 순서 확인
     }); // 테스트 종료
 
+    it("전달한 현재 상태를 메시지 삭제 사유로 먼저 백업한다", () => // 상태 백업 검증
+    { // 검증 시작
+        const gateway = new LocalStorageGateway(localStorage); // 게이트웨이 생성
+        const state = createInitialState(); // 백업 상태 생성
+        state.wallet.balance = 913; // 식별 잔액 적용
+        const snapshot = gateway.createBackupFromState(state, "message-delete", "2026-09-29T14:00:00.000Z"); // 상태 백업 생성
+        expect(snapshot.reason).toBe("message-delete"); // 백업 사유 확인
+        expect(localStorage.getItem(backupKey)).toBe(JSON.stringify(state)); // 백업 원본 확인
+    }); // 검증 종료
+
     it("저장공간 오류를 명시적인 쓰기 오류로 변환한다", () => // 저장 실패 검증
     { // 검증 시작
         const gateway = new LocalStorageGateway(new FailingStorage()); // 실패 게이트웨이 생성
