@@ -12,11 +12,12 @@ interface CharacterHeroProps // 히어로 속성
     bookmarked: boolean; // 보관 상태
     liked: boolean; // 좋아요 상태
     followed: boolean; // 팔로우 상태
+    shareStatus: string; // 공유 상태
     onBookmark: () => void; // 보관 동작
     onLike: () => void; // 좋아요 동작
     onFollow: () => void; // 팔로우 동작
     onShare: () => void; // 공유 동작
-    onMore: () => void; // 더보기 동작
+    onMore: (trigger: HTMLButtonElement) => void; // 더보기 동작
 } // 구조 종료
 
 const ratingLabels = { all: "전체 이용가", teen: "15세 이용가", mature: "성인 이용가" } as const; // 등급 문구
@@ -50,7 +51,7 @@ function MoreIcon() // 더보기 아이콘
     return <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg>; // 점 도형
 } // 함수 종료
 
-export function CharacterHero({ character, profile, bookmarked, liked, followed, onBookmark, onLike, onFollow, onShare, onMore }: CharacterHeroProps) // 캐릭터 히어로
+export function CharacterHero({ character, profile, bookmarked, liked, followed, shareStatus, onBookmark, onLike, onFollow, onShare, onMore }: CharacterHeroProps) // 캐릭터 히어로
 { // 함수 시작
     const [imageFailed, setImageFailed] = useState(false); // 이미지 오류 상태
     const metrics = profile.sampleMetrics; // 샘플 지표
@@ -98,8 +99,9 @@ export function CharacterHero({ character, profile, bookmarked, liked, followed,
                     <button type="button" aria-pressed={liked} aria-label={`${character.name} 좋아요`} onClick={onLike}><HeartIcon /><span>{liked ? "좋아요 취소" : "좋아요"}</span></button> {/* 좋아요 버튼 */}
                     <button type="button" aria-pressed={bookmarked} aria-label={`${character.name} ${bookmarked ? "보관함에서 제거" : "보관함에 추가"}`} onClick={onBookmark}><BookmarkIcon /><span>{bookmarked ? "보관됨" : "보관"}</span></button> {/* 보관 버튼 */}
                     <button type="button" aria-label={`${character.name} 공유`} onClick={onShare}><ShareIcon /><span>공유</span></button> {/* 공유 버튼 */}
-                    <button type="button" aria-label={`${character.name} 더보기`} onClick={onMore}><MoreIcon /><span>더보기</span></button> {/* 더보기 버튼 */}
+                    <button type="button" aria-label={`${character.name} 더보기`} onClick={(event) => onMore(event.currentTarget)}><MoreIcon /><span>더보기</span></button> {/* 더보기 버튼 */}
                 </div> {/* 빠른 동작 종료 */}
+                {shareStatus.length === 0 ? null : <p className={styles.shareStatus} role="status">{shareStatus}</p>} {/* 공유 상태 안내 */}
             </div> {/* 히어로 정보 종료 */}
         </section> // 히어로 영역 종료
     ); // 반환 종료

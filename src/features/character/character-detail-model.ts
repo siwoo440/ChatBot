@@ -1,5 +1,5 @@
 import { characterDetailProfiles } from "@/features/character/character-detail-data"; // 상세 프로필 데이터
-import type { AppState, Character, CharacterDetailProfile, Conversation, Message } from "@/features/core/types"; // 도메인 타입
+import type { AppState, Character, CharacterDetailProfile, CharacterReport, Conversation, Message, ReportReason } from "@/features/core/types"; // 도메인 타입
 
 export interface ConversationStartResult // 대화 시작 결과
 { // 구조 시작
@@ -67,6 +67,11 @@ export function getLatestActiveConversation(conversations: Conversation[], chara
 { // 함수 시작
     const matches = conversations.filter((conversation) => conversation.characterId === characterId && conversation.archivedAt === null); // 활성 대화 목록
     return matches.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0] ?? null; // 최신 대화 반환
+} // 함수 종료
+
+export function createCharacterReport(characterId: string, reason: ReportReason, now = new Date().toISOString()): CharacterReport // 캐릭터 신고 생성
+{ // 함수 시작
+    return { id: `report-${characterId}-${now}`, characterId, reason, createdAt: now }; // 신고 정보 반환
 } // 함수 종료
 
 function createUniqueConversationId(state: AppState, characterId: string, now: string): string // 고유 대화 식별자 생성

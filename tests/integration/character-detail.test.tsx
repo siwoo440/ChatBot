@@ -20,18 +20,25 @@ function CharacterConversationProbe({ characterId }: { characterId: string }) //
     return <output aria-label={`${characterId} 대화 식별자`}>{conversations.map((conversation) => conversation.id).join("|")}</output>; // 식별자 출력
 } // 함수 종료
 
+function CharacterReportProbe({ characterId }: { characterId: string }) // 신고 확인 요소
+{ // 함수 시작
+    const { state } = useAppStore(); // 앱 상태 조회
+    return <output aria-label={`${characterId} 신고 개수`}>{state.localReports.filter((report) => report.characterId === characterId).length}</output>; // 신고 개수 출력
+} // 함수 종료
+
 describe("캐릭터 상세 대화 시작", () => // 상세 묶음
 { // 묶음 시작
     beforeEach(() => // 테스트 초기화
     { // 초기화 시작
         routerPush.mockReset(); // 이동 기록 초기화
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined }); // 클립보드 초기화
     }); // 초기화 종료
 
     it("하린의 히어로 정보와 샘플 지표를 표시한다", () => // 히어로 표시 검증
     { // 검증 시작
         renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
         expect(screen.getByRole("heading", { level: 1, name: "퇴근길 카페의 하린" })).toBeVisible(); // 캐릭터 이름 확인
-        expect(screen.getByText("저녁다섯시")).toBeVisible(); // 제작자 확인
+        expect(screen.getAllByText("저녁다섯시")[0]).toBeVisible(); // 제작자 확인
         expect(screen.getByText("매일 같은 시간 당신의 표정을 먼저 알아보는 바리스타")).toBeVisible(); // 소개 확인
         expect(screen.getByText("따뜻한 위로")).toBeVisible(); // 배지 확인
         expect(screen.getByText("전체 이용가")).toBeVisible(); // 등급 확인
@@ -116,5 +123,83 @@ describe("캐릭터 상세 대화 시작", () => // 상세 묶음
         const identifiers = screen.getByLabelText("harin 대화 식별자").textContent?.split("|").filter(Boolean) ?? []; // 생성 식별자 조회
         expect(identifiers).toHaveLength(1); // 단일 생성 확인
         expect(routerPush).toHaveBeenCalledTimes(1); // 단일 이동 확인
+    }); // 검증 종료
+
+    it("업데이트 정보와 샘플 랭킹 탭을 표시하고 전환한다", async () => // 보조 정보 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
+        expect(screen.getByRole("heading", { name: "업데이트 정보" })).toBeVisible(); // 업데이트 제목 확인
+        expect(screen.getByText("v1.2.0")).toBeVisible(); // 업데이트 버전 확인
+        expect(screen.getByText("2026. 9. 20.")).toBeVisible(); // 업데이트 날짜 확인
+        expect(screen.getByRole("heading", { name: "사용자 랭킹" })).toBeVisible(); // 랭킹 제목 확인
+        expect(screen.getByText("샘플 랭킹")).toBeVisible(); // 샘플 표기 확인
+        const dailyTab = screen.getByRole("tab", { name: "일간" }); // 일간 탭 조회
+        await user.click(dailyTab); // 일간 탭 전환
+        expect(dailyTab).toHaveAttribute("aria-selected", "true"); // 일간 선택 확인
+        expect(screen.getByLabelText("일간 샘플 랭킹")).toBeVisible(); // 일간 목록 확인
+    }); // 검증 종료
+
+    it("연관 캐릭터를 최대 여덟 명까지 자신을 제외해 표시한다", () => // 연관 캐릭터 검증
+    { // 검증 시작
+        renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
+        const rail = screen.getByRole("list", { name: "연관 캐릭터" }); // 연관 목록 조회
+        const links = Array.from(rail.querySelectorAll("a")); // 연관 링크 조회
+        expect(links.length).toBeGreaterThan(0); // 연관 항목 확인
+        expect(links.length).toBeLessThanOrEqual(8); // 최대 개수 확인
+        expect(links.some((link) => link.getAttribute("href") === "/characters/harin")).toBe(false); // 자기 자신 제외 확인
+    }); // 검증 종료
+
+    it("좋아요와 제작자 팔로우 상태를 로컬 상태에 반영한다", async () => // 로컬 반응 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
+        const like = screen.getByRole("button", { name: "퇴근길 카페의 하린 좋아요" }); // 좋아요 버튼 조회
+        const follow = screen.getByRole("button", { name: "저녁다섯시 제작자 팔로우" }); // 팔로우 버튼 조회
+        await user.click(like); // 좋아요 실행
+        await user.click(follow); // 팔로우 실행
+        expect(screen.getByRole("button", { name: "퇴근길 카페의 하린 좋아요" })).toHaveAttribute("aria-pressed", "true"); // 좋아요 상태 확인
+        expect(screen.getByRole("button", { name: "저녁다섯시 제작자 팔로우 해제" })).toHaveAttribute("aria-pressed", "true"); // 팔로우 상태 확인
+    }); // 검증 종료
+
+    it("공유 링크 복사 성공과 클립보드 부재 오류를 안내한다", async () => // 공유 상태 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const writeText = vi.fn().mockResolvedValue(undefined); // 클립보드 쓰기 대체
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } }); // 클립보드 제공
+        const view = renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
+        await user.click(screen.getByRole("button", { name: "퇴근길 카페의 하린 공유" })); // 공유 실행
+        expect(writeText).toHaveBeenCalledTimes(1); // 복사 실행 확인
+        expect(screen.getByRole("status")).toHaveTextContent("공유 링크를 복사했습니다."); // 성공 안내 확인
+        view.unmount(); // 성공 화면 정리
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined }); // 클립보드 제거
+        renderWithApp(<CharacterDetail characterId="harin" />); // 오류 화면 렌더
+        await user.click(screen.getByRole("button", { name: "퇴근길 카페의 하린 공유" })); // 공유 재실행
+        expect(screen.getByRole("status")).toHaveTextContent("공유 링크를 복사하지 못했습니다."); // 오류 안내 확인
+    }); // 검증 종료
+
+    it("클립보드 거부 오류를 안전하게 안내한다", async () => // 공유 거부 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const writeText = vi.fn().mockRejectedValue(new Error("denied")); // 거부 클립보드 대체
+        Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } }); // 클립보드 제공
+        renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
+        await user.click(screen.getByRole("button", { name: "퇴근길 카페의 하린 공유" })); // 공유 실행
+        expect(screen.getByRole("status")).toHaveTextContent("공유 링크를 복사하지 못했습니다."); // 거부 안내 확인
+    }); // 검증 종료
+
+    it("신고 사유를 선택해 저장하고 닫은 뒤 원래 버튼으로 초점을 돌린다", async () => // 신고 흐름 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        renderWithApp(<><CharacterDetail characterId="harin" /><CharacterReportProbe characterId="harin" /></>); // 상세 화면 렌더
+        const more = screen.getByRole("button", { name: "퇴근길 카페의 하린 더보기" }); // 더보기 버튼 조회
+        await user.click(more); // 신고 창 열기
+        const dialog = screen.getByRole("dialog", { name: "캐릭터 신고" }); // 신고 창 조회
+        expect(dialog).toBeVisible(); // 신고 창 표시 확인
+        await user.click(screen.getByRole("radio", { name: "스팸 또는 반복 콘텐츠" })); // 신고 사유 선택
+        await user.click(screen.getByRole("button", { name: "신고 접수" })); // 신고 저장
+        expect(screen.queryByRole("dialog", { name: "캐릭터 신고" })).toBeNull(); // 신고 창 닫힘 확인
+        expect(screen.getByLabelText("harin 신고 개수")).toHaveTextContent("1"); // 신고 저장 확인
+        expect(more).toHaveFocus(); // 초점 복귀 확인
     }); // 검증 종료
 }); // 묶음 종료

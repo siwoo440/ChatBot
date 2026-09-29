@@ -4,13 +4,16 @@ import Link from "next/link"; // 내부 경로 링크
 import { useRouter } from "next/navigation"; // 경로 이동 도구
 import { useRef, useState, type CSSProperties } from "react"; // 리액트 상태 도구
 import { CharacterActionBar } from "@/features/character/CharacterActionBar"; // 하단 대화 동작
+import { CharacterDiscoverySections } from "@/features/character/CharacterDiscoverySections"; // 탐색 보조 섹션
 import { CharacterHero } from "@/features/character/CharacterHero"; // 캐릭터 히어로
+import { CharacterReportDialog } from "@/features/character/CharacterReportDialog"; // 캐릭터 신고 창
 import { CharacterStoryInfo } from "@/features/character/CharacterStoryInfo"; // 스토리 정보
 import { ConversationSetup } from "@/features/character/ConversationSetup"; // 대화 시작 설정
 import { ProloguePreview } from "@/features/character/ProloguePreview"; // 프롤로그 미리보기
-import { createConversationFromPreset, getCharacterDetailProfile, getLatestActiveConversation } from "@/features/character/character-detail-model"; // 상세 모델 함수
+import { createCharacterReport, createConversationFromPreset, getCharacterDetailProfile, getLatestActiveConversation, getRelatedCharacters } from "@/features/character/character-detail-model"; // 상세 모델 함수
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
+import type { ReportReason } from "@/features/core/types"; // 신고 사유 타입
 
 export function CharacterDetail({ characterId }: { characterId: string }) // 캐릭터 상세
 { // 함수 시작
@@ -21,7 +24,11 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
     const [selectedProfileId, setSelectedProfileId] = useState(state.profile.id); // 선택 프로필 상태
     const [selectedPresetId, setSelectedPresetId] = useState(initialProfile?.startPresets[0]?.id ?? ""); // 선택 프리셋 상태
     const [creating, setCreating] = useState(false); // 대화 생성 상태
+    const [shareStatus, setShareStatus] = useState(""); // 공유 상태
+    const [reportOpen, setReportOpen] = useState(false); // 신고 창 상태
+    const [reportReason, setReportReason] = useState<ReportReason>("incorrect-rating"); // 신고 사유 상태
     const creatingRef = useRef(false); // 중복 생성 잠금
+    const reportTriggerRef = useRef<HTMLButtonElement | null>(null); // 신고 버튼 참조
     if (character === undefined || initialProfile === null) // 캐릭터 부재 판정
     { // 조건 시작
         return <main className={styles.emptyState}><h1>캐릭터를 찾을 수 없습니다.</h1><Link href="/">탐색으로 돌아가기</Link></main>; // 오류 화면
@@ -30,6 +37,7 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
     const selectedPreset = profile.startPresets.find((preset) => preset.id === selectedPresetId) ?? profile.startPresets[0]; // 선택 프리셋 조회
     const selectedPrologue = profile.prologues.find((prologue) => prologue.id === selectedPreset?.prologueId) ?? profile.prologues[0]; // 선택 프롤로그 조회
     const latestConversation = getLatestActiveConversation(state.conversations, character.id); // 최근 대화 조회
+    const relatedCharacters = getRelatedCharacters(character, state.characters, 8); // 연관 캐릭터 조회
     const continueConversation = () => // 최근 대화 이어가기
     { // 함수 시작
         if (latestConversation === null) // 최근 대화 부재 확인
@@ -51,6 +59,37 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
         dispatch({ type: "replace-state", state: result.state }); // 생성 상태 저장
         router.push(result.href); // 대화 화면 이동
     }; // 함수 종료
+    const shareCharacter = async () => // 캐릭터 공유
+    { // 함수 시작
+        try // 복사 시도
+        { // 시도 시작
+            if (navigator.clipboard?.writeText === undefined) // 클립보드 부재 확인
+            { // 조건 시작
+                throw new Error("clipboard-unavailable"); // 클립보드 오류
+            } // 조건 종료
+            await navigator.clipboard.writeText(window.location.href); // 현재 링크 복사
+            setShareStatus("공유 링크를 복사했습니다."); // 성공 상태 설정
+        } // 시도 종료
+        catch // 복사 실패 처리
+        { // 실패 시작
+            setShareStatus("공유 링크를 복사하지 못했습니다."); // 실패 상태 설정
+        } // 실패 종료
+    }; // 함수 종료
+    const openReport = (trigger: HTMLButtonElement) => // 신고 창 열기
+    { // 함수 시작
+        reportTriggerRef.current = trigger; // 원래 버튼 저장
+        setReportOpen(true); // 신고 창 표시
+    }; // 함수 종료
+    const closeReport = () => // 신고 창 닫기
+    { // 함수 시작
+        setReportOpen(false); // 신고 창 숨김
+        queueMicrotask(() => reportTriggerRef.current?.focus()); // 원래 버튼 초점
+    }; // 함수 종료
+    const submitReport = () => // 신고 저장
+    { // 함수 시작
+        dispatch({ type: "add-character-report", report: createCharacterReport(character.id, reportReason) }); // 로컬 신고 추가
+        closeReport(); // 신고 창 닫기
+    }; // 함수 종료
     const bookmarked = state.bookmarkedCharacterIds.includes(character.id); // 보관 상태
     const liked = state.likedCharacterIds.includes(character.id); // 좋아요 상태
     const followed = state.followedCreatorIds.includes(character.creatorId); // 팔로우 상태
@@ -59,12 +98,14 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
         <main className={styles.page} style={pageStyle}> {/* 상세 본문 */}
             <div className={styles.background} aria-hidden="true" /> {/* 흐림 배경 */}
             <div className={styles.content}> {/* 상세 내용 */}
-                <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => dispatch({ type: "toggle-character-like", characterId: character.id })} onFollow={() => dispatch({ type: "toggle-creator-follow", creatorId: character.creatorId })} onShare={() => undefined} onMore={() => undefined} /> {/* 히어로 */}
+                <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} shareStatus={shareStatus} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => dispatch({ type: "toggle-character-like", characterId: character.id })} onFollow={() => dispatch({ type: "toggle-creator-follow", creatorId: character.creatorId })} onShare={shareCharacter} onMore={openReport} /> {/* 히어로 */}
                 <CharacterStoryInfo character={character} profile={profile} /> {/* 스토리 정보 */}
                 <ConversationSetup profile={state.profile} presets={profile.startPresets} selectedProfileId={selectedProfileId} selectedPresetId={selectedPreset?.id ?? ""} onProfileChange={setSelectedProfileId} onPresetChange={setSelectedPresetId} /> {/* 시작 설정 */}
-                {selectedPrologue === undefined ? null : <ProloguePreview prologue={selectedPrologue} />} {/* 프롤로그 미리보기 */}
+                {selectedPrologue === undefined ? null : <ProloguePreview key={selectedPrologue.id} prologue={selectedPrologue} />} {/* 프롤로그 미리보기 */}
+                <CharacterDiscoverySections profile={profile} characters={state.characters} relatedCharacters={relatedCharacters} /> {/* 업데이트와 탐색 */}
                 <CharacterActionBar latestConversation={latestConversation} creating={creating} onContinue={continueConversation} onStart={startConversation} /> {/* 대화 동작 */}
             </div> {/* 상세 내용 종료 */}
+            {reportOpen ? <CharacterReportDialog characterName={character.name} reason={reportReason} onReasonChange={setReportReason} onCancel={closeReport} onSubmit={submitReport} /> : null} {/* 신고 창 */}
         </main> // 본문 종료
     ); // 반환 종료
 } // 함수 종료

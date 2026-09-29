@@ -1,7 +1,7 @@
 "use client"; // 클라이언트 컴포넌트
 
 import Image from "next/image"; // 최적화 이미지
-import { useEffect, useState } from "react"; // 리액트 상태 도구
+import { useState } from "react"; // 리액트 상태 도구
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import type { CharacterPrologue } from "@/features/core/types"; // 프롤로그 타입
 
@@ -13,10 +13,6 @@ interface ProloguePreviewProps // 프롤로그 속성
 export function ProloguePreview({ prologue }: ProloguePreviewProps) // 프롤로그 미리보기
 { // 함수 시작
     const [imageFailed, setImageFailed] = useState(false); // 이미지 오류 상태
-    useEffect(() => // 이미지 변경 감지
-    { // 효과 시작
-        setImageFailed(false); // 오류 상태 초기화
-    }, [prologue.image]); // 이미지 의존성
     return ( // 미리보기 반환
         <section className={styles.prologueSection} aria-labelledby="prologue-title"> {/* 프롤로그 영역 */}
             <div className={styles.prologueMedia}> {/* 프롤로그 이미지 영역 */}
