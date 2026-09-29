@@ -79,6 +79,7 @@ describe("앱 셸 패널", () => // 패널 묶음
         expect(cards[0]).toHaveAttribute("data-tone", "primary"); // 첫 카드 대비 확인
         expect(cards[1]).toHaveAttribute("data-tone", "secondary"); // 둘째 카드 대비 확인
         expect(cards[0]?.querySelector("a")).toHaveClass("conversation-card-link"); // 카드 링크 확인
+        expect(cards[0]?.querySelector("a")).toHaveAttribute("href", "/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 버전 주소 확인
     }); // 검증 종료
 
     it("우측 패널 정보를 프로필 토큰 계정 설정 지원 영역으로 구분한다", async () => // 패널 구조 검증

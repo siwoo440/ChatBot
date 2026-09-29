@@ -1,12 +1,14 @@
 "use client"; // 클라이언트 컴포넌트
 
-import { useMemo, useState } from "react"; // 리액트 도구
+import type { Route } from "next"; // 경로 타입
+import { useEffect, useState } from "react"; // 리액트 도구
+import { useRouter } from "next/navigation"; // 경로 이동 도구
 import { ChatComposer } from "@/features/chat/ChatComposer"; // 채팅 입력
 import { ChatController, type ChatProgress, type EditMessageResult, type SendResult } from "@/features/chat/chat-controller"; // 채팅 제어기
 import { LayoutSelector } from "@/features/chat/LayoutSelector"; // 레이아웃 선택기
 import { MessageList } from "@/features/chat/MessageList"; // 메시지 목록
 import { SceneViewer } from "@/features/chat/SceneViewer"; // 장면 보기
-import { ensureConversationForCharacter } from "@/features/character/character-detail-model"; // 대화 준비
+import { createConversationHref, ensureConversationForCharacter, resolveConversationRoute } from "@/features/character/character-detail-model"; // 대화 준비
 import { getConversationVersion, getMessageVersionGroup, getVersionMessages, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import { appReducer } from "@/features/core/app-reducer"; // 앱 리듀서
@@ -21,20 +23,37 @@ import styles from "@/features/chat/ChatScreen.module.css"; // 채팅 스타일
 interface ChatScreenProps // 채팅 화면 속성
 { // 구조 시작
     characterId: string; // 캐릭터 식별자
+    initialConversationId?: string; // 초기 대화 식별자
+    initialVersionId?: string; // 초기 버전 식별자
     llm?: LLMAdapter; // 대화 어댑터
     images?: ImageGenerationAdapter; // 이미지 어댑터
 } // 구조 종료
 
-export function ChatScreen({ characterId, llm, images }: ChatScreenProps) // 채팅 화면
+export function ChatScreen({ characterId, initialConversationId, initialVersionId, llm, images }: ChatScreenProps) // 채팅 화면
 { // 함수 시작
     const { state, dispatch, createBackup } = useAppStore(); // 앱 상태
-    const prepared = useMemo(() => ensureConversationForCharacter(state, characterId), [characterId, state]); // 대화 준비
+    const router = useRouter(); // 경로 이동기
+    const [prepared] = useState(() => // 초기 대화 준비
+    { // 초기화 시작
+        const base = ensureConversationForCharacter(state, characterId); // 기본 대화 준비
+        const route = resolveConversationRoute(base.state, characterId, initialConversationId, initialVersionId); // 주소 대화 선택
+        const routedState = appReducer(base.state, { type: "select-conversation-version", conversationId: route.conversation.id, versionId: route.version.id }); // 선택 버전 적용
+        return { ...base, state: routedState, conversation: route.conversation, version: route.version, href: route.canonicalHref, recovered: route.recovered }; // 준비 결과 반환
+    }); // 초기화 종료
     const [controller] = useState(() => new ChatController({ state: prepared.state, conversationId: prepared.conversation.id, llm: llm ?? new MockLLMAdapter(), images: images ?? new MockImageAdapter() })); // 제어기 생성
     const [snapshot, setSnapshot] = useState(prepared.state); // 화면 상태
     const [busy, setBusy] = useState(false); // 응답 상태
     const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null); // 스트리밍 메시지
     const [notice, setNotice] = useState(""); // 상태 안내
     const [retryAvailable, setRetryAvailable] = useState(false); // 재시도 가능 상태
+    const replaceRoute = router.replace; // 주소 교체 함수
+    useEffect(() => // 초기 주소 정규화
+    { // 효과 시작
+        if (prepared.recovered) // 복구 주소 판정
+        { // 조건 시작
+            replaceRoute(prepared.href as Route, { scroll: false }); // 정규 주소 적용
+        } // 조건 종료
+    }, [prepared.href, prepared.recovered, replaceRoute]); // 효과 의존성
     const character = snapshot.characters.find((item) => item.id === characterId); // 캐릭터 조회
     const conversation = snapshot.conversations.find((item) => item.id === prepared.conversation.id); // 대화 조회
     const version = conversation === undefined ? null : getConversationVersion(snapshot, conversation.id); // 현재 버전 조회
@@ -106,6 +125,10 @@ export function ChatScreen({ characterId, llm, images }: ChatScreenProps) // 채
         { // 시도 시작
             const result = await controller.editUserMessage(messageId, text, updateProgress); // 수정 요청 실행
             sync(); // 확정 상태 동기화
+            if (result.ok) // 수정 성공 판정
+            { // 조건 시작
+                replaceRoute(createConversationHref(characterId, conversation.id, result.versionId) as Route, { scroll: false }); // 새 버전 주소 적용
+            } // 조건 종료
             setNotice(result.ok ? "새 대화 버전을 만들었습니다." : result.reason === "cancelled" ? "수정 응답을 중단했습니다." : "메시지를 수정하지 못했습니다."); // 수정 안내 갱신
             return result; // 수정 결과 반환
         } // 시도 종료
@@ -140,6 +163,7 @@ export function ChatScreen({ characterId, llm, images }: ChatScreenProps) // 채
     { // 함수 시작
         const nextState = appReducer(controller.snapshot(), { type: "select-conversation-version", conversationId: conversation.id, versionId }); // 선택 상태 생성
         applyControllerState(nextState); // 선택 상태 적용
+        replaceRoute(createConversationHref(characterId, conversation.id, versionId) as Route, { scroll: false }); // 선택 주소 적용
         const focusLabel = direction === "previous" ? "이전 대화 버전" : "다음 대화 버전"; // 포커스 이름 결정
         window.setTimeout(() => (document.querySelector(`[aria-label="${focusLabel}"]`) as HTMLButtonElement | null)?.focus(), 0); // 전환 버튼 포커스 복원
     }; // 함수 종료
@@ -156,6 +180,11 @@ export function ChatScreen({ characterId, llm, images }: ChatScreenProps) // 채
             return; // 삭제 중단
         } // 조건 종료
         applyControllerState(preview.state); // 삭제 상태 적용
+        const nextConversation = preview.state.conversations.find((item) => item.id === conversation.id); // 다음 대화 조회
+        if (nextConversation !== undefined) // 다음 대화 존재 판정
+        { // 조건 시작
+            replaceRoute(createConversationHref(characterId, nextConversation.id, nextConversation.currentVersionId) as Route, { scroll: false }); // 복구 주소 적용
+        } // 조건 종료
         setNotice("수정 대화 버전을 삭제했습니다."); // 삭제 안내
     }; // 함수 종료
     const cancel = () => // 응답 중단

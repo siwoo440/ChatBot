@@ -1,6 +1,7 @@
 "use client"; // 클라이언트 컴포넌트
 
 import Link from "next/link"; // 내부 경로 링크
+import type { Route } from "next"; // 경로 타입
 import { useRouter } from "next/navigation"; // 경로 이동 도구
 import { useRef, useState, type CSSProperties } from "react"; // 리액트 상태 도구
 import { CharacterActionBar } from "@/features/character/CharacterActionBar"; // 하단 대화 동작
@@ -10,7 +11,7 @@ import { CharacterReportDialog } from "@/features/character/CharacterReportDialo
 import { CharacterStoryInfo } from "@/features/character/CharacterStoryInfo"; // 스토리 정보
 import { ConversationSetup } from "@/features/character/ConversationSetup"; // 대화 시작 설정
 import { ProloguePreview } from "@/features/character/ProloguePreview"; // 프롤로그 미리보기
-import { createCharacterReport, createConversationFromPreset, getCharacterDetailProfile, getLatestActiveConversation, getRelatedCharacters } from "@/features/character/character-detail-model"; // 상세 모델 함수
+import { createCharacterReport, createConversationFromPreset, createConversationHref, getCharacterDetailProfile, getLatestActiveConversation, getRelatedCharacters } from "@/features/character/character-detail-model"; // 상세 모델 함수
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import type { ReportReason } from "@/features/core/types"; // 신고 사유 타입
@@ -45,7 +46,7 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
             return; // 이동 중단
         } // 조건 종료
         dispatch({ type: "select-conversation", conversationId: latestConversation.id }); // 최근 대화 선택
-        router.push(`/chat/${character.id}`); // 대화 화면 이동
+        router.push(createConversationHref(character.id, latestConversation.id, latestConversation.currentVersionId) as Route); // 대화 화면 이동
     }; // 함수 종료
     const startConversation = () => // 새 대화 시작
     { // 함수 시작
@@ -57,7 +58,7 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
         setCreating(true); // 생성 상태 설정
         const result = createConversationFromPreset(state, character.id, selectedPreset.id); // 새 대화 생성
         dispatch({ type: "replace-state", state: result.state }); // 생성 상태 저장
-        router.push(result.href); // 대화 화면 이동
+        router.push(result.href as Route); // 대화 화면 이동
     }; // 함수 종료
     const shareCharacter = async () => // 캐릭터 공유
     { // 함수 시작

@@ -12,6 +12,13 @@ import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // Mock 대화
 import { makeController } from "@/test/chat-fixtures"; // 채팅 제어 생성
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더 도구
 
+const routerReplace = vi.hoisted(() => vi.fn()); // 주소 교체 기록
+
+vi.mock("next/navigation", () => // 경로 도구 대체
+({ // 대체 시작
+    useRouter: () => ({ replace: routerReplace }), // 주소 교체 제공
+})); // 대체 종료
+
 class ControlledLLMAdapter implements LLMAdapter // 제어형 대화 어댑터
 { // 클래스 시작
     private readonly waiting: Promise<void>; // 대기 약속
@@ -182,6 +189,19 @@ class RegenerateLLMAdapter implements LLMAdapter // 다시 생성 대화 어댑�
 
 describe("채팅 흐름", () => // 채팅 묶음
 { // 묶음 시작
+    it("초기 대화 버전을 복원하고 버전 전환 주소를 갱신한다", async () => // 주소 복원 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const baseState = createInitialState(); // 초기 상태 생성
+        const baseConversation = baseState.conversations[0]; // 기준 대화 조회
+        const baseVersion = baseState.conversationVersions.find((version) => version.id === baseConversation.currentVersionId)!; // 기준 버전 조회
+        const baseMessage = baseState.messages.find((message) => message.conversationId === baseConversation.id && message.role === "user")!; // 수정 메시지 조회
+        const fork = createVersionFork(baseState, { conversationId: baseConversation.id, baseVersionId: baseConversation.currentVersionId, targetMessageId: baseMessage.id, content: "주소 복원용 수정", assistantMessage: { id: "message-route-reply", role: "assistant", content: "주소 복원 응답", emotion: baseVersion.emotion, sceneEvent: null, createdAt: "2026-09-29T13:00:00.000Z" }, versionState: { relationshipLevel: baseVersion.relationshipLevel, relationshipStage: baseVersion.relationshipStage, emotion: baseVersion.emotion, currentScene: baseVersion.currentScene, lastMessage: "주소 복원 응답" }, now: "2026-09-29T13:00:00.000Z" }); // 수정 버전 생성
+        renderWithApp(<ChatScreen characterId="rian" initialConversationId={baseConversation.id} initialVersionId={fork.version.id} />, fork.state); // 수정 버전 렌더
+        expect(await screen.findByLabelText("대화 버전 2/2")).toBeInTheDocument(); // 초기 버전 확인
+        await user.click(screen.getByRole("button", { name: "이전 대화 버전" })); // 원본 버전 이동
+        expect(routerReplace).toHaveBeenLastCalledWith(`/chat/rian?conversation=${baseConversation.id}&version=${baseConversation.currentVersionId}`, { scroll: false }); // 주소 변경 확인
+    }); // 검증 종료
     it("응답 대기 중 두 번째 전송을 거절한다", async () => // 중복 전송 검증
     { // 검증 시작
         const controller = makeController({ balance: 100, replyDelayMs: 20 }); // 제어기 생성

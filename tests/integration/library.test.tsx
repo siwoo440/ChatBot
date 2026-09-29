@@ -84,6 +84,22 @@ describe("로컬 보관함", () => // 보관함 묶음
         expect(screen.getByLabelText("대화 개수")).toHaveTextContent(`${state.conversations.length - 1}:${state.messages.length - expectedMessages}`); // 연결 데이터 제거 확인
     }); // 검증 종료
 
+    it("대화 카드가 마지막 선택 버전 주소와 요약을 사용한다", async () => // 버전 카드 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const original = state.conversationVersions[0]; // 원본 버전 조회
+        const versionId = `${conversation.id}-version-2`; // 수정 버전 식별자
+        state.conversationVersions.push({ ...original, id: versionId, parentVersionId: original.id, forkRootVersionId: original.id, ordinal: 2, lastMessage: "수정 버전의 최근 대화", updatedAt: "2026-09-29T12:00:00.000Z" }); // 수정 버전 추가
+        conversation.currentVersionId = versionId; // 현재 버전 변경
+        renderWithApp(<LibraryScreen />, state); // 보관함 렌더
+        await user.click(screen.getByRole("tab", { name: "진행 중인 대화" })); // 대화 탭 이동
+        const link = screen.getByRole("link", { name: /새벽 도서관의 리안/ }); // 대화 링크 조회
+        expect(link).toHaveAttribute("href", `/chat/rian?conversation=${conversation.id}&version=${versionId}`); // 버전 주소 확인
+        expect(link).toHaveTextContent("수정 버전의 최근 대화"); // 버전 요약 확인
+    }); // 검증 종료
+
     it("같은 캐릭터의 여러 대화에 제목과 시작 설정과 최근 시각을 구분해 표시한다", async () => // 다중 대화 표시 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구 생성

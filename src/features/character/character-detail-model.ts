@@ -7,8 +7,45 @@ export interface ConversationStartResult // 대화 시작 결과
     conversation: Conversation; // 생성 대화
     version: ConversationVersion; // 현재 버전
     message: Message; // 첫 메시지
-    href: `/chat/${string}`; // 대화 이동 경로
+    href: string; // 대화 이동 경로
 } // 구조 종료
+
+export interface ConversationRouteSelection // 대화 주소 선택 결과
+{ // 구조 시작
+    conversation: Conversation; // 선택 대화
+    version: ConversationVersion; // 선택 버전
+    canonicalHref: string; // 정규 주소
+    recovered: boolean; // 복구 여부
+} // 구조 종료
+
+export function createConversationHref(characterId: string, conversationId: string, versionId: string): string // 대화 주소 생성
+{ // 함수 시작
+    return `/chat/${encodeURIComponent(characterId)}?conversation=${encodeURIComponent(conversationId)}&version=${encodeURIComponent(versionId)}`; // 쿼리 주소 반환
+} // 함수 종료
+
+export function resolveConversationRoute(state: AppState, characterId: string, conversationId?: string, versionId?: string): ConversationRouteSelection // 대화 주소 선택
+{ // 함수 시작
+    const characterConversations = state.conversations.filter((conversation) => conversation.characterId === characterId && conversation.archivedAt === null); // 캐릭터 대화 목록
+    const requestedConversation = characterConversations.find((conversation) => conversation.id === conversationId); // 요청 대화 조회
+    const fallbackConversation = [...characterConversations].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id))[0]; // 최근 대화 조회
+    const conversation = requestedConversation ?? fallbackConversation; // 안전 대화 선택
+    if (conversation === undefined) // 대화 부재 판정
+    { // 조건 시작
+        throw new Error("대상 캐릭터의 대화를 찾을 수 없습니다."); // 대화 오류
+    } // 조건 종료
+    const conversationVersions = state.conversationVersions.filter((version) => version.conversationId === conversation.id); // 소속 버전 목록
+    const requestedVersion = conversationVersions.find((version) => version.id === versionId); // 요청 버전 조회
+    const currentVersion = conversationVersions.find((version) => version.id === conversation.currentVersionId); // 현재 버전 조회
+    const originalVersion = [...conversationVersions].sort((left, right) => left.ordinal - right.ordinal || left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id))[0]; // 원본 버전 조회
+    const version = requestedVersion ?? currentVersion ?? originalVersion; // 안전 버전 선택
+    if (version === undefined) // 버전 부재 판정
+    { // 조건 시작
+        throw new Error("대상 대화의 버전을 찾을 수 없습니다."); // 버전 오류
+    } // 조건 종료
+    const canonicalHref = createConversationHref(characterId, conversation.id, version.id); // 정규 주소 생성
+    const recovered = conversationId !== conversation.id || versionId !== version.id; // 복구 여부 계산
+    return { conversation, version, canonicalHref, recovered }; // 선택 결과 반환
+} // 함수 종료
 
 function createFallbackProfile(character: Character): CharacterDetailProfile // 기본 상세 프로필 생성
 { // 함수 시작
@@ -123,7 +160,7 @@ export function createConversationFromPreset(state: AppState, characterId: strin
     const version: ConversationVersion = { id: versionId, conversationId, parentVersionId: null, forkRootVersionId: null, forkedFromMessageId: null, ordinal: 1, relationshipLevel: preset.relationshipLevel, relationshipStage: preset.relationshipStage, emotion: preset.emotion, currentScene: sceneImage, lastMessage: preset.greeting, createdAt: now, updatedAt: now }; // 최초 버전 생성
     const message: Message = { id: `${conversationId}-message-1`, conversationId, versionId, sourceMessageId: null, role: "assistant", content: preset.greeting, emotion: preset.emotion, sceneEvent: null, createdAt: now }; // 첫 메시지 생성
     const nextState: AppState = { ...state, conversations: [...state.conversations, conversation], conversationVersions: [...state.conversationVersions, version], messages: [...state.messages, message], selectedConversationId: conversationId }; // 다음 상태 생성
-    return { state: nextState, conversation, version, message, href: `/chat/${characterId}` }; // 생성 결과 반환
+    return { state: nextState, conversation, version, message, href: createConversationHref(characterId, conversation.id, version.id) }; // 생성 결과 반환
 } // 함수 종료
 
 export function ensureConversationForCharacter(state: AppState, characterId: string, now = new Date().toISOString()): ConversationStartResult // 대화 준비
@@ -138,7 +175,7 @@ export function ensureConversationForCharacter(state: AppState, characterId: str
             throw new Error("현재 대화 버전을 찾을 수 없습니다."); // 버전 오류
         } // 조건 종료
         const message = state.messages.filter((item) => item.conversationId === existing.id && item.versionId === existing.currentVersionId).sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? { id: `${existing.id}-message-reference`, conversationId: existing.id, versionId: existing.currentVersionId, sourceMessageId: null, role: "assistant", content: version.lastMessage, emotion: version.emotion, sceneEvent: null, createdAt: version.updatedAt } as Message; // 최근 메시지 조회
-        return { state: { ...state, selectedConversationId: existing.id }, conversation: existing, version, message, href: `/chat/${characterId}` }; // 기존 대화 반환
+        return { state: { ...state, selectedConversationId: existing.id }, conversation: existing, version, message, href: createConversationHref(characterId, existing.id, version.id) }; // 기존 대화 반환
     } // 조건 종료
     const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회
     if (character === undefined) // 캐릭터 부재 확인

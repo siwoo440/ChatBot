@@ -1,9 +1,14 @@
 import { screen } from "@testing-library/react"; // 화면 도구
 import userEvent from "@testing-library/user-event"; // 사용자 동작
-import { describe, expect, it } from "vitest"; // 테스트 도구
+import { describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { LayoutSelector } from "@/features/chat/LayoutSelector"; // 레이아웃 선택
 import { ChatScreen } from "@/features/chat/ChatScreen"; // 채팅 화면
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더
+
+vi.mock("next/navigation", () => // 경로 도구 대체
+({ // 대체 시작
+    useRouter: () => ({ replace: () => undefined }), // 주소 교체 제공
+})); // 대체 종료
 
 describe("레이아웃 선택기", () => // 선택기 묶음
 { // 묶음 시작
