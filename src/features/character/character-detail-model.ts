@@ -6,7 +6,7 @@ export interface ConversationStartResult // 대화 시작 결과
     state: AppState; // 결과 상태
     conversation: Conversation; // 생성 대화
     message: Message; // 첫 메시지
-    href: string; // 이동 경로
+    href: `/chat/${string}`; // 대화 이동 경로
 } // 구조 종료
 
 function createFallbackProfile(character: Character): CharacterDetailProfile // 기본 상세 프로필 생성
@@ -103,6 +103,8 @@ export function createConversationFromPreset(state: AppState, characterId: strin
     { // 조건 시작
         throw new Error("대화 시작 설정을 찾을 수 없습니다."); // 설정 오류
     } // 조건 종료
+    const prologue = profile.prologues.find((item) => item.id === preset.prologueId) ?? profile.prologues[0]; // 연결 프롤로그 조회
+    const sceneImage = prologue?.image ?? character.coverImage; // 표시 이미지 선택
     const conversationId = createUniqueConversationId(state, characterId, now); // 대화 식별자 생성
     const conversation: Conversation = // 새 대화 정의
     { // 대화 시작
@@ -110,11 +112,11 @@ export function createConversationFromPreset(state: AppState, characterId: strin
         characterId, // 캐릭터 식별자
         userId: state.profile.id, // 사용자 식별자
         title: `${character.name} · ${preset.name}`, // 대화 제목
-        startSettings: { profileId: state.profile.id, presetId: preset.id, relationshipStage: preset.relationshipStage, relationshipLevel: preset.relationshipLevel, emotion: preset.emotion, scene: preset.scene, greeting: preset.greeting }, // 시작 설정
+        startSettings: { profileId: state.profile.id, presetId: preset.id, relationshipStage: preset.relationshipStage, relationshipLevel: preset.relationshipLevel, emotion: preset.emotion, scene: sceneImage, greeting: preset.greeting }, // 시작 설정
         relationshipLevel: preset.relationshipLevel, // 관계 수치
         relationshipStage: preset.relationshipStage, // 관계 단계
         emotion: preset.emotion, // 시작 감정
-        currentScene: preset.scene, // 시작 장면
+        currentScene: sceneImage, // 시작 장면 이미지
         lastMessage: preset.greeting, // 최근 메시지
         archivedAt: null, // 보관 시각
         createdAt: now, // 생성 시각

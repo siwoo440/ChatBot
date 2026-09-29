@@ -4,7 +4,7 @@ import Image from "next/image"; // 최적화 이미지
 import Link from "next/link"; // 내부 경로 링크
 import { useState } from "react"; // 리액트 상태
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
-import type { Character, CharacterDetailProfile } from "@/features/core/types"; // 도메인 타입
+import type { Character, CharacterDetailProfile, UserProfile } from "@/features/core/types"; // 도메인 타입
 
 type RankingPeriod = "weekly" | "daily" | "all"; // 랭킹 기간
 
@@ -31,11 +31,12 @@ function formatRankingScore(character: Character, period: RankingPeriod): string
 interface CharacterDiscoverySectionsProps // 보조 섹션 속성
 { // 구조 시작
     profile: CharacterDetailProfile; // 상세 프로필
+    userProfile: UserProfile; // 로컬 사용자 프로필
     characters: Character[]; // 전체 캐릭터
     relatedCharacters: Character[]; // 연관 캐릭터
 } // 구조 종료
 
-export function CharacterDiscoverySections({ profile, characters, relatedCharacters }: CharacterDiscoverySectionsProps) // 캐릭터 보조 섹션
+export function CharacterDiscoverySections({ profile, userProfile, characters, relatedCharacters }: CharacterDiscoverySectionsProps) // 캐릭터 보조 섹션
 { // 함수 시작
     const [period, setPeriod] = useState<RankingPeriod>("weekly"); // 랭킹 기간 상태
     const rankedCharacters = [...characters].filter((character) => character.visibility === "public" && character.publicationStatus === "published").sort((left, right) => period === "daily" ? right.updatedAt.localeCompare(left.updatedAt) || right.popularity - left.popularity : right.popularity - left.popularity).slice(0, 3); // 샘플 랭킹 계산
@@ -76,6 +77,12 @@ export function CharacterDiscoverySections({ profile, characters, relatedCharact
                         </li> // 랭킹 항목 종료
                     ))} {/* 순회 종료 */}
                 </ol> {/* 랭킹 목록 종료 */}
+                <div className={styles.myRanking} aria-label="내 샘플 순위"> {/* 내 순위 */}
+                    <strong>내 순위</strong> {/* 순위 표제 */}
+                    <span className={styles.myRankingAvatar} aria-hidden="true">{userProfile.avatar}</span> {/* 사용자 표시 */}
+                    <span><b>{userProfile.nickname}</b><small>로컬 Mock 프로필</small></span> {/* 사용자 정보 */}
+                    <em>집계 전 · 샘플 데이터</em> {/* 샘플 상태 */}
+                </div> {/* 내 순위 종료 */}
             </section> {/* 랭킹 영역 종료 */}
             <section className={styles.relatedSection} aria-labelledby="related-title"> {/* 연관 영역 */}
                 <div className={styles.discoveryHeading}> {/* 연관 머리말 */}

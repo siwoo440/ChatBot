@@ -2,7 +2,7 @@
 
 import Image from "next/image"; // 최적화 이미지
 import { useState } from "react"; // 리액트 상태
-import type { Character, CharacterDetailProfile } from "@/features/core/types"; // 캐릭터 타입
+import type { Character, CharacterDetailProfile, Conversation } from "@/features/core/types"; // 캐릭터 타입
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 
 interface CharacterHeroProps // 히어로 속성
@@ -12,12 +12,16 @@ interface CharacterHeroProps // 히어로 속성
     bookmarked: boolean; // 보관 상태
     liked: boolean; // 좋아요 상태
     followed: boolean; // 팔로우 상태
+    latestConversation: Conversation | null; // 최근 대화
+    creating: boolean; // 대화 생성 상태
     shareStatus: string; // 공유 상태
     onBookmark: () => void; // 보관 동작
     onLike: () => void; // 좋아요 동작
     onFollow: () => void; // 팔로우 동작
     onShare: () => void; // 공유 동작
     onMore: (trigger: HTMLButtonElement) => void; // 더보기 동작
+    onContinue: () => void; // 이어하기 동작
+    onStart: () => void; // 새 대화 동작
 } // 구조 종료
 
 const ratingLabels = { all: "전체 이용가", teen: "15세 이용가", mature: "성인 이용가" } as const; // 등급 문구
@@ -51,7 +55,7 @@ function MoreIcon() // 더보기 아이콘
     return <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg>; // 점 도형
 } // 함수 종료
 
-export function CharacterHero({ character, profile, bookmarked, liked, followed, shareStatus, onBookmark, onLike, onFollow, onShare, onMore }: CharacterHeroProps) // 캐릭터 히어로
+export function CharacterHero({ character, profile, bookmarked, liked, followed, latestConversation, creating, shareStatus, onBookmark, onLike, onFollow, onShare, onMore, onContinue, onStart }: CharacterHeroProps) // 캐릭터 히어로
 { // 함수 시작
     const [imageFailed, setImageFailed] = useState(false); // 이미지 오류 상태
     const metrics = profile.sampleMetrics; // 샘플 지표
@@ -73,6 +77,7 @@ export function CharacterHero({ character, profile, bookmarked, liked, followed,
                     <div> {/* 제작자 정보 */}
                         <span className={styles.eyebrow}>CREATOR</span> {/* 제작자 라벨 */}
                         <strong>{character.creatorName}</strong> {/* 제작자 이름 */}
+                        <small className={styles.localOnly}>로컬 전용 · 서버 동기화 없음</small> {/* 로컬 범위 안내 */}
                     </div> {/* 제작자 정보 종료 */}
                     <button className={styles.followButton} type="button" aria-pressed={followed} aria-label={`${character.creatorName} 제작자 ${followed ? "팔로우 해제" : "팔로우"}`} onClick={onFollow}>{followed ? "팔로잉" : "팔로우"}</button> {/* 팔로우 버튼 */}
                 </div> {/* 제작자 행 종료 */}
@@ -102,6 +107,10 @@ export function CharacterHero({ character, profile, bookmarked, liked, followed,
                     <button type="button" aria-label={`${character.name} 더보기`} onClick={(event) => onMore(event.currentTarget)}><MoreIcon /><span>더보기</span></button> {/* 더보기 버튼 */}
                 </div> {/* 빠른 동작 종료 */}
                 {shareStatus.length === 0 ? null : <p className={styles.shareStatus} role="status">{shareStatus}</p>} {/* 공유 상태 안내 */}
+                <div className={styles.heroConversationActions} aria-label="히어로 대화 시작 동작"> {/* 히어로 대화 동작 */}
+                    {latestConversation === null ? null : <button type="button" className={styles.secondaryAction} aria-label="히어로 최근 대화 이어하기" onClick={onContinue}>최근 대화 이어하기</button>} {/* 히어로 이어하기 */}
+                    <button type="button" className={styles.primaryAction} aria-label="히어로 새 대화 시작" disabled={creating} onClick={onStart}>{creating ? "대화 준비 중…" : "새 대화 시작"}</button> {/* 히어로 새 대화 */}
+                </div> {/* 히어로 대화 동작 종료 */}
             </div> {/* 히어로 정보 종료 */}
         </section> // 히어로 영역 종료
     ); // 반환 종료

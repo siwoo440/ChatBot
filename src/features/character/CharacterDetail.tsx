@@ -98,11 +98,11 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
         <main className={styles.page} style={pageStyle}> {/* 상세 본문 */}
             <div className={styles.background} aria-hidden="true" /> {/* 흐림 배경 */}
             <div className={styles.content}> {/* 상세 내용 */}
-                <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} shareStatus={shareStatus} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => dispatch({ type: "toggle-character-like", characterId: character.id })} onFollow={() => dispatch({ type: "toggle-creator-follow", creatorId: character.creatorId })} onShare={shareCharacter} onMore={openReport} /> {/* 히어로 */}
+                <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} latestConversation={latestConversation} creating={creating} shareStatus={shareStatus} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => dispatch({ type: "toggle-character-like", characterId: character.id })} onFollow={() => dispatch({ type: "toggle-creator-follow", creatorId: character.creatorId })} onShare={shareCharacter} onMore={openReport} onContinue={continueConversation} onStart={startConversation} /> {/* 히어로 */}
                 <CharacterStoryInfo character={character} profile={profile} /> {/* 스토리 정보 */}
                 <ConversationSetup profile={state.profile} presets={profile.startPresets} selectedProfileId={selectedProfileId} selectedPresetId={selectedPreset?.id ?? ""} onProfileChange={setSelectedProfileId} onPresetChange={setSelectedPresetId} /> {/* 시작 설정 */}
-                {selectedPrologue === undefined ? null : <ProloguePreview key={selectedPrologue.id} prologue={selectedPrologue} />} {/* 프롤로그 미리보기 */}
-                <CharacterDiscoverySections profile={profile} characters={state.characters} relatedCharacters={relatedCharacters} /> {/* 업데이트와 탐색 */}
+                {selectedPrologue === undefined || selectedPreset === undefined ? null : <ProloguePreview key={selectedPrologue.id} prologue={selectedPrologue} presetName={selectedPreset.name} fallbackImage={character.coverImage} characterName={character.name} />} {/* 프롤로그 미리보기 */}
+                <CharacterDiscoverySections profile={profile} userProfile={state.profile} characters={state.characters} relatedCharacters={relatedCharacters} /> {/* 업데이트와 탐색 */}
                 <CharacterActionBar latestConversation={latestConversation} creating={creating} onContinue={continueConversation} onStart={startConversation} /> {/* 대화 동작 */}
             </div> {/* 상세 내용 종료 */}
             {reportOpen ? <CharacterReportDialog characterName={character.name} reason={reportReason} onReasonChange={setReportReason} onCancel={closeReport} onSubmit={submitReport} /> : null} {/* 신고 창 */}

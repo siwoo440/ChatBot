@@ -133,6 +133,13 @@
     letter-spacing: 0.16em; /* 라벨 자간 */
 } /* 규칙 종료 */
 
+.localOnly /* 로컬 범위 안내 */
+{ /* 규칙 시작 */
+    color: #7f8797; /* 안내 색상 */
+    font-size: 0.72rem; /* 안내 크기 */
+    font-weight: 650; /* 안내 굵기 */
+} /* 규칙 종료 */
+
 .followButton /* 팔로우 버튼 */
 { /* 규칙 시작 */
     min-width: 88px; /* 버튼 너비 */
@@ -310,6 +317,13 @@
 { /* 규칙 시작 */
     fill: currentColor; /* 점 채움 */
     stroke: none; /* 점 선 제거 */
+} /* 규칙 종료 */
+
+.heroConversationActions /* 히어로 대화 동작 */
+{ /* 규칙 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 좁은 화면 줄바꿈 */
+    gap: 10px; /* 버튼 간격 */
 } /* 규칙 종료 */
 
 .storySection /* 스토리 영역 */
@@ -614,7 +628,11 @@
     justify-items: center; /* 내용 중앙 정렬 */
     gap: 8px; /* 요소 간격 */
     color: #d8dce7; /* 대체 글자 */
-    background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--character-accent) 32%, transparent), transparent 58%), #0b0e15; /* 대체 배경 */
+    background-color: #0b0e15; /* 대체 바탕 */
+    background-image: linear-gradient(rgba(11, 14, 21, 0.5), rgba(11, 14, 21, 0.82)), var(--prologue-fallback-image), radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--character-accent) 32%, transparent), transparent 58%); /* 대표 이미지 배경 */
+    background-position: center; /* 대체 이미지 위치 */
+    background-size: cover; /* 대체 이미지 채움 */
+    box-shadow: inset 0 0 90px color-mix(in srgb, var(--character-accent) 20%, transparent); /* 강조색 음영 */
 } /* 규칙 종료 */
 
 .prologueFallback > span /* 대체 장식 */
@@ -634,6 +652,14 @@
     flex-direction: column; /* 세로 방향 */
     justify-content: center; /* 세로 중앙 */
     padding: clamp(30px, 5vw, 54px); /* 반응형 여백 */
+} /* 규칙 종료 */
+
+.prologuePreset /* 선택 프리셋 */
+{ /* 규칙 시작 */
+    margin-top: 8px; /* 위쪽 간격 */
+    color: color-mix(in srgb, var(--character-accent) 78%, white); /* 프리셋 색상 */
+    font-size: 0.78rem; /* 프리셋 크기 */
+    font-weight: 800; /* 프리셋 굵기 */
 } /* 규칙 종료 */
 
 .prologueContent h2 /* 프롤로그 제목 */
@@ -681,9 +707,8 @@
 
 .actionBar /* 대화 동작 영역 */
 { /* 규칙 시작 */
-    position: sticky; /* 화면 고정 */
+    position: relative; /* 기본 문서 배치 */
     z-index: 20; /* 상단 배치 */
-    bottom: 18px; /* 아래 위치 */
     display: flex; /* 가로 배치 */
     align-items: center; /* 세로 중앙 */
     justify-content: space-between; /* 양쪽 정렬 */
@@ -960,6 +985,63 @@
     font-style: normal; /* 기울임 제거 */
 } /* 규칙 종료 */
 
+.myRanking /* 내 샘플 순위 */
+{ /* 규칙 시작 */
+    display: grid; /* 격자 배치 */
+    grid-template-columns: 58px 42px minmax(0, 1fr) auto; /* 표제와 정보 배치 */
+    align-items: center; /* 세로 중앙 */
+    gap: 12px; /* 요소 간격 */
+    min-height: 74px; /* 항목 높이 */
+    margin-top: 12px; /* 위쪽 간격 */
+    padding: 0 14px; /* 좌우 여백 */
+    border: 1px solid color-mix(in srgb, var(--character-accent) 28%, rgba(255, 255, 255, 0.08)); /* 샘플 경계 */
+    border-radius: 16px; /* 샘플 모서리 */
+    background: color-mix(in srgb, var(--character-accent) 8%, rgba(255, 255, 255, 0.025)); /* 샘플 배경 */
+} /* 규칙 종료 */
+
+.myRanking > strong /* 내 순위 표제 */
+{ /* 규칙 시작 */
+    color: var(--character-accent); /* 표제 색상 */
+    font-size: 0.78rem; /* 표제 크기 */
+} /* 규칙 종료 */
+
+.myRankingAvatar /* 사용자 표시 */
+{ /* 규칙 시작 */
+    display: grid; /* 중앙 배치 */
+    width: 42px; /* 표시 너비 */
+    height: 42px; /* 표시 높이 */
+    border-radius: 14px; /* 표시 모서리 */
+    background: color-mix(in srgb, var(--character-accent) 18%, #171b26); /* 표시 배경 */
+    place-items: center; /* 내용 중앙 */
+} /* 규칙 종료 */
+
+.myRanking > span:not(.myRankingAvatar) /* 사용자 정보 */
+{ /* 규칙 시작 */
+    display: grid; /* 세로 배치 */
+    min-width: 0; /* 넘침 허용 */
+    gap: 3px; /* 문구 간격 */
+} /* 규칙 종료 */
+
+.myRanking b /* 사용자 이름 */
+{ /* 규칙 시작 */
+    overflow: hidden; /* 넘침 숨김 */
+    color: #eef0f5; /* 이름 색상 */
+    text-overflow: ellipsis; /* 말줄임 표시 */
+    white-space: nowrap; /* 한 줄 표시 */
+} /* 규칙 종료 */
+
+.myRanking small /* 사용자 설명 */
+{ /* 규칙 시작 */
+    color: #7f8797; /* 설명 색상 */
+} /* 규칙 종료 */
+
+.myRanking em /* 샘플 상태 */
+{ /* 규칙 시작 */
+    color: #aeb4c3; /* 상태 색상 */
+    font-size: 0.72rem; /* 상태 크기 */
+    font-style: normal; /* 기울임 제거 */
+} /* 규칙 종료 */
+
 .relatedRail /* 연관 캐릭터 목록 */
 { /* 규칙 시작 */
     display: grid; /* 가로 격자 */
@@ -1204,6 +1286,7 @@
     { /* 규칙 시작 */
         width: min(100% - 32px, 700px); /* 태블릿 너비 */
         padding-top: 28px; /* 위쪽 여백 */
+        padding-bottom: 220px; /* 고정 동작 여백 */
     } /* 규칙 종료 */
 
     .hero /* 태블릿 히어로 */
@@ -1242,8 +1325,20 @@
 
     .actionBar /* 태블릿 동작 영역 */
     { /* 규칙 시작 */
+        position: fixed; /* 화면 하단 고정 */
+        right: auto; /* 오른쪽 자동 */
+        bottom: 18px; /* 하단 위치 */
+        left: 50%; /* 가운데 기준 */
         align-items: stretch; /* 버튼 높이 확장 */
         flex-direction: column; /* 세로 배치 */
+        width: min(calc(100% - 32px), 700px); /* 고정 영역 너비 */
+        margin-top: 0; /* 문서 여백 제거 */
+        transform: translateX(-50%); /* 가운데 보정 */
+    } /* 규칙 종료 */
+
+    .heroConversationActions /* 태블릿 히어로 동작 */
+    { /* 규칙 시작 */
+        display: none; /* 중복 동작 숨김 */
     } /* 규칙 종료 */
 
     .actionButtons /* 태블릿 버튼 목록 */
@@ -1268,12 +1363,26 @@
     } /* 규칙 종료 */
 } /* 미디어 종료 */
 
+@media (max-width: 760px) /* 하단 메뉴 화면 */
+{ /* 미디어 시작 */
+    .content /* 하단 메뉴 내용 */
+    { /* 규칙 시작 */
+        padding-bottom: 250px; /* 고정 동작 여백 */
+    } /* 규칙 종료 */
+
+    .actionBar /* 하단 메뉴 동작 영역 */
+    { /* 규칙 시작 */
+        bottom: calc(68px + max(10px, env(safe-area-inset-bottom))); /* 메뉴 위 위치 */
+        width: min(calc(100% - 24px), 480px); /* 모바일 고정 너비 */
+    } /* 규칙 종료 */
+} /* 미디어 종료 */
+
 @media (max-width: 520px) /* 모바일 화면 */
 { /* 미디어 시작 */
     .content /* 모바일 내용 */
     { /* 규칙 시작 */
         width: min(100% - 24px, 480px); /* 모바일 너비 */
-        padding-bottom: 118px; /* 하단 동작 여백 */
+        padding-bottom: 250px; /* 하단 동작 여백 */
     } /* 규칙 종료 */
 
     .portraitFrame /* 모바일 이미지 */
@@ -1327,7 +1436,7 @@
 
     .actionBar /* 모바일 동작 영역 */
     { /* 규칙 시작 */
-        bottom: 10px; /* 모바일 아래 위치 */
+        bottom: calc(68px + max(10px, env(safe-area-inset-bottom))); /* 모바일 메뉴 위 위치 */
         padding: 13px; /* 모바일 여백 */
         border-radius: 18px; /* 모바일 모서리 */
     } /* 규칙 종료 */
@@ -1365,6 +1474,17 @@
     .relatedRail /* 모바일 연관 목록 */
     { /* 규칙 시작 */
         grid-auto-columns: minmax(170px, 62%); /* 모바일 카드 너비 */
+    } /* 규칙 종료 */
+
+    .myRanking /* 모바일 내 순위 */
+    { /* 규칙 시작 */
+        grid-template-columns: 48px 42px minmax(0, 1fr); /* 모바일 정보 배치 */
+        padding: 12px; /* 모바일 여백 */
+    } /* 규칙 종료 */
+
+    .myRanking em /* 모바일 샘플 상태 */
+    { /* 규칙 시작 */
+        grid-column: 2 / -1; /* 상태 다음 줄 */
     } /* 규칙 종료 */
 
     .reportDialog /* 모바일 신고 창 */

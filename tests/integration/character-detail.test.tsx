@@ -46,6 +46,8 @@ describe("캐릭터 상세 대화 시작", () => // 상세 묶음
         expect(screen.getByText("샘플 데이터")).toBeVisible(); // 샘플 표시 확인
         expect(screen.getByRole("button", { name: "퇴근길 카페의 하린 좋아요" })).toBeVisible(); // 좋아요 동작 확인
         expect(screen.getByRole("button", { name: "퇴근길 카페의 하린 공유" })).toBeVisible(); // 공유 동작 확인
+        expect(screen.getByRole("button", { name: "히어로 새 대화 시작" })).toBeVisible(); // 히어로 대화 동작 확인
+        expect(screen.getByText("로컬 전용 · 서버 동기화 없음")).toBeVisible(); // 팔로우 범위 확인
     }); // 검증 종료
 
     it("성격과 세계관을 포함한 스토리 정보를 표시한다", () => // 스토리 정보 검증
@@ -96,10 +98,21 @@ describe("캐릭터 상세 대화 시작", () => // 상세 묶음
         const user = userEvent.setup(); // 사용자 도구 생성
         renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
         expect(screen.getByRole("heading", { name: "비가 머무는 저녁" })).toBeVisible(); // 기본 프롤로그 확인
+        expect(screen.getByText("시작 설정 · 퇴근 후의 위로")).toBeVisible(); // 기본 프리셋 이름 확인
         await user.click(screen.getByRole("radio", { name: /마감 뒤의 한 잔/ })); // 둘째 프리셋 선택
         expect(screen.getByRole("heading", { name: "마지막 손님" })).toBeVisible(); // 변경 제목 확인
+        expect(screen.getByText("시작 설정 · 마감 뒤의 한 잔")).toBeVisible(); // 변경 프리셋 이름 확인
         expect(screen.getByText("마감 표지판이 뒤집힌 뒤 하린이 조용히 맞은편 자리를 권한다.")).toBeVisible(); // 변경 설명 확인
         expect(screen.getByText("오늘 마지막 잔은 네 거야. 천천히 마시면서 이야기해 줘.")).toBeVisible(); // 변경 대사 확인
+    }); // 검증 종료
+
+    it("프롤로그 이미지 오류 시 대표 이미지 기반 대체 장면을 표시한다", () => // 프롤로그 오류 검증
+    { // 검증 시작
+        renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
+        fireEvent.error(screen.getByRole("img", { name: "비 오는 저녁 카페에서 따뜻한 잔을 건네는 하린" })); // 프롤로그 오류 발생
+        const fallback = screen.getByRole("img", { name: "퇴근길 카페의 하린 대표 이미지 기반 프롤로그 대체 화면" }); // 대체 장면 조회
+        expect(fallback).toBeVisible(); // 대체 장면 표시 확인
+        expect(fallback).toHaveStyle({ "--prologue-fallback-image": "url(\"/images/characters/harin.webp\")" }); // 대표 이미지 연결 확인
     }); // 검증 종료
 
     it("최근 활성 대화를 선택해 이어하기로 이동한다", async () => // 이어하기 검증
@@ -134,6 +147,7 @@ describe("캐릭터 상세 대화 시작", () => // 상세 묶음
         expect(screen.getByText("2026. 9. 20.")).toBeVisible(); // 업데이트 날짜 확인
         expect(screen.getByRole("heading", { name: "사용자 랭킹" })).toBeVisible(); // 랭킹 제목 확인
         expect(screen.getByText("샘플 랭킹")).toBeVisible(); // 샘플 표기 확인
+        expect(screen.getByLabelText("내 샘플 순위")).toHaveTextContent("태평양12"); // 로컬 사용자 순위 확인
         const dailyTab = screen.getByRole("tab", { name: "일간" }); // 일간 탭 조회
         await user.click(dailyTab); // 일간 탭 전환
         expect(dailyTab).toHaveAttribute("aria-selected", "true"); // 일간 선택 확인

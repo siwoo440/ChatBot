@@ -72,7 +72,8 @@ describe("캐릭터 상세 모델", () => // 상세 모델 묶음
         expect(result.conversation.startSettings.presetId).toBe("closing-time"); // 프리셋 식별자 확인
         expect(result.conversation.relationshipStage).toBe("가까운 사이"); // 관계 단계 확인
         expect(result.conversation.relationshipLevel).toBe(46); // 관계 수치 확인
-        expect(result.conversation.currentScene).toBe("불을 낮춘 카페의 마지막 테이블"); // 시작 장면 확인
+        expect(result.conversation.currentScene).toBe("/images/characters/prologues/harin-prologue-v1.png"); // 표시 이미지 확인
+        expect(result.conversation.startSettings.scene).toBe("/images/characters/prologues/harin-prologue-v1.png"); // 저장 이미지 확인
         expect(result.message.content).toBe("오늘 마지막 잔은 네 거야. 천천히 마시면서 이야기해 줘."); // 첫 대사 확인
         expect(result.state.selectedConversationId).toBe(result.conversation.id); // 선택 대화 확인
         expect(result.state.conversations).toHaveLength(originalConversationCount + 1); // 대화 추가 확인

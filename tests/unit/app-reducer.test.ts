@@ -35,12 +35,25 @@ describe("앱 상태 리듀서", () => // 리듀서 묶음
     it("캐릭터 삭제 시 연결 데이터와 보관 상태를 함께 제거한다", () => // 연쇄 삭제 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 준비
+        const rian = state.characters.find((character) => character.id === "rian"); // 삭제 캐릭터 조회
+        if (rian === undefined) // 삭제 캐릭터 부재 확인
+        { // 조건 시작
+            throw new Error("리안 테스트 데이터 부재"); // 데이터 오류
+        } // 조건 종료
         state.bookmarkedCharacterIds = ["rian"]; // 보관 상태 적용
+        state.likedCharacterIds = ["rian"]; // 좋아요 상태 적용
+        state.followedCreatorIds = [rian.creatorId]; // 팔로우 상태 적용
+        state.localReports = [{ id: "report-rian", characterId: "rian", reason: "other", createdAt: "2026-09-29T10:00:00.000Z" }]; // 신고 상태 적용
+        state.memories = [{ id: "memory-rian", characterId: "rian", conversationId: "conversation-rian", category: "summary", content: "리안 대화 기억", sourceMessageIds: [], editedByUser: false, createdAt: "2026-09-29T10:00:00.000Z", updatedAt: "2026-09-29T10:00:00.000Z" }]; // 기억 상태 적용
         const next = appReducer(state, { type: "delete-character", characterId: "rian" }); // 캐릭터 삭제
         expect(next.characters.some((character) => character.id === "rian")).toBe(false); // 캐릭터 제거 확인
         expect(next.conversations.some((conversation) => conversation.characterId === "rian")).toBe(false); // 대화 제거 확인
         expect(next.messages.some((message) => message.conversationId === "conversation-rian")).toBe(false); // 메시지 제거 확인
         expect(next.bookmarkedCharacterIds).toEqual([]); // 보관 제거 확인
+        expect(next.likedCharacterIds).toEqual([]); // 좋아요 제거 확인
+        expect(next.followedCreatorIds).toEqual([]); // 팔로우 제거 확인
+        expect(next.localReports).toEqual([]); // 신고 제거 확인
+        expect(next.memories).toEqual([]); // 기억 제거 확인
         expect(next.selectedConversationId).toBeNull(); // 선택 해제 확인
     }); // 검증 종료
 
