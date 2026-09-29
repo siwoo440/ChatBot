@@ -5,7 +5,7 @@ import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
 import { useEffect, useState } from "react"; // 리액트 상태 도구
 
-export function MobileBottomNavigation() // 모바일 하단 메뉴
+export function MobileBottomNavigation({ onNavigate }: { onNavigate(): void }) // 모바일 하단 메뉴
 { // 함수 시작
     const pathname = usePathname() || "/"; // 현재 경로 조회
     const [hash, setHash] = useState(""); // 현재 앵커 상태
@@ -22,13 +22,23 @@ export function MobileBottomNavigation() // 모바일 하단 메뉴
         }; // 해제 종료
     }, []); // 최초 실행
     const rankingActive = pathname === "/" && hash === "#ranking"; // 랭킹 선택 판정
+    const navigateHome = () => // 홈 이동 처리
+    { // 함수 시작
+        setHash(""); // 홈 앵커 초기화
+        onNavigate(); // 패널 닫기
+    }; // 함수 종료
+    const navigateRanking = () => // 랭킹 이동 처리
+    { // 함수 시작
+        setHash("#ranking"); // 랭킹 앵커 설정
+        onNavigate(); // 패널 닫기
+    }; // 함수 종료
     return ( // 메뉴 반환
         <nav className="mobile-bottom-navigation" aria-label="모바일 메뉴"> {/* 하단 메뉴 */}
-            <Link href="/" aria-current={pathname === "/" && !rankingActive ? "page" : undefined} onClick={() => setHash("")}>홈</Link> {/* 홈 링크 */}
-            <Link href={"/#ranking" as Route} aria-current={rankingActive ? "page" : undefined} onClick={() => setHash("#ranking")}>랭킹</Link> {/* 랭킹 링크 */}
-            <Link href={"/characters/new" as Route} aria-current={pathname === "/characters/new" ? "page" : undefined}>만들기</Link> {/* 제작 링크 */}
-            <Link href={"/text-play/download" as Route} aria-current={pathname === "/text-play/download" ? "page" : undefined}>Text-Play</Link> {/* Text-Play 링크 */}
-            <Link href={"/library" as Route} aria-current={pathname === "/library" ? "page" : undefined}>보관함</Link> {/* 보관함 링크 */}
+            <Link href="/" aria-current={pathname === "/" && !rankingActive ? "page" : undefined} onClick={navigateHome}>홈</Link> {/* 홈 링크 */}
+            <Link href={"/#ranking" as Route} aria-current={rankingActive ? "page" : undefined} onClick={navigateRanking}>랭킹</Link> {/* 랭킹 링크 */}
+            <Link href={"/characters/new" as Route} aria-current={pathname === "/characters/new" ? "page" : undefined} onClick={onNavigate}>만들기</Link> {/* 제작 링크 */}
+            <Link href={"/text-play/download" as Route} aria-current={pathname === "/text-play/download" ? "page" : undefined} onClick={onNavigate}>Text-Play</Link> {/* Text-Play 링크 */}
+            <Link href={"/library" as Route} aria-current={pathname === "/library" ? "page" : undefined} onClick={onNavigate}>보관함</Link> {/* 보관함 링크 */}
         </nav> // 메뉴 종료
     ); // 반환 종료
 } // 함수 종료

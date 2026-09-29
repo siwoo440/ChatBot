@@ -52,17 +52,21 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
         const target = lastButton.current === "left" ? leftButtonRef.current : rightButtonRef.current; // 복귀 대상
         queueMicrotask(() => target?.focus()); // 포커스 복귀
     }; // 함수 종료
+    const closePanelsForNavigation = () => // 이동 패널 닫기
+    { // 함수 시작
+        dispatch({ type: "close-panels" }); // 이동 전 전체 닫기
+    }; // 함수 종료
     return ( // 셸 반환
         <div className={styles.shell} data-left-open={state.settings.leftPanelOpen} data-right-open={state.settings.rightPanelOpen} data-mobile={mobile}> {/* 셸 영역 */}
-            <AppHeader leftOpen={state.settings.leftPanelOpen} rightOpen={state.settings.rightPanelOpen} onToggleLeft={toggleLeft} onToggleRight={toggleRight} leftButtonRef={leftButtonRef} rightButtonRef={rightButtonRef} /> {/* 앱 헤더 */}
+            <AppHeader leftOpen={state.settings.leftPanelOpen} rightOpen={state.settings.rightPanelOpen} onToggleLeft={toggleLeft} onToggleRight={toggleRight} onNavigate={closePanelsForNavigation} leftButtonRef={leftButtonRef} rightButtonRef={rightButtonRef} /> {/* 앱 헤더 */}
             {storageError === null ? null : <p className={styles.storageError} role="alert">{storageError}</p>} {/* 저장 오류 */}
             <div className={styles.grid}> {/* 패널 그리드 */}
-                <ConversationPanel conversations={state.conversations} open={state.settings.leftPanelOpen} /> {/* 대화 패널 */}
+                <ConversationPanel conversations={state.conversations} open={state.settings.leftPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 대화 패널 */}
                 <div className={styles.content}>{children}</div> {/* 중앙 콘텐츠 */}
-                <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} open={state.settings.rightPanelOpen} /> {/* 사용자 패널 */}
+                <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 사용자 패널 */}
             </div> {/* 그리드 종료 */}
             {(state.settings.leftPanelOpen || state.settings.rightPanelOpen) ? <button type="button" className={styles.scrim} aria-label="열린 패널 닫기" onClick={closePanels} /> : null} {/* 패널 배경 */}
-            <MobileBottomNavigation /> {/* 모바일 하단 메뉴 */}
+            <MobileBottomNavigation onNavigate={closePanelsForNavigation} /> {/* 모바일 하단 메뉴 */}
         </div> // 셸 종료
     ); // 반환 종료
 } // 함수 종료

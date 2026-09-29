@@ -1,4 +1,6 @@
 import Image from "next/image"; // 최적화 이미지
+import type { Route } from "next"; // 경로 타입
+import Link from "next/link"; // 내부 경로 링크
 import type { Character } from "@/features/core/types"; // 캐릭터 타입
 import styles from "@/features/discovery/DiscoveryHome.module.css"; // 탐색 스타일
 
@@ -10,7 +12,7 @@ export function FeaturedCharacter({ character }: { character: Character }) // �
                 <span>오늘의 추천</span> {/* 추천 표시 */}
                 <h2 id="featured-title">{character.name}</h2> {/* 추천 제목 */}
                 <p>{character.description}</p> {/* 추천 설명 */}
-                <a href={`/characters/${character.id}`}>세계관 살펴보기</a> {/* 상세 링크 */}
+                <Link href={`/characters/${character.id}` as Route}>세계관 살펴보기</Link> {/* 상세 링크 */}
             </div> {/* 설명 종료 */}
             <Image src={character.coverImage} alt={character.name} width={420} height={520} priority /> {/* 추천 이미지 */}
         </section> // 영역 종료

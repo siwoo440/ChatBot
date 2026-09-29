@@ -45,6 +45,22 @@ describe("앱 셸 패널", () => // 패널 묶음
         expect(libraryLink).toHaveClass("app-navigation-link"); // 작품 버튼 확인
     }); // 검증 종료
 
+    it("내부 화면 이동을 선택하면 열린 양쪽 패널을 즉시 닫는다", async () => // 이동 닫기 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 생성
+        renderWithApp(<AppShell><main>본문</main></AppShell>); // 화면 렌더
+        const leftButton = screen.getByRole("button", { name: "대화방 패널 열기와 닫기" }); // 왼쪽 버튼
+        const rightButton = screen.getByRole("button", { name: "사용자 패널 열기와 닫기" }); // 오른쪽 버튼
+        await user.click(rightButton); // 오른쪽 패널 열기
+        expect(leftButton).toHaveAttribute("aria-expanded", "true"); // 왼쪽 열림 확인
+        expect(rightButton).toHaveAttribute("aria-expanded", "true"); // 오른쪽 열림 확인
+        const libraryLink = screen.getByRole("link", { name: "내 작품" }); // 작품 링크 조회
+        libraryLink.addEventListener("click", (event) => event.preventDefault(), { once: true }); // 문서 이동 차단
+        await user.click(libraryLink); // 내부 이동 선택
+        expect(leftButton).toHaveAttribute("aria-expanded", "false"); // 왼쪽 닫힘 확인
+        expect(rightButton).toHaveAttribute("aria-expanded", "false"); // 오른쪽 닫힘 확인
+    }); // 검증 종료
+
     it("공통 메뉴에서 Text-Play 다운로드 화면으로 이동한다", () => // 다운로드 이동 검증
     { // 검증 시작
         renderWithApp(<AppShell><main>본문</main></AppShell>); // 화면 렌더
