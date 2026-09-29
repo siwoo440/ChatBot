@@ -561,6 +561,26 @@ describe("채팅 흐름", () => // 채팅 묶음
         confirm.mockRestore(); // 확인 함수 복원
     }); // 검증 종료
 
+    it("버전의 마지막 메시지 삭제를 안내와 함께 차단한다", async () => // 마지막 메시지 삭제 화면 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations.find((item) => item.id === "conversation-rian")!; // 리안 대화 조회
+        const onlyMessage = state.messages.find((message) => message.versionId === conversation.currentVersionId)!; // 단일 메시지 조회
+        state.messages = state.messages.filter((message) => message.versionId !== conversation.currentVersionId || message.id === onlyMessage.id); // 단일 메시지 상태 적용
+        const confirm = vi.spyOn(window, "confirm").mockReturnValue(true); // 삭제 확인 대체
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />, state); // 단일 메시지 화면 렌더
+        const targetItem = screen.getByText(onlyMessage.content).closest("li"); // 삭제 항목 조회
+        if (targetItem === null) // 항목 부재 판정
+        { // 조건 시작
+            throw new Error("마지막 메시지 항목 부재"); // 테스트 데이터 오류
+        } // 조건 종료
+        await user.click(within(targetItem).getByRole("button", { name: "삭제" })); // 마지막 메시지 삭제 시도
+        expect(screen.getByText(onlyMessage.content)).toBeVisible(); // 마지막 메시지 유지 확인
+        expect(screen.getByRole("status")).toHaveTextContent("대화 버전의 마지막 메시지는 삭제할 수 없습니다."); // 차단 안내 확인
+        confirm.mockRestore(); // 확인 함수 복원
+    }); // 검증 종료
+
     it("저장 실패 시 수정 버전과 토큰을 메모리에도 반영하지 않는다", async () => // 저장 실패 원자성 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구 생성

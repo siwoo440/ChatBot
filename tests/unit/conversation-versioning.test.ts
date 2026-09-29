@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"; // 테스트 도구
-import { CHAT_MESSAGE_MAX_LENGTH, CHAT_VERSION_LIMIT, createVersionFork, getConversationSummary, getConversationVersion, getMessageVersionGroup, getVersionMessages, removeMessageFromVersion, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
+import { CHAT_MESSAGE_MAX_LENGTH, CHAT_VERSION_LIMIT, createVersionFork, getConversationSummary, getConversationVersion, getMessageVersionGroup, getVersionMessages, isConversationVersionGraphValid, removeMessageFromVersion, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 생성
 import type { ConversationVersion, Message } from "@/features/core/types"; // 도메인 타입
 
@@ -147,6 +147,32 @@ describe("대화 버전 변경", () => // 변경 묶음
         const next = removeMessageFromVersion(fork.state, fork.version.id, earlierForkMessage.id); // 앞선 메시지 삭제
         expect(next.conversationVersions.some((version) => version.id === fork.version.id)).toBe(false); // 현재 분기 제거 확인
         expect(next.conversations[0].currentVersionId).toBe(base.id); // 부모 버전 복귀 확인
+    }); // 검증 종료
+
+    it("분기에서 참조한 원본 AI 메시지 삭제는 복제 참조를 분리한다", () => // AI 참조 삭제 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const base = state.conversationVersions.find((version) => version.id === conversation.currentVersionId)!; // 기준 버전 조회
+        const target = state.messages.find((message) => message.versionId === base.id && message.role === "user")!; // 분기 기준 조회
+        const assistant = state.messages.find((message) => message.versionId === base.id && message.role === "assistant")!; // 원본 AI 메시지 조회
+        const fork = createVersionFork(state, { conversationId: conversation.id, baseVersionId: base.id, targetMessageId: target.id, content: "AI 참조 분기", assistantMessage: { id: "assistant-reference", role: "assistant", content: "AI 참조 응답", emotion: "관심", sceneEvent: null, createdAt: "2026-09-29T10:01:00.000Z" }, versionState: { ...base, lastMessage: "AI 참조 응답" }, now: "2026-09-29T10:01:00.000Z" }); // 분기 생성
+        const next = removeMessageFromVersion(fork.state, base.id, assistant.id); // 원본 AI 메시지 삭제
+        const copiedAssistant = next.messages.find((message) => message.versionId === fork.version.id && message.sourceMessageId === null && message.content === assistant.content); // 분리된 복제 조회
+        expect(copiedAssistant).toBeDefined(); // 복제 메시지 유지 확인
+        expect(isConversationVersionGraphValid(next)).toBe(true); // 그래프 유효성 확인
+    }); // 검증 종료
+
+    it("버전의 마지막 메시지 삭제를 차단한다", () => // 마지막 메시지 보호 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const versionId = conversation.currentVersionId; // 기준 버전 식별자
+        const onlyMessage = state.messages.find((message) => message.versionId === versionId)!; // 단일 메시지 조회
+        const reduced = { ...state, messages: state.messages.filter((message) => message.versionId !== versionId || message.id === onlyMessage.id) }; // 단일 메시지 상태 생성
+        const next = removeMessageFromVersion(reduced, versionId, onlyMessage.id); // 마지막 메시지 삭제 시도
+        expect(next).toBe(reduced); // 원본 상태 유지 확인
+        expect(isConversationVersionGraphValid(next)).toBe(true); // 그래프 유효성 확인
     }); // 검증 종료
 
     it("원본 삭제를 거부하고 수정 버전의 하위 트리를 함께 삭제한다", () => // 버전 삭제 검증

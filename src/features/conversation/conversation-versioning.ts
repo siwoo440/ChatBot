@@ -281,7 +281,12 @@ export function removeMessageFromVersion(state: AppState, versionId: string, mes
         return removeVersionTree(state, version.conversationId, version.id).state; // 분기 트리 삭제 반환
     } // 조건 종료
     const removedIds = new Set(removedMessages.map((message) => message.id)); // 삭제 식별자 집합
-    const messages = state.messages.filter((message) => !removedIds.has(message.id)); // 남은 메시지 목록
+    if (removedIds.size >= versionMessages.length) // 마지막 메시지 삭제 판정
+    { // 조건 시작
+        return state; // 빈 버전 생성 차단
+    } // 조건 종료
+    const removedAssistantIds = new Set(removedMessages.filter((message) => message.role === "assistant").map((message) => message.id)); // 삭제 응답 식별자 집합
+    const messages = state.messages.filter((message) => !removedIds.has(message.id)).map((message) => message.sourceMessageId !== null && removedAssistantIds.has(message.sourceMessageId) ? { ...message, sourceMessageId: null } : message); // 남은 메시지와 응답 참조 정리
     const remaining = versionMessages.filter((message) => !removedIds.has(message.id)); // 현재 버전 잔여 목록
     const lastMessage = remaining.at(-1)?.content ?? ""; // 최근 메시지 결정
     const conversationVersions = state.conversationVersions.map((item) => item.id === versionId ? { ...item, lastMessage } : item); // 버전 요약 갱신

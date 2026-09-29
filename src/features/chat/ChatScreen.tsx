@@ -168,7 +168,13 @@ export function ChatScreen({ characterId, initialConversationId, initialVersionI
             setNotice("백업하지 못해 메시지 삭제를 중단했습니다."); // 백업 오류 안내
             return; // 삭제 중단
         } // 조건 종료
-        const nextState = appReducer(controller.snapshot(), { type: "delete-version-message", versionId: version.id, messageId: message.id }); // 메시지 삭제 상태 생성
+        const currentState = controller.snapshot(); // 삭제 전 상태 조회
+        const nextState = appReducer(currentState, { type: "delete-version-message", versionId: version.id, messageId: message.id }); // 메시지 삭제 상태 생성
+        if (nextState === currentState) // 마지막 메시지 삭제 차단 판정
+        { // 조건 시작
+            setNotice("대화 버전의 마지막 메시지는 삭제할 수 없습니다."); // 삭제 차단 안내
+            return; // 삭제 중단
+        } // 조건 종료
         applyControllerState(nextState); // 삭제 상태 적용
         const versionRemoved = !nextState.conversationVersions.some((item) => item.id === version.id); // 분기 버전 삭제 판정
         const nextConversation = nextState.conversations.find((item) => item.id === conversation.id); // 삭제 후 대화 조회
