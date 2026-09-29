@@ -1,4 +1,4 @@
-import { CHAT_VERSION_LIMIT } from "@/features/conversation/conversation-versioning"; // 버전 제한
+import { CHAT_VERSION_LIMIT, isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 도메인 검증
 import type { AppState, Conversation, ConversationVersion, Message } from "@/features/core/types"; // 대화 타입
 import { isAppState } from "@/lib/repositories/local-storage-gateway"; // 앱 상태 검증
 
@@ -155,6 +155,10 @@ function validateConversationExport(value: unknown): asserts value is Conversati
     if ([...groupCounts.values()].some((count) => count > CHAT_VERSION_LIMIT)) // 분기 제한 판정
     { // 조건 시작
         throw new Error("대화 버전 개수 제한을 초과했습니다."); // 제한 오류
+    } // 조건 종료
+    if (!isConversationVersionGraphValid({ conversations: [conversation], conversationVersions: versions, messages })) // 전체 버전 그래프 판정
+    { // 조건 시작
+        throw new Error("대화 버전 그래프가 올바르지 않습니다."); // 그래프 오류
     } // 조건 종료
 } // 함수 종료
 

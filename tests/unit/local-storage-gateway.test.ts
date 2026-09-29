@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"; // 테스트 도구
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
+import { createVersionFork } from "@/features/conversation/conversation-versioning"; // 버전 분기 도구
 import type { AppState, Character, Message } from "@/features/core/types"; // 도메인 타입
 import { ImportValidationError, LocalStorageGateway, StorageWriteError } from "@/lib/repositories/local-storage-gateway"; // 저장소 대상
 import { createLocalRepositoryProvider } from "@/lib/repositories/repository-provider"; // 저장소 공급자
@@ -445,6 +446,24 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         expect(localStorage.getItem(stateKey)).toBe(raw); // 원본 상태 유지 확인
         const exported = JSON.parse(gateway.exportBackupJson() ?? "null") as { backups: string[] }; // 백업 원본 분석
         expect(exported.backups).toContain(raw); // 복구 백업 확인
+    }); // 검증 종료
+
+    it("전체 데이터 가져오기에서 순환과 고아 버전 그래프를 거부한다", () => // 전체 그래프 검증
+    { // 검증 시작
+        const gateway = new LocalStorageGateway(localStorage); // 저장소 생성
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const base = state.conversationVersions.find((version) => version.id === conversation.currentVersionId)!; // 기준 버전 조회
+        const target = state.messages.find((message) => message.versionId === base.id && message.role === "user")!; // 분기 기준 조회
+        const fork = createVersionFork(state, { conversationId: conversation.id, baseVersionId: base.id, targetMessageId: target.id, content: "가져오기 분기", assistantMessage: { id: "assistant-import", role: "assistant", content: "가져오기 응답", emotion: "관심", sceneEvent: null, createdAt: "2026-09-29T10:01:00.000Z" }, versionState: { ...base, lastMessage: "가져오기 응답" }, now: "2026-09-29T10:01:00.000Z" }); // 유효 분기 생성
+        const cyclic = structuredClone(fork.state); // 순환 상태 복사
+        const cyclicVersion = cyclic.conversationVersions.find((version) => version.id === fork.version.id)!; // 순환 버전 조회
+        cyclicVersion.parentVersionId = cyclicVersion.id; // 자기 부모 적용
+        expect(() => gateway.prepareImport(JSON.stringify(cyclic))).toThrow(ImportValidationError); // 순환 버전 거부 확인
+        const orphaned = structuredClone(fork.state); // 고아 상태 복사
+        const orphanedVersion = orphaned.conversationVersions.find((version) => version.id === fork.version.id)!; // 고아 버전 조회
+        orphanedVersion.parentVersionId = "missing-parent"; // 누락 부모 적용
+        expect(() => gateway.prepareImport(JSON.stringify(orphaned))).toThrow(ImportValidationError); // 고아 버전 거부 확인
     }); // 검증 종료
 
     it("저장공간 오류를 명시적인 쓰기 오류로 변환한다", () => // 저장 실패 검증

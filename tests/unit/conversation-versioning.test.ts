@@ -120,6 +120,35 @@ describe("대화 버전 변경", () => // 변경 묶음
         expect(getMessageVersionGroup(next, base.id, target.id).versionIds).toEqual([base.id]); // 전환 그룹 정리 확인
     }); // 검증 종료
 
+    it("원본의 분기 기준 메시지 삭제는 연결된 수정 분기를 함께 제거한다", () => // 원본 기준 삭제 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const base = state.conversationVersions.find((version) => version.id === conversation.currentVersionId)!; // 기준 버전 조회
+        const target = state.messages.find((message) => message.versionId === base.id && message.role === "user")!; // 분기 기준 조회
+        const fork = createVersionFork(state, { conversationId: conversation.id, baseVersionId: base.id, targetMessageId: target.id, content: "원본 삭제 분기", assistantMessage: { id: "assistant-root-delete", role: "assistant", content: "원본 삭제 응답", emotion: "관심", sceneEvent: null, createdAt: "2026-09-29T10:01:00.000Z" }, versionState: { ...base, lastMessage: "원본 삭제 응답" }, now: "2026-09-29T10:01:00.000Z" }); // 분기 생성
+        const next = removeMessageFromVersion(fork.state, base.id, target.id); // 원본 기준 삭제
+        expect(next.conversationVersions.some((version) => version.id === fork.version.id)).toBe(false); // 연결 분기 제거 확인
+        expect(next.conversationVersions.some((version) => version.id === base.id)).toBe(true); // 원본 버전 유지 확인
+        expect(next.messages.some((message) => message.versionId === fork.version.id)).toBe(false); // 분기 메시지 제거 확인
+    }); // 검증 종료
+
+    it("분기 기준보다 앞선 사용자 메시지 삭제는 현재 분기 트리를 제거한다", () => // 앞선 메시지 삭제 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태 생성
+        const conversation = state.conversations[0]; // 기준 대화 조회
+        const base = state.conversationVersions.find((version) => version.id === conversation.currentVersionId)!; // 기준 버전 조회
+        const firstUser = state.messages.find((message) => message.versionId === base.id && message.role === "user")!; // 앞선 사용자 조회
+        const secondUser: Message = { ...firstUser, id: "second-user", content: "두 번째 이야기", createdAt: "2026-09-29T09:00:00.000Z" }; // 둘째 사용자 생성
+        const secondAssistant: Message = { ...state.messages.find((message) => message.versionId === base.id && message.role === "assistant")!, id: "second-assistant", content: "두 번째 응답", createdAt: "2026-09-29T09:01:00.000Z" }; // 둘째 응답 생성
+        const extended = { ...state, messages: [...state.messages, secondUser, secondAssistant] }; // 확장 대화 생성
+        const fork = createVersionFork(extended, { conversationId: conversation.id, baseVersionId: base.id, targetMessageId: secondUser.id, content: "두 번째 수정", assistantMessage: { id: "assistant-later-delete", role: "assistant", content: "두 번째 수정 응답", emotion: "관심", sceneEvent: null, createdAt: "2026-09-29T10:01:00.000Z" }, versionState: { ...base, lastMessage: "두 번째 수정 응답" }, now: "2026-09-29T10:01:00.000Z" }); // 후속 분기 생성
+        const earlierForkMessage = fork.messages.find((message) => message.sourceMessageId === firstUser.id)!; // 앞선 분기 메시지 조회
+        const next = removeMessageFromVersion(fork.state, fork.version.id, earlierForkMessage.id); // 앞선 메시지 삭제
+        expect(next.conversationVersions.some((version) => version.id === fork.version.id)).toBe(false); // 현재 분기 제거 확인
+        expect(next.conversations[0].currentVersionId).toBe(base.id); // 부모 버전 복귀 확인
+    }); // 검증 종료
+
     it("원본 삭제를 거부하고 수정 버전의 하위 트리를 함께 삭제한다", () => // 버전 삭제 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 생성

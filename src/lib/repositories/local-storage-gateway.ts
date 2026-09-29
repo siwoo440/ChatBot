@@ -1,4 +1,5 @@
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
+import { isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 그래프 검증
 import type { AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, Message, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
 
@@ -233,6 +234,7 @@ function isLegacyMessage(value: unknown): boolean // 이전 메시지 판정 함
         && isString(value.content) // 내용 확인
         && (value.emotion === null || isString(value.emotion)) // 감정 확인
         && (value.sceneEvent === null || isString(value.sceneEvent)) // 장면 사건 확인
+        && (value.scenePath === undefined || value.scenePath === null || isString(value.scenePath)) // 장면 경로 확인
         && isString(value.createdAt); // 생성 시각 확인
 } // 함수 종료
 
@@ -359,7 +361,7 @@ export function isAppState(value: unknown): value is AppState // 앱 상태 판�
     }); // 판정 종료
     const validVersions = versions.every((version) => conversationIds.has(version.conversationId)); // 버전 연결 확인
     const validMessages = messages.every((message) => versionsById.get(message.versionId)?.conversationId === message.conversationId && conversationIds.has(message.conversationId)); // 메시지 연결 확인
-    return validConversations && validVersions && validMessages; // 전체 연결 반환
+    return validConversations && validVersions && validMessages && isConversationVersionGraphValid({ conversations, conversationVersions: versions, messages }); // 전체 연결 반환
 } // 함수 종료
 
 function isVersionSixState(value: unknown): value is VersionSixState // 버전 6 상태 판정 함수
