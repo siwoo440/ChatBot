@@ -1487,7 +1487,7 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 버전 8 데이터는 `migrateVersionEight`가 빈 고정 목록과 최근 대화순을 추가한다. 0~7 버전도 이 단계를 거쳐 9가 되고, 전체 JSON 가져오기도 같은 변환을 쓴다. 대화 파일 내보내기 형식은 바뀌지 않는다(고정 여부는 넣지 않는다).
 - 리듀서 `toggle-conversation-pin`: 없는 대화·보관한 대화·한도 초과는 무시한다. 보관·삭제·캐릭터 삭제 때 고정 목록에서도 뺀다.
 - 왼쪽 창 삭제는 `createBackup("conversation-delete")` 성공 뒤에만 실행한다. 데이터 관리의 백업 목록에는 `대화 삭제 전`으로 보인다.
-- 버전 10은 오른쪽 메뉴 3단계(토큰 사용 내역)가 쓴다(`HANDOFF.md` 7절).
+- 버전 10은 스토리 모드(42장)가 썼다. 오른쪽 메뉴 3단계(토큰 사용 내역)는 버전 11로 미뤘다(`HANDOFF.md` 7절).
 
 ### 채팅 화면과의 상태 병합
 
@@ -1525,5 +1525,72 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - `tests/integration/chat-flow.test.tsx`의 채팅 중 외부 변경 유지 1개
 - `tests/e2e/conversation-panel.spec.ts` 3개(실제 브라우저 Esc 처리, 새로고침 뒤 고정·정렬 유지, 채팅 중 이름·패널 상태 유지와 턴 증가)
 - 390px·820px·1440px에서 메뉴·검색·삭제 확인·보관 안내 상태의 가로 넘침 없음
+
+## 42. 스토리 모드와 안전·편의 보강
+
+경쟁 서비스 비교 뒤 우선순위가 높은 안전·편의 항목 4개를 먼저 넣고, 사용자 요청으로 스토리 모드를 추가했다. 캐릭터가 먼저 말을 거는 기능(선제 메시지)은 사용자 요청으로 보류했다.
+
+### 42.1 안전·편의 보강
+
+| 항목 | 내용 |
+| --- | --- |
+| 삭제 전 백업 | 보관함의 캐릭터 삭제(`character-delete`)·대화 삭제(`conversation-delete`)·스토리 삭제(`story-delete`)도 백업 성공 뒤에만 지운다. 데이터 관리 백업 목록에 `캐릭터 삭제 전`·`스토리 삭제 전`이 보인다. |
+| AI 표시 | 채팅 머리말에 `AI` 표시, 입력창 위에 `AI가 만든 허구의 대화입니다.` 안내(`role="note"`) |
+| 60분 이용 알림 | 화면이 보이는 동안의 이용 시간을 30초마다 더해(한 번에 최대 2분) 60분마다 초록 안내 띠를 띄운다. `계속 이용하기`를 누르면 다음 60분 뒤에 다시 알린다. 탭마다 `sessionStorage`(`mateverse:v1:usage-time`)에 따로 센다. |
+| 하루 토큰 초기화 | `getDailyUsage(wallet, now)`: 지갑을 마지막으로 바꾼 날짜(서울)가 오늘이 아니면 하루 사용량을 0으로 본다. 저장 구조 변경 없음. 날짜 계산은 `src/lib/time/date-key.ts`로 모았다. |
+
+### 42.2 스토리 모드 개념
+
+- 캐릭터 모드는 캐릭터 한 명과 1:1 대화, 스토리 모드는 캐릭터 1~4명(한 명도 가능)과 하나의 상황극이다.
+- 스토리는 기존 캐릭터를 불러와 이야기 속 이름(`displayName`, 기본값은 캐릭터 이름의 마지막 낱말), 역할, 첫 대사를 붙인다. 첫 번째 인물이 대표 인물(`Conversation.characterId`)이다.
+- 스토리 이용 등급은 등장인물 중 가장 높은 등급 이상이어야 한다(`getRequiredStoryRating`). 19세 스토리는 19+ 규칙(40장)을 그대로 따른다.
+
+### 42.3 응답 형식과 화면
+
+- 한 번의 응답(assistant 메시지 1개)에 여러 줄: `[내레이션] 장면 묘사`, `[리안] 대사`. `parseStoryMessage`가 조각으로 나누고, 형식이 없는 줄은 앞 조각에 이어 붙인다(첫 줄이면 내레이션). 모르는 이름은 `unknown` 조각으로 그대로 보여 준다.
+- 화면: 내레이션은 기울임 상자, 인물 대사는 얼굴·이름·대사 줄(`data-speaker`). 스트리밍 커서는 마지막 조각 끝(`data-stream-tail`)에 붙는다.
+- 사용자 입력: `말 걸 상대`를 고르면 `@이름 내용`으로 보낸다(직접 `@`로 시작하면 그대로). `이야기 진행`은 `(다음 장면으로)`를 보내고 말풍선은 `▶ 다음 장면으로`로 보인다.
+- 시작 장면: 스토리를 시작하면 `opening` 내레이션 + 첫 대사가 있는 인물의 대사로 첫 응답을 만든다. 캐릭터 대화와 같이 첫 메시지를 보내야 저장된다.
+- Mock 응답(`composeStoryReply`): 내레이션 1줄 → 지목한 인물(없으면 해시로 고른 인물) → 조건에 따라 다른 인물 1명이 더 말한다. 같은 입력이면 같은 답을 낸다.
+- 토큰·다시 생성·수정 분기·중단은 캐릭터 대화와 같은 `ChatController` 흐름을 쓴다. 관계 수치는 스토리에서는 보여 주지 않는다.
+
+### 42.4 화면과 주소
+
+| 주소 | 화면 |
+| --- | --- |
+| `/stories` | 스토리 홈: 모드 전환, 공개 스토리(인기순), 내가 만든 스토리, `＋ 새 스토리 만들기` |
+| `/stories/[id]` | 상세: 표지·등급·제작자·등장인물, `스토리 시작` 또는 `이어하기`·`새로 시작`, 내 스토리면 `스토리 수정`, 줄거리·시작 장면·내 역할·등장인물 카드 |
+| `/stories/[id]/chat?conversation=&version=` | 스토리 대화. 오른쪽에 `등장인물`·`내 역할` 패널 |
+| `/stories/new`, `/stories/[id]/edit` | 만들기·수정. 남의 스토리는 권한 안내, 없는 스토리는 찾을 수 없음 안내 |
+
+- 만들기 화면 검증(`validateStoryDraft`): 제목 1~40자, 한 줄 소개 1~80자, 시작 장면 1~1000자, 줄거리 2000자·내 역할 200자 이하, 등장인물 1~4명(같은 캐릭터 중복·사라진 캐릭터 불가), 이야기 속 이름 1~12자·서로 다름·`[`·`]`·`@`·`내레이션` 불가, 역할 120자·첫 대사 300자 이하, 태그 8개·12자 이하, 표지는 장면 이미지 3종, 등급은 등장인물 기준 이상.
+- 등장인물 후보(`getStoryCandidates`): 공개·발행된 캐릭터와 내 캐릭터. 19+를 볼 수 없으면 19세 캐릭터는 뺀다. 후보가 많아 검색창(이름·태그, 초성 가능)과 높이 300px 스크롤 목록을 둔다. 고른 인물은 검색 중에도 남는다.
+- 저장하지 않은 변경이 있으면 이동 전에 확인한다(`useUnsavedChangesGuard`, 캐릭터 편집기와 공용).
+
+### 42.5 저장 구조 (앱 상태 버전 10)
+
+- `AppState.stories: Story[]`, `Conversation.mode: "character" | "story"`, `storyId`, `storyCast`(시작할 때 복사해 두므로 나중에 스토리를 고쳐도 진행 중인 대화의 등장인물은 바뀌지 않는다)
+- 검증: 스토리 대화는 있는 스토리와 비어 있지 않은 `storyCast`가, 캐릭터 대화는 `storyId: null`과 빈 `storyCast`가 있어야 한다.
+- `migrateVersionNine`: 기존 대화를 캐릭터 모드로 바꾸고, 등장인물 캐릭터가 모두 있는 예시 스토리 3개를 넣는다. 0~8 버전도 이 단계를 거친다.
+- 리듀서: `upsert-story`, `delete-story`(연결 대화·버전·메시지·기억·고정·선택까지 정리). `delete-character`는 등장인물에서 빼고, 빈 스토리는 지우고, 대표 인물이 지워진 스토리 대화는 남은 첫 인물로 대표를 바꾼다.
+- 대화 파일: 예전 파일은 캐릭터 모드로 채워 읽고, 스토리 대화 파일은 같은 스토리가 있어야 가져온다.
+- 캐릭터 대화 조회(`resolveConversationRoute`, `getLatestActiveConversation`)는 캐릭터 모드만 본다. 스토리 대화가 캐릭터 대화로 열리지 않게 하기 위해서다.
+
+### 42.6 파일
+
+- `src/features/story/story-model.ts`: 응답 형식, 등급, 주소(`createSessionHref`), 스토리 대화 생성·조회
+- `src/features/story/story-validation.ts`: 초안·검증·후보
+- `src/features/story/StoryHome.tsx`, `StoryDetail.tsx`, `StoryCard.tsx`, `StoryEditor.tsx`, `ModeSwitch.tsx`, `Story.module.css`, `StoryEditor.module.css`
+- `src/lib/story/mock-story-writer.ts`, `src/lib/adapters/mock-llm-adapter.ts`(스토리 분기), `src/features/chat/chat-controller.ts`(`createLLMInput`)
+- `src/features/chat/ChatScreen.tsx`·`ChatComposer.tsx`·`MessageItem.tsx`: 스토리 분기
+- `src/components/app-shell/ConversationPanel.tsx`, `src/features/library/LibraryScreen.tsx`: 스토리 카드와 `내 스토리` 탭
+- `src/features/safety/`(이용 시간), `src/lib/time/date-key.ts`, `src/features/core/useUnsavedChangesGuard.ts`
+
+### 42.7 검증
+
+- 단위: `story-model`(12), `story-validation`(10), `mock-story-writer`(5), `usage-time`, `token-policy`(날짜 초기화), `app-reducer`·`local-storage-gateway`의 스토리·스키마 10 항목
+- 통합: `story-mode`(7), `story-screens`(5), `story-editor`(6), `library`(스토리 대화·내 스토리·백업), `conversation-panel`(스토리 카드), `app-shell`(이용 알림), `chat-flow`(AI 안내)
+- E2E: `tests/e2e/story-mode.spec.ts` 2개(시작 → 상대 지목 → 이야기 진행 → 새로고침 유지, 만들기 → 공개 저장 → 상세 → 시작)
+- 390px·820px·1440px 스토리 홈·상세·대화·만들기·보관함·왼쪽 창 가로 넘침 없음, 콘솔 오류 없음
 
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.
