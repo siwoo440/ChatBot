@@ -12,20 +12,26 @@ describe("Text-Play 다운로드 화면", () => // 다운로드 화면 묶음
         renderWithApp(<TextPlayPage />); // 통합 화면 렌더
         expect(screen.getByRole("heading", { level: 1, name: /이야기를 읽는 순간에서/ })).toBeInTheDocument(); // 화면 제목 확인
         expect(screen.getByRole("button", { name: "다운로드 준비 중" })).toBeDisabled(); // 비활성 버튼 확인
-        expect(screen.getAllByText("확인 필요").length).toBeGreaterThan(2); // 미확정 정보 확인
         expect(screen.getByText("Windows용 프로그램")).toBeInTheDocument(); // 플랫폼 확인
+        expect(screen.getAllByText("다운로드 준비 중").length).toBeGreaterThan(1); // 배포 상태 배지 확인
     }); // 검증 종료
 
-    it("소개와 다운로드를 한 화면에 두고 다운로드 버튼은 하나만 표시한다", () => // 화면 통합 검증
+    it("소개 구역을 순서대로 보여 주고 다운로드 버튼은 하나만 표시한다", () => // 화면 구성 검증
     { // 검증 시작
         renderWithApp(<TextPlayPage />); // 통합 화면 렌더
         expect(screen.getAllByRole("button", { name: "다운로드 준비 중" })).toHaveLength(1); // 단일 버튼 확인
-        for (const name of ["주요 기능", "다운로드 정보", "파일 안전 정보", "설치 순서", "자주 묻는 질문"]) // 구역 순회
-        { // 순회 시작
-            expect(screen.getByRole("heading", { name })).toBeInTheDocument(); // 구역 제목 확인
-        } // 순회 종료
-        expect(screen.getByRole("link", { name: "다운로드 정보 보기" })).toHaveAttribute("href", "#download-info"); // 정보 앵커 확인
-        expect(document.getElementById("download-info")).toHaveAccessibleName("다운로드 정보"); // 앵커 대상 확인
+        const headings = screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent); // 구역 제목 조회
+        expect(headings).toEqual(["한 장면은 이렇게 진행됩니다", "주요 기능", "Character Chat과 무엇이 다른가요?", "설치 순서", "자주 묻는 질문", "이야기의 다음 장은 직접 쓰세요"]); // 구역 순서 확인
+        expect(screen.getByRole("figure", { name: /출시 전 화면 구성 예시/ })).toBeInTheDocument(); // 화면 예시 설명 확인
+    }); // 검증 종료
+
+    it("삭제한 바로가기와 다운로드 정보 구역을 표시하지 않는다", () => // 삭제 구역 검증
+    { // 검증 시작
+        renderWithApp(<TextPlayPage />); // 통합 화면 렌더
+        expect(screen.queryByRole("link", { name: "다운로드 정보 보기" })).not.toBeInTheDocument(); // 정보 바로가기 제거 확인
+        expect(screen.queryByRole("link", { name: "Character Chat 열기" })).not.toBeInTheDocument(); // 챗봇 바로가기 제거 확인
+        expect(screen.queryByRole("heading", { name: "다운로드 정보" })).not.toBeInTheDocument(); // 정보 구역 제거 확인
+        expect(document.getElementById("download-info")).toBeNull(); // 정보 앵커 제거 확인
     }); // 검증 종료
 
     it("하단 경로를 실제 화면으로 연결한다", () => // 경로 연결 검증

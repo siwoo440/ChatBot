@@ -20,20 +20,16 @@ test("헤더의 Text-Play 다운로드 버튼 하나로 통합 페이지를 연�
     await expect(page.getByRole("main").getByRole("button", { name: "다운로드 준비 중" })).toHaveCount(1); // 단일 다운로드 버튼 확인
 }); // 테스트 종료
 
-test("다운로드 정보 바로가기는 헤더에 가리지 않는 위치로 이동한다", async ({ page }) => // 앵커 이동 검증
+test("하단 안내의 다운로드 버튼 이동은 헤더에 가리지 않는 위치로 이동한다", async ({ page }) => // 앵커 이동 검증
 { // 테스트 시작
     await page.goto("/text-play"); // 통합 페이지 열기
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); // 상태 복원 대기
-    const closeButton = page.getByRole("button", { name: "열린 패널 닫기" }); // 배경 닫기 조회
-    if (await closeButton.isVisible()) // 열린 패널 확인
-    { // 조건 시작
-        await closeButton.click(); // 기본 패널 닫기
-    } // 조건 종료
-    await page.getByRole("link", { name: "다운로드 정보 보기" }).click(); // 바로가기 선택
-    await expect(page).toHaveURL(/#download-info$/); // 앵커 주소 확인
+    await page.keyboard.press("Escape"); // 기본 패널 닫기
+    await page.getByRole("link", { name: "다운로드 버튼으로 이동" }).click(); // 바로가기 선택
+    await expect(page).toHaveURL(/#text-play-download$/); // 앵커 주소 확인
     const position = await page.evaluate(() => // 위치 계산
     { // 계산 시작
-        const section = document.getElementById("download-info")?.getBoundingClientRect().top ?? -1; // 구역 위치
+        const section = document.getElementById("text-play-download")?.getBoundingClientRect().top ?? -1; // 다운로드 위치
         const header = document.querySelector(".app-header")?.getBoundingClientRect().bottom ?? 0; // 헤더 하단
         return { section, header }; // 위치 반환
     }); // 계산 종료

@@ -14,32 +14,37 @@
 | 기준 브랜치 | `main` |
 | 기준 | 이 문서가 포함된 현재 브랜치의 `HEAD` |
 | 페이지 구성 | 소개와 다운로드를 합친 단일 페이지 `/text-play` |
+| 화면 테마 | 오렌지·노랑·흰색 라이트 테마 |
 | 구현 프레임워크 | Next.js App Router |
 | 기본 언어 | TypeScript, React, CSS Modules |
 | 현재 배포 상태 | 다운로드 준비 중 |
 | 실제 설치 파일 | 없음 또는 확인되지 않음 |
+| 배포 메타데이터·파일 안전 정보 화면 표시 | 없음, `release-config.ts` 설정에만 유지 |
 | 다운로드 API | 없음 |
 | Tauri 실행 프로그램 | 이번 구현 범위에서 제외 |
 
 ---
 ## 2. 구현 목적
 
-이번 개발의 목적은 기존 Mate Verse Character Chat 웹 앱 안에 Text-Play 제품 소개와 Windows 프로그램 다운로드 확인 흐름을 한 페이지로 제공하는 것이다.
+이번 개발의 목적은 기존 Mate Verse Character Chat 웹 앱 안에 Text-Play 제품 소개와 Windows 프로그램 다운로드 흐름을 한 페이지로 제공하는 것이다.
 
 사용자는 다음 작업을 할 수 있다.
 
 - 상단 공통 메뉴의 `Text-Play 다운로드` 또는 모바일 하단 메뉴의 `Text-Play`로 페이지 이동
-- 첫 화면에서 제품 소개, 배포 상태, 다운로드 버튼을 함께 확인
-- `다운로드 정보 보기` 링크로 같은 페이지의 다운로드 정보 영역으로 이동
-- 현재 배포 상태 확인
-- 버전, 채널, 파일 형식, 용량, 게시일, 파일명 확인
-- 지원 Windows와 최소 시스템 요구사항 확인
-- SHA-256과 코드 서명 상태 확인
-- 설치 순서와 주요 기능 확인
+- 첫 화면에서 제품 소개, 배포 상태, 다운로드 버튼, 출시 전 화면 구성 예시를 함께 확인
+- 핵심 요약 4개 항목 확인
+- 한 장면이 진행되는 3단계 흐름 확인
+- 주요 기능 확인
+- Character Chat과 Text-Play의 차이 확인
+- 설치 순서 확인
 - FAQ 확인
+- 하단 안내의 `다운로드 버튼으로 이동` 링크로 상단 다운로드 버튼에 복귀
+- `Character Chat 체험하기` 링크로 기존 웹 서비스 이동
 - 실제 다운로드 URL이 있을 때 설치 파일 다운로드
 
 현재 실제 배포 파일이 없으므로 다운로드 버튼은 의도적으로 비활성화되어 있다.
+
+버전, 채널, 파일 형식, 용량, 게시일, 파일명, 지원 Windows, 최소 시스템 요구사항, SHA-256, 코드 서명 상태는 사용자 요청에 따라 화면에서 제거했다. 값을 담는 필드는 `release-config.ts`에 그대로 남아 있으며, 실제 배포 파일을 공개하기 전에는 최소한 파일 해시와 코드 서명 정보를 화면에 다시 표시해야 한다.
 
 ---
 ## 3. 구현 범위와 제외 범위
@@ -47,7 +52,7 @@
 ---
 ### 구현 범위
 
-- `/text-play` 제품 소개와 Windows 다운로드 확인을 합친 단일 페이지
+- `/text-play` 제품 소개와 Windows 다운로드 버튼을 합친 단일 페이지
 - 이전 주소 `/text-play/download`의 `/text-play` 영구 이동(HTTP 308)
 - 공통 데스크톱 헤더 메뉴 연결
 - 모바일 하단 메뉴 연결
@@ -55,9 +60,11 @@
 - 다운로드 URL 안전성 검사
 - URL 유무에 따른 활성·비활성 동작
 - 준비 중, 베타, 정식 배포 상태 표시
+- 출시 전 런처 화면 구성 예시와 SVG 장면 일러스트
+- 오렌지·노랑·흰색 라이트 테마
 - 반응형 레이아웃
 - 키보드 포커스와 기본 접근성 처리
-- 단위·통합·공통 메뉴 테스트
+- 단위·통합·공통 메뉴·E2E 테스트
 
 ---
 ### 제외 범위
@@ -73,13 +80,14 @@
 - LLM API 변경
 - 로컬 세이브 저장 경로 확정
 - 개인정보처리방침, 이용약관, 고객지원 실제 페이지
+- 배포 메타데이터, 지원 Windows, 최소 시스템 요구사항, 파일 안전 정보(SHA-256, 코드 서명)의 화면 표시. 사용자 요청으로 제거했으며 실제 배포 전에 복원해야 한다.
 
 ---
 ## 4. 기술 환경
 
 | 구분 | 패키지 또는 설정 |
 | --- | --- |
-| 웹 프레임워크 | Next.js `^16.3.5` |
+| 웹 프레임워크 | Next.js `^16.3.8` |
 | UI | React `^19.3.0` |
 | 언어 | TypeScript `^5.9.3` |
 | 단위·통합 테스트 | Vitest `^5.0.1` |
@@ -105,6 +113,7 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 | 4 | `npm run typecheck` | TypeScript 검사 |
 | 5 | `npm run lint` | ESLint 검사 |
 | 6 | `npm run build` | 프로덕션 빌드 |
+| 7 | `npm run test:e2e` | Playwright E2E 실행 |
 
 기본 개발 서버 주소는 `http://localhost:3000`이다. 포트가 사용 중이면 `npm run dev -- --webpack -p 3010`처럼 다른 포트를 지정할 수 있다.
 
@@ -113,7 +122,7 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 | 화면 | 기본 주소 |
 | --- | --- |
 | Text-Play 소개·다운로드 | `http://localhost:3000/text-play` |
-| 다운로드 정보 영역 바로가기 | `http://localhost:3000/text-play#download-info` |
+| 다운로드 버튼 바로가기 | `http://localhost:3000/text-play#text-play-download` |
 | 이전 다운로드 주소(이동 확인용) | `http://localhost:3000/text-play/download` → `/text-play`로 308 이동 |
 
 ---
@@ -125,9 +134,10 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 2. `AppShell`이 공통 헤더, 대화방 패널, 사용자 패널, 모바일 하단 메뉴를 제공한다.
 3. `/text-play`는 `TextPlayScreen`을 렌더링한다.
 4. `next.config.ts`의 `redirects()`가 이전 주소 `/text-play/download` 요청을 `/text-play`로 영구 이동시킨다.
-5. `TextPlayScreen`은 `release-config.ts`의 단일 설정 객체를 읽는다.
-6. `DownloadAction`이 다운로드 URL의 유효성을 검사해 버튼 또는 링크를 출력한다. 페이지 안에서 상단 히어로에 한 번만 사용된다.
-7. `TextPlayScreen.module.css`가 Text-Play 페이지의 디자인과 반응형 동작을 담당한다.
+5. `TextPlayScreen`은 `release-config.ts`의 단일 설정 객체를 읽는다. 화면에서 직접 사용하는 값은 `status`뿐이며, 배포 상태 배지, 비교 카드 표제, 베타 경고에 쓴다.
+6. `DownloadAction`이 `downloadUrl`의 유효성을 검사해 버튼 또는 링크를 출력하고, 활성 링크의 `download` 속성에 `fileName`을 사용한다. 페이지 안에서 히어로의 `#text-play-download` 영역에 한 번만 사용된다.
+7. `TextPlayScreen` 내부의 `LauncherMockup`이 `public/images/text-play/twilight-post-office.svg`를 `next/image`로 불러와 출시 전 화면 구성 예시를 그린다.
+8. `TextPlayScreen.module.css`가 Text-Play 페이지의 색상 토큰, 디자인, 반응형 동작을 담당한다.
 
 이 구조에서 화면과 배포 데이터가 분리되어 있으므로, 향후 정적 객체를 API 응답으로 교체할 때 화면 전체를 다시 작성하지 않아도 된다.
 
@@ -136,9 +146,9 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 
 | URL | 페이지 파일 또는 설정 | 화면 컴포넌트 | 역할 |
 | --- | --- | --- | --- |
-| `/text-play` | `src/app/text-play/page.tsx` | `TextPlayScreen` | 제품 소개, 다운로드 버튼, 배포·안전 정보, 설치 순서, FAQ를 한 페이지로 제공 |
+| `/text-play` | `src/app/text-play/page.tsx` | `TextPlayScreen` | 제품 소개, 다운로드 버튼, 화면 구성 예시, 플레이 흐름, 주요 기능, Character Chat 비교, 설치 순서, FAQ를 한 페이지로 제공 |
 | `/text-play/download` | `next.config.ts`의 `redirects()` | 없음 | `/text-play`로 영구 이동(`permanent: true`, HTTP 308) |
-| `/` | 기존 홈 | 기존 Character Chat | 히어로와 하단 메뉴에서 돌아갈 수 있는 기존 서비스 |
+| `/` | 기존 홈 | 기존 Character Chat | 마무리 안내와 하단 메뉴에서 돌아갈 수 있는 기존 서비스 |
 
 `/text-play/download` 페이지 파일은 삭제됐다. 이전 링크와 북마크가 계속 동작하도록 `next.config.ts`에 다음 이동 규칙을 둔다.
 
@@ -151,12 +161,14 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 `src/app/text-play/page.tsx`는 다음 `Metadata`를 제공한다.
 
 - 제목: `MATE Text-Play 다운로드 | Mate Verse`
-- 설명: Windows용 텍스트 게임 프로그램 MATE Text-Play의 소개, 배포 상태, 안전 정보와 설치 순서
+- 설명: Windows용 텍스트 게임 프로그램 MATE Text-Play의 소개, 플레이 흐름, 주요 기능, 배포 상태와 설치 순서
+
+파일 안전 정보 구역을 다시 표시하면 설명 문구에도 `안전 정보`를 함께 추가한다.
 
 ---
 ## 8. Text-Play 관련 파일 목록
 
-현재 Text-Play 기능을 구성하는 코드·설정·테스트 파일은 다음과 같다.
+현재 Text-Play 기능을 구성하는 코드·설정·이미지·테스트 파일은 다음과 같다.
 
 ---
 ### Text-Play 전용 파일
@@ -164,12 +176,14 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 | 파일 | 역할 |
 | --- | --- |
 | `src/app/text-play/page.tsx` | `/text-play` 라우트와 메타데이터 정의 |
-| `src/features/text-play/TextPlayScreen.tsx` | 소개와 다운로드를 합친 페이지 전체 섹션 구성 |
+| `src/features/text-play/TextPlayScreen.tsx` | 소개와 다운로드를 합친 페이지 전체 섹션과 런처 화면 예시 구성 |
 | `src/features/text-play/DownloadAction.tsx` | URL 상태에 따른 다운로드 버튼·링크 처리 |
 | `src/features/text-play/release-config.ts` | 배포 정보 타입, 현재 설정, 검사 및 표시 함수 |
-| `src/features/text-play/TextPlayScreen.module.css` | Text-Play 페이지 스타일과 반응형 규칙 |
+| `src/features/text-play/TextPlayScreen.module.css` | Text-Play 페이지 색상 토큰, 스타일, 반응형 규칙 |
+| `public/images/text-play/twilight-post-office.svg` | 런처 화면 예시에 들어가는 `황혼 우체국` 장면 일러스트 |
 | `tests/unit/text-play-release.test.ts` | URL 검사와 다운로드 가능 조건 단위 테스트 |
-| `tests/integration/text-play.test.tsx` | 통합 페이지와 다운로드 상태 통합 테스트 |
+| `tests/integration/text-play.test.tsx` | 통합 페이지 구성과 다운로드 상태 통합 테스트 |
+| `tests/e2e/text-play.spec.ts` | 이전 주소 이동, 단일 메뉴, 다운로드 버튼 앵커 위치, 화면 너비별 가로 넘침 E2E 테스트 |
 
 ---
 ### Text-Play와 연결된 공통 파일
@@ -217,14 +231,27 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 
 화면 섹션은 다음 순서다.
 
-1. 히어로: 제품 소개, 플랫폼·배포 상태 배지, 다운로드 동작, 보조 링크, RELEASE CHECK 준비 단계
-2. 주요 기능
-3. 다운로드 정보: 메타데이터, 지원 Windows와 최소 요구사항, 파일 안전 정보, 베타 경고
-4. 설치 순서
-5. 자주 묻는 질문
-6. 하단 Character Chat 링크와 준비 중 항목
+1. 히어로: 상단 표제, `h1`, 리드 문구, 플랫폼·배포 상태 배지, `#text-play-download` 다운로드 영역(다운로드 동작과 `beta` 전용 경고), 오른쪽 `figure` 런처 화면 예시
+2. 핵심 요약 목록 4개
+3. `한 장면은 이렇게 진행됩니다` 3단계 흐름
+4. 주요 기능 6개 카드
+5. `Character Chat과 무엇이 다른가요?` 비교 카드 2개
+6. 설치 순서
+7. 자주 묻는 질문 4개
+8. 마무리 안내 띠 `이야기의 다음 장은 직접 쓰세요`
+9. 하단 메뉴
 
-`DownloadAction`은 히어로에서 한 번만 렌더링한다. 화면 내부의 설치 단계, 기능, FAQ는 읽기 전용 배열로 선언되어 있다. 배포 정보만 `release-config.ts`에서 가져온다.
+파일 안의 보조 컴포넌트는 다음과 같다.
+
+| 이름 | 역할 |
+| --- | --- |
+| `FeatureIcon` | `iconPaths`의 도형으로 기능 카드용 24×24 인라인 SVG 아이콘 출력, `aria-hidden="true"`, `focusable="false"` |
+| `SectionHeading` | 영문 표제(`kicker`), `h2`, 선택 설명 문구를 묶는 구역 제목 |
+| `LauncherMockup` | 출시 전 런처 화면 구성 예시. 최상위 요소에 `aria-hidden="true"`를 지정한 장식 요소 |
+
+`DownloadAction`은 히어로에서 한 번만 렌더링한다. 핵심 요약(`highlights`), 플레이 흐름(`playSteps`), 기능(`features`), 설치 단계(`installationSteps`), FAQ(`faqs`)는 읽기 전용 배열로 선언되어 있다. 배포 정보만 `release-config.ts`에서 가져오며, 그중 화면이 직접 읽는 값은 `status`다.
+
+디자인 개편 때 히어로 보조 링크 `다운로드 정보 보기`·`Character Chat 열기`, 다운로드 정보 구역(`#download-info`), `RELEASE CHECK` 런처 미리보기, FAQ `웹 버전과 Windows 버전은 무엇이 다른가요?`가 제거됐다. 자세한 내용은 15절을 참고한다.
 
 ---
 ### `src/features/text-play/DownloadAction.tsx`
@@ -260,42 +287,73 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 - `displayReleaseValue`: 미확정 값의 표시 문구 처리
 - `getDistributionLabel`: 상태 코드를 사용자 문구로 변환
 
+다운로드 정보 구역을 제거한 뒤에도 이 파일은 변경되지 않았다. 다만 `displayReleaseValue`는 현재 어떤 화면에서도 호출되지 않으며, 다운로드 정보 표시를 복원할 때 다시 사용할 수 있다.
+
 ---
 ### `src/features/text-play/TextPlayScreen.module.css`
 
 Text-Play 페이지와 `DownloadAction`이 사용하는 CSS Module이다.
 
+`.page`에 오렌지·노랑·흰색 라이트 테마의 색상 토큰을 CSS 사용자 정의 속성으로 선언한다.
+
+| 토큰 | 값 | 의미 |
+| --- | --- | --- |
+| `--tp-ink` | `#2b1a0e` | 기본 글자 |
+| `--tp-muted` | `#6b5442` | 보조 글자 |
+| `--tp-orange` | `#f97316` | 주 오렌지 |
+| `--tp-orange-deep` | `#c2410c` | 진한 오렌지 |
+| `--tp-amber` | `#f59e0b` | 호박색 |
+| `--tp-yellow` | `#fcd34d` | 노란색 |
+| `--tp-line` | `#f2dcc0` | 경계선 |
+| `--tp-card` | `#ffffff` | 카드 배경 |
+
 주요 스타일 영역은 다음과 같다.
 
-- 공통 페이지 배경과 최대 너비
-- 제품 히어로 영역
-- 히어로 다운로드 영역(`heroDownload`)과 보조 링크(`heroLinks`)
-- 릴리스 상태 배지
-- 런처 형태의 준비 상태 패널
-- 다운로드 정보 카드(`downloadCard`)와 배포 메타데이터
-- 다운로드 정보 카드 안의 소제목(`subheading`)과 안전 정보 카드
-- 다운로드 버튼
-- 설치 순서와 기능 카드
-- FAQ `details` 요소
-- 하단 이동 메뉴
+- 페이지 배경: 노랑·오렌지 원형 그라데이션과 크림색 세로 그라데이션, `overflow-x: clip`으로 장식 요소의 가로 넘침 차단
+- 히어로: 알약 모양 상단 표제(`eyebrow`), 둘째 줄 오렌지 그라데이션 글자(`highlight`), 리드 문구, 배지
+- 배포 상태 배지: `data-status`별 준비 중(노랑), 베타(오렌지), 정식(초록) 색상
+- 히어로 다운로드 영역(`heroDownload`)과 베타 경고(`betaWarning`)
+- 다운로드 버튼(`downloadButton`): 노랑→오렌지 그라데이션(`#ffc83d` → `#ff9a1f` → `#f97316`) 배경에 대비를 위한 진한 글자색 `#2b1400`, 비활성 시 점선 테두리와 연한 줄무늬(`repeating-linear-gradient`) 배경
+- 런처 화면 예시: `heroVisual`과 배경 원, `window`, `titleBar`, `windowDots`, `windowBody`, `storyColumn`, `sceneArt`, `narration`, `dialogue`, `choices`, `freeInput`(깜빡이는 커서), `sideColumn`, `sideCard`, `meter`, `floatingTag`, `tagSave`, `tagMemory`
+- 핵심 요약(`highlights`)과 구역 제목(`section`, `sectionHeading`, `kicker`, `sectionLead`)
+- 플레이 흐름(`flow`, `flowNumber`)과 단계 사이 화살표
+- 기능 카드(`featureGrid`)와 아이콘(`icon`)
+- 비교 카드(`compare`, `compareLabel`)
+- 설치 순서 타임라인(`stepList`)과 가로 연결선
+- FAQ `details` 요소(`faqList`)
+- 마무리 안내 띠(`ctaBand`, `ctaLinks`)
+- 하단 메뉴(`footer`)
 - 키보드 포커스 표시
 - 모션 축소 환경 처리
 
-페이지 통합 시 다음 규칙이 정리됐다.
+페이지 통합과 디자인 개편을 거치며 다음 규칙이 정리됐다.
 
-- 삭제: `homeHero`, `homeGrid`, `homeCard`, `safetySection`, `primaryLink`, `secondaryLink`, `heroActions`
-- 추가: `heroDownload`, `heroLinks`, `subheading`
-- `.downloadCard`에 `scroll-margin-top: 88px`를 지정해 `#download-info` 앵커로 이동할 때 공통 헤더에 제목이 가려지지 않도록 처리
-- 히어로 `h1`, `.lead`, `.downloadHint`에 `word-break: keep-all`을 지정해 한글이 단어 단위로 줄바꿈되도록 처리
+- 페이지 통합 때 삭제: `homeHero`, `homeGrid`, `homeCard`, `safetySection`, `primaryLink`, `secondaryLink`, `heroActions`
+- 디자인 개편 때 삭제: `heroLinks`, `subheading`, `safetyGrid`, `metadataGrid`, `downloadCard`와 `RELEASE CHECK` 미리보기 관련 규칙
+- `.heroDownload`에 `scroll-margin-top: 96px`를 지정해 `#text-play-download` 앵커로 이동할 때 공통 헤더에 다운로드 버튼이 가려지지 않도록 처리
+- 히어로 `h1`, `.lead`, `.downloadHint`를 비롯해 구역 제목, 카드 설명, 설치 단계, FAQ 답변, 마무리 안내 문구 등 한글 문장에 `word-break: keep-all`을 지정해 단어 단위로 줄바꿈되도록 처리
 
 반응형 기준은 다음과 같다.
 
 | 구간 | 처리 |
 | --- | --- |
-| 기본 데스크톱 | 히어로 2열, 정보와 기능 다열 배치 |
-| 최대 980px | 히어로와 주요 그리드 단순화 |
-| 최대 680px | 단일 열 중심 모바일 배치, 히어로 다운로드 버튼 전체 너비 |
-| `prefers-reduced-motion: reduce` | 버튼과 링크 전환 효과 제거 |
+| 기본 데스크톱 | 히어로 2열, 핵심 요약 4열, 플레이 흐름·기능 3열, 비교 2열, 설치 순서 5열 |
+| 최대 1080px | 히어로 1열과 화면 예시 최대 640px 중앙 배치, 핵심 요약·기능 2열, 설치 순서 3열 |
+| 최대 720px | 단일 열 중심 모바일 배치, 히어로 다운로드 버튼 전체 너비, 런처 예시 본문 1열 |
+| `prefers-reduced-motion: reduce` | 다운로드 버튼과 기능 카드의 전환 효과 제거, 자유 입력 커서 깜빡임 제거 |
+
+---
+### `public/images/text-play/twilight-post-office.svg`
+
+런처 화면 예시의 장면 그림으로 쓰는 직접 작성한 SVG 일러스트다. 외부 이미지 파일을 참조하지 않는다.
+
+- 크기: `viewBox="0 0 1200 760"`
+- 내용: 노을 하늘과 해, 구름과 새, 세 겹의 언덕, `POST` 간판과 시계탑이 있는 우체국, 우체통, 하늘을 나는 봉인 편지와 점선 비행 궤적
+- 파일 자체에 `role="img"`, `title`(`황혼 우체국 일러스트`), `desc`가 있다.
+- `TextPlayScreen`은 `next/image`로 `alt=""`, `priority`, `unoptimized`를 지정해 불러온다.
+- `.sceneArt`가 `aspect-ratio: 1200 / 620`과 `object-fit: cover`로 그림의 일부를 잘라 표시한다.
+
+이 그림과 런처 화면 예시는 출시 전 구성 예시이며 실제 Text-Play 프로그램 화면이 아니다.
 
 ---
 ### `src/components/app-shell/AppHeader.tsx`
@@ -327,22 +385,22 @@ Text-Play 페이지와 `DownloadAction`이 사용하는 CSS Module이다.
 
 `TextPlayRelease`가 관리하는 필드는 다음과 같다.
 
-| 필드 | 타입 | 의미 | 현재 값 |
-| --- | --- | --- | --- |
-| `status` | `preparing \| beta \| stable` | 현재 배포 단계 | `preparing` |
-| `version` | `string \| null` | 프로그램 버전 | `null` |
-| `channel` | `string \| null` | stable, beta 같은 배포 채널 | `null` |
-| `downloadUrl` | `string \| null` | 실제 설치 파일 주소 | `null` |
-| `fileName` | `string \| null` | 설치 파일명 | `null` |
-| `fileType` | `string \| null` | EXE, MSI 등의 파일 형식 | `null` |
-| `fileSize` | `string \| null` | 사용자에게 표시할 파일 크기 | `null` |
-| `sha256` | `string \| null` | 파일 무결성 검증 해시 | `null` |
-| `signatureStatus` | `string \| null` | 코드 서명 상태 | `null` |
-| `publishedAt` | `string \| null` | 릴리스 게시일 | `null` |
-| `supportedWindows` | `readonly string[]` | 지원 Windows 버전 목록 | `확인 필요` |
-| `minimumRequirements` | `readonly string[]` | 최소 시스템 요구사항 목록 | `확인 필요` |
+| 필드 | 타입 | 의미 | 현재 값 | 현재 화면 사용 |
+| --- | --- | --- | --- | --- |
+| `status` | `preparing \| beta \| stable` | 현재 배포 단계 | `preparing` | 배포 상태 배지, 비교 카드 표제, 베타 경고 |
+| `version` | `string \| null` | 프로그램 버전 | `null` | 사용 안 함 |
+| `channel` | `string \| null` | stable, beta 같은 배포 채널 | `null` | 사용 안 함 |
+| `downloadUrl` | `string \| null` | 실제 설치 파일 주소 | `null` | `DownloadAction` 활성 여부와 링크 주소 |
+| `fileName` | `string \| null` | 설치 파일명 | `null` | 활성 링크의 `download` 속성 |
+| `fileType` | `string \| null` | EXE, MSI 등의 파일 형식 | `null` | 사용 안 함 |
+| `fileSize` | `string \| null` | 사용자에게 표시할 파일 크기 | `null` | 사용 안 함 |
+| `sha256` | `string \| null` | 파일 무결성 검증 해시 | `null` | 사용 안 함 |
+| `signatureStatus` | `string \| null` | 코드 서명 상태 | `null` | 사용 안 함 |
+| `publishedAt` | `string \| null` | 릴리스 게시일 | `null` | 사용 안 함 |
+| `supportedWindows` | `readonly string[]` | 지원 Windows 버전 목록 | `확인 필요` | 사용 안 함 |
+| `minimumRequirements` | `readonly string[]` | 최소 시스템 요구사항 목록 | `확인 필요` | 사용 안 함 |
 
-`null` 또는 빈 문자열은 화면에서 `확인 필요`로 표시된다.
+`사용 안 함` 필드는 다운로드 정보 구역을 제거하면서 화면 출력이 없어졌다. 값을 입력해도 사용자에게 보이지 않는다. `null` 또는 빈 문자열을 `확인 필요`로 바꾸는 `displayReleaseValue`도 현재 호출되지 않는다.
 
 ---
 ## 11. 배포 상태 규칙
@@ -353,7 +411,9 @@ Text-Play 페이지와 `DownloadAction`이 사용하는 CSS Module이다.
 | `beta` | 베타 배포 | 제한된 사용자에게 시험 버전을 제공하는 상태 |
 | `stable` | 정식 배포 | 정식 설치 파일을 제공하는 상태 |
 
-`beta` 상태에서는 별도의 베타 경고 문구가 표시된다. 단, 버튼 활성화는 상태 문자열이 아니라 유효한 `downloadUrl` 존재 여부로 결정된다.
+화면 문구는 `getDistributionLabel`이 반환하며, 히어로 배포 상태 배지와 비교 카드 표제(`Windows · 다운로드 준비 중` 형태)에 표시된다. 배지는 `data-status` 값에 따라 노랑(준비 중), 오렌지(베타), 초록(정식) 계열 색상을 쓰지만 같은 문구를 함께 표시한다.
+
+`beta` 상태에서는 히어로 다운로드 버튼 아래(`#text-play-download` 영역 안)에 `role="note"` 베타 경고 문구가 표시된다. 단, 버튼 활성화는 상태 문자열이 아니라 유효한 `downloadUrl` 존재 여부로 결정된다.
 
 따라서 `status: "stable"`만 입력하고 URL을 비워 두면 버튼은 계속 비활성화된다.
 
@@ -399,7 +459,9 @@ export const textPlayRelease: TextPlayRelease = // 현재 배포 정보
 }; // 설정 종료
 ```
 
-입력 후에는 화면 확인만 하지 말고 단위 테스트, 통합 테스트, 타입 검사, 빌드를 모두 실행해야 한다.
+현재 화면이 읽는 값은 `status`, `downloadUrl`, `fileName`뿐이다. 버전, 채널, 파일 형식, 용량, 해시, 서명 상태, 게시일, 지원 Windows, 최소 요구사항은 입력해도 화면에 나타나지 않는다. 공개 배포 전에는 최소한 `sha256`과 `signatureStatus`를 보여 주는 화면 구역을 다시 추가해야 한다.
+
+입력 후에는 화면 확인만 하지 말고 단위 테스트, 통합 테스트, E2E 테스트, 타입 검사, 빌드를 모두 실행해야 한다.
 
 ---
 ## 14. 다운로드 데이터 흐름
@@ -407,11 +469,11 @@ export const textPlayRelease: TextPlayRelease = // 현재 배포 정보
 다운로드 상태는 다음 흐름으로 결정된다.
 
 1. 개발자가 `textPlayRelease`에 배포 정보를 입력한다.
-2. `TextPlayScreen`이 설정을 읽어 배포 상태 배지, 메타데이터, 안전 정보를 출력한다.
+2. `TextPlayScreen`이 설정의 `status`를 읽어 배포 상태 배지, 비교 카드 표제, 베타 경고를 출력한다. 버전, 해시, 서명 같은 나머지 필드는 현재 출력하지 않는다.
 3. `DownloadAction`이 `isTextPlayDownloadAvailable`을 호출한다.
 4. `isTextPlayDownloadAvailable`이 `isValidDownloadUrl` 결과를 반환한다.
 5. URL이 유효하지 않으면 비활성 버튼을 출력한다.
-6. URL이 유효하면 직접 다운로드 링크를 출력한다.
+6. URL이 유효하면 `fileName`을 `download` 속성으로 지정한 직접 다운로드 링크를 출력한다.
 7. 사용자가 링크를 선택하면 브라우저가 해당 URL로 다운로드를 요청한다.
 
 현재 별도의 서버 API, DB, 릴리스 서비스 호출은 없다.
@@ -422,44 +484,66 @@ export const textPlayRelease: TextPlayRelease = // 현재 배포 정보
 ---
 ### Text-Play 통합 페이지
 
-`/text-play`는 제품 소개와 다운로드 확인을 한 화면에 담는다. 첫 화면에서 제품 설명과 다운로드 버튼을 함께 보여 주고, 자세한 배포 정보는 아래 구역에서 제공한다. 위에서 아래로 다음 순서로 구성된다.
+`/text-play`는 제품 소개와 다운로드 버튼을 한 화면에 담는다. 위에서 아래로 다음 순서로 구성된다.
 
-1. 히어로
-   - 상단 표제 `MATE TEXT-PLAY · FOR WINDOWS`
-   - `h1` `이야기를 읽는 순간에서 / 직접 움직이는 순간으로`
-   - 선택지와 자유 입력, 작품·세이브·장기 기억 관리를 설명하는 리드 문구
-   - `Windows용 프로그램` 배지와 배포 상태 배지
-   - `DownloadAction` 다운로드 버튼(페이지 전체에서 유일한 다운로드 버튼)
-   - `다운로드 정보 보기`(`#download-info` 앵커)와 `Character Chat 열기`(`/`) 보조 링크
-   - 오른쪽 `RELEASE CHECK` 런처 미리보기: 페이지 구성·다운로드 안전 처리 완료, 설치 파일 등록·코드 서명 확인 대기
-2. 주요 기능
-   - 텍스트 게임 실행, 선택지와 자유 입력, 로컬 세이브, 상태와 장기 기억, 동일 LLM 모델 연동, 작품 다운로드와 업데이트의 6개 카드
-3. 다운로드 정보(`section id="download-info"`)
-   - 버전, 배포 채널, 파일 형식, 파일 크기, 게시일, 파일명 메타데이터
-   - 지원 Windows와 최소 시스템 요구사항
-   - `h3` `파일 안전 정보` 소구역: SHA-256과 코드 서명 상태
-   - `beta` 상태일 때만 표시되는 베타 경고
-4. 설치 순서
-   - 설치 파일 다운로드부터 Text-Play 작품 다운로드 및 실행까지 5단계
-5. 자주 묻는 질문
-   - 웹 버전과의 차이, 설치 없는 체험, 저장 위치, 인터넷 연결, 업데이트 방식
-6. 하단 메뉴
+1. 히어로(`section aria-labelledby="text-play-title"`)
+   - 왼쪽 소개 문구
+     - 점 장식이 있는 알약 모양 상단 표제 `MATE TEXT-PLAY · FOR WINDOWS`
+     - `h1` `이야기를 읽는 순간에서 / 직접 움직이는 순간으로`, 둘째 줄은 오렌지 그라데이션 강조 글자
+     - 선택지와 자유 입력, 작품·세이브·장기 기억 관리를 설명하는 리드 문구
+     - `Windows용 프로그램` 배지와 배포 상태 배지
+     - `#text-play-download` 영역의 `DownloadAction` 다운로드 버튼(페이지 전체에서 유일한 다운로드 버튼)
+     - `beta` 상태일 때만 버튼 아래에 표시되는 베타 경고
+   - 오른쪽 `figure` 런처 화면 예시
+     - `LauncherMockup`: 제목 표시줄(`MATE Text-Play`, `황혼 우체국 · 1장`), `황혼 우체국` SVG 장면 그림, 장면 묘사, 애린의 대사, 선택지 2개(첫 항목이 선택된 모양), 깜빡이는 커서가 있는 자유 입력, 세이브·장기 기억·관계 상태 카드, `자동 저장됨`과 `기억 +1` 떠 있는 표시
+     - `figcaption` `출시 전 화면 구성 예시 · 작품 「황혼 우체국」 1장`
+2. 핵심 요약(`ul aria-label="Text-Play 한눈에 보기"`)
+   - 선택 + 입력, 로컬 세이브, 장기 기억, 같은 LLM의 4개 항목
+3. `한 장면은 이렇게 진행됩니다`(`HOW IT PLAYS`)
+   - 장면을 읽고, 고르거나 직접 쓰고, 기억으로 남깁니다의 3단계
+4. 주요 기능(`PLAY SYSTEM`)
+   - 텍스트 게임 실행, 선택지와 자유 입력, 로컬 세이브, 상태와 장기 기억, 동일 LLM 모델 연동, 작품 다운로드와 업데이트의 6개 카드, 카드마다 인라인 SVG 아이콘
+5. `Character Chat과 무엇이 다른가요?`(`WEB & WINDOWS`)
+   - `웹 · 지금 이용 가능` Character Chat 카드와 `Windows · {배포 상태}` Text-Play 강조 카드
+   - 카드 안에는 링크가 없다
+6. 설치 순서(`GET STARTED`)
+   - 설치 파일 다운로드부터 Text-Play 작품 다운로드 및 실행까지 `01`~`05` 번호의 5단계 타임라인
+7. 자주 묻는 질문(`FAQ`)
+   - 설치 없는 체험, 저장 위치, 인터넷 연결, 업데이트 방식의 4개 항목
+8. 마무리 안내 띠
+   - `h2` `이야기의 다음 장은 직접 쓰세요`와 설치 파일이 등록되면 상단 다운로드 버튼이 활성화된다는 안내
+   - `다운로드 버튼으로 이동`(`#text-play-download`)과 `Character Chat 체험하기`(`/`) 링크
+9. 하단 메뉴
+   - `MATE Text-Play` 브랜드 문구
    - `Character Chat`(`/`) 링크
    - 개인정보처리방침, 이용약관, 고객지원의 `준비 중` 항목
 
-통합 전 홈 화면에 있던 세 카드(작품 다운로드, 선택과 자유 입력, 세이브와 기억)와 별도의 안전 정보 구역은 없어졌다. 안전 정보는 다운로드 정보 카드 안의 소구역으로 옮겨졌고, 하단의 `Text-Play 홈` 링크는 자기 자신을 가리키게 되어 제거됐다.
+페이지 통합 때 홈 화면의 세 카드(작품 다운로드, 선택과 자유 입력, 세이브와 기억)와 별도의 안전 정보 구역이 없어졌고, 자기 자신을 가리키던 하단 `Text-Play 홈` 링크도 제거됐다.
+
+---
+### 디자인 개편 시 제거된 요소
+
+| 제거된 요소 | 비고 |
+| --- | --- |
+| 히어로 보조 링크 `다운로드 정보 보기`(`#download-info`), `Character Chat 열기`(`/`) | 사용자 요청으로 제거, Character Chat 이동은 마무리 안내와 하단 메뉴 링크가 담당 |
+| 다운로드 정보 구역(`section id="download-info"`) | 사용자 요청으로 제거, 릴리스 확인 목록, 버전·채널·파일 형식·용량·게시일·파일명 메타데이터, 지원 Windows, 최소 시스템 요구사항, 파일 안전 정보(SHA-256, 코드 서명) 포함 |
+| 히어로 오른쪽 `RELEASE CHECK` 런처 미리보기 | 제거, 런처 화면 예시 `figure`로 교체 |
+| FAQ `웹 버전과 Windows 버전은 무엇이 다른가요?` | 제거, `Character Chat과 무엇이 다른가요?` 비교 구역이 같은 내용을 설명 |
+
+제거된 배포 정보 필드는 `release-config.ts`에 그대로 남아 있다. 실제 배포 파일을 공개하기 전에는 최소한 파일 해시와 코드 서명 정보를 화면에 다시 표시해야 한다.
 
 ---
 ### 준비 중 상태
 
 현재 화면은 실제 URL이 없으므로 다음 요소가 표시된다.
 
-- 히어로와 다운로드 정보 카드의 `다운로드 준비 중` 상태 표시
-- 버전 등 미확정 항목의 `확인 필요` 문구
-- 히어로의 비활성 `다운로드 준비 중` 버튼 하나
-- 실제 설치 파일과 배포 URL이 등록되면 버튼이 활성화된다는 안내
+- 히어로의 `다운로드 준비 중` 배포 상태 배지
+- 비교 카드 표제의 `Windows · 다운로드 준비 중`
+- 히어로의 비활성 `다운로드 준비 중` 버튼 하나, 점선 테두리와 연한 줄무늬 배경으로 표시
+- 버튼 아래의 `실제 설치 파일과 배포 URL이 등록되면 버튼이 활성화됩니다.` 안내
+- 마무리 안내의 `설치 파일이 등록되면 상단의 다운로드 버튼이 바로 활성화됩니다.` 문구
 
-색상만으로 상태를 구분하지 않고 텍스트를 함께 제공한다.
+색상만으로 상태를 구분하지 않고 텍스트를 함께 제공한다. 미확정 배포 정보는 화면에 표시하지 않으므로, 이전처럼 메타데이터 칸에 `확인 필요`가 나타나지 않는다.
 
 ---
 ## 16. 공통 앱과의 연결
@@ -489,17 +573,24 @@ Text-Play 기능은 기존 앱 상태를 변경하지 않는다.
 현재 적용된 접근성 요소는 다음과 같다.
 
 - 페이지에 하나의 주요 `h1`
-- 섹션 제목과 `aria-labelledby` 연결
-- 히어로 보조 링크에 `aria-label="Text-Play 바로가기"` 지정
-- `다운로드 정보 보기` 앵커 대상에 접근 가능한 이름 `다운로드 정보` 제공
-- 배포 정보에 `dl`, `dt`, `dd` 사용
-- 설치 순서에 `ol` 사용
+- 히어로, 플레이 흐름, 주요 기능, 비교, 설치 순서, FAQ, 마무리 안내 구역의 제목과 `aria-labelledby` 연결
+- 런처 화면 예시는 장식 요소이므로 `LauncherMockup` 최상위 요소에 `aria-hidden="true"`를 지정하고, 장면 그림은 `alt=""`로 불러옴
+- 화면 예시 `figure`를 `aria-labelledby`로 `figcaption`(`출시 전 화면 구성 예시 · 작품 「황혼 우체국」 1장`)과 연결해 예시임을 보조 기술에 전달
+- 상단 표제의 점 장식과 기능 카드 아이콘에 `aria-hidden="true"` 지정, 아이콘 SVG는 `focusable="false"`
+- 핵심 요약 목록에 `aria-label="Text-Play 한눈에 보기"` 지정
+- 플레이 흐름과 설치 순서에 `ol` 사용
 - FAQ에 기본 `details`, `summary` 사용
 - 비활성 다운로드에 실제 `disabled` 속성 사용
-- 준비 중 하단 항목에 `aria-disabled="true"` 사용
+- 베타 경고에 `role="note"` 사용
+- 하단 메뉴에 `aria-label="Text-Play 관련 메뉴"`, 준비 중 항목에 `aria-disabled="true"` 사용
 - 모바일 현재 메뉴에 `aria-current="page"` 사용
-- 키보드 포커스에 명확한 외곽선 표시
-- `prefers-reduced-motion` 환경에서 전환 효과 제거
+- 다운로드 버튼, 마무리 안내 링크, 하단 링크, FAQ `summary`의 `:focus-visible`에 `3px solid #1d4ed8` 외곽선과 `3px` 간격 표시
+- 다운로드 버튼은 노랑→오렌지 그라데이션 위에 진한 글자색 `#2b1400`을 사용해 대비 확보
+- 제목, 설명, 카드 문구, FAQ 답변 등 한글 문장에 `word-break: keep-all` 지정
+- `#text-play-download`(`.heroDownload`)에 `scroll-margin-top: 96px`를 지정해 앵커 이동 시 다운로드 버튼이 공통 헤더에 가려지지 않도록 처리
+- `prefers-reduced-motion: reduce` 환경에서 다운로드 버튼과 기능 카드의 전환 효과, 자유 입력 커서 깜빡임 제거
+
+SVG 파일 자체에도 `role="img"`, `title`, `desc`가 있지만, 페이지에서는 `alt=""` 이미지로 불러오고 상위 요소가 `aria-hidden`이므로 보조 기술에는 노출되지 않는다.
 
 아직 실제 다운로드 링크가 없으므로 활성 링크의 실파일 접근성과 서버 응답은 검증할 수 없다.
 
@@ -511,25 +602,36 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 ---
 ### 데스크톱
 
-- 상단 히어로 2열 구성
-- 배포 정보 3열 카드
-- 설치·기능 다열 배치
+- 상단 히어로 2열 구성(소개 `1.1fr`, 화면 예시 `1fr`)
+- 핵심 요약 4열
+- 플레이 흐름 3열, 단계 사이 `→` 표시
+- 주요 기능 3열, 비교 카드 2열
+- 설치 순서 5열과 노랑→오렌지 가로 연결선
 - 공통 헤더 메뉴 전체 표시
 
 ---
 ### 태블릿
 
-- Text-Play 화면은 최대 980px에서 열 수와 간격 축소
+- Text-Play 화면은 최대 1080px에서 히어로를 1열로 바꾸고 화면 예시를 최대 640px로 가운데 배치
+- 같은 구간에서 핵심 요약과 주요 기능 2열, 설치 순서 3열로 줄이고 가로 연결선 숨김
 - 앱 셸 헤더는 761~980px에서 브랜드와 메뉴 간격 축소
 
 ---
 ### 모바일
 
-- 최대 680px에서 Text-Play 주요 콘텐츠 단일 열 전환
+- 최대 720px에서 Text-Play 주요 콘텐츠 단일 열 전환
+- 페이지 여백을 `24px 16px 96px`로 조정해 하단 메뉴 공간 확보
 - 히어로 다운로드 버튼을 전체 너비로 표시해 첫 화면에서 바로 확인 가능
+- 런처 화면 예시 본문 1열, 상태 카드 2열, 관계 카드 숨김, 떠 있는 표시를 창 위아래 가장자리로 이동
+- 플레이 흐름, 주요 기능, 비교 카드, 설치 순서 1열, 흐름 표시는 `↓`로 변경
+- 마무리 안내 띠와 하단 메뉴 세로 배치
 - 최대 760px에서 공통 데스크톱 메뉴 숨김
 - 모바일 하단 메뉴 표시
-- 하단 메뉴 높이만큼 콘텐츠 아래 여백 확보
+
+---
+### 가로 넘침 방지
+
+데스크톱에서 떠 있는 표시(`tagSave`, `tagMemory`)는 창 바깥 음수 위치에 놓이고, 화면 예시 뒤 배경 원(`.heroVisual::before`)도 영역 밖으로 일부 확장된다. `.page`의 `overflow-x: clip`이 이 장식을 잘라 페이지 가로 스크롤이 생기지 않도록 한다. E2E 테스트가 390px, 820px, 1440px 너비에서 가로 넘침이 없는지 검증한다.
 
 현재 알려진 앱 셸 제한으로, 데스크톱에서 왼쪽 패널을 연 상태로 브라우저 너비를 모바일로 줄이면 패널이 본문 위에 남을 수 있다. 모바일 전환 시 패널을 자동으로 닫는 별도 처리는 아직 없다.
 
@@ -556,16 +658,26 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 `src/app/text-play/page.tsx`의 페이지 컴포넌트를 렌더링해 다음 사용자 화면 동작을 검증한다. 이전 이름은 `tests/integration/text-play-download.test.tsx`다.
 
 - `h1` 제목과 Windows 플랫폼 표시
-- 미확정 배포 정보의 `확인 필요` 표시
-- `다운로드 준비 중` 버튼 비활성화
+- `다운로드 준비 중` 버튼 비활성화와 배포 상태 배지의 같은 문구 표시
 - 다운로드 버튼이 페이지에 하나만 있는지 확인
-- 주요 기능, 다운로드 정보, 파일 안전 정보, 설치 순서, 자주 묻는 질문 제목 존재
-- `다운로드 정보 보기` 링크가 `#download-info`를 가리키고, 대상 구역의 접근 가능한 이름이 `다운로드 정보`인지 확인
+- `h2` 제목이 `한 장면은 이렇게 진행됩니다`, `주요 기능`, `Character Chat과 무엇이 다른가요?`, `설치 순서`, `자주 묻는 질문`, `이야기의 다음 장은 직접 쓰세요` 순서인지 확인
+- 화면 예시 `figure`의 접근 가능한 이름에 `출시 전 화면 구성 예시`가 포함되는지 확인
+- 삭제한 `다운로드 정보 보기`·`Character Chat 열기` 링크, `다운로드 정보` 제목, `#download-info` 요소가 없는지 확인
 - 하단 `Character Chat` 링크가 `/`로 연결되고 `Text-Play 홈` 링크가 없는지 확인
 - 개인정보처리방침, 이용약관, 고객지원의 준비 중 상태
 - 사이트 내부 다운로드 링크 활성화
 - HTTPS 외부 다운로드 링크 활성화
 - 다운로드 실패 대응 안내 문구
+
+---
+### `tests/e2e/text-play.spec.ts`
+
+Playwright로 실제 개발 서버 화면을 열어 다음을 검증한다.
+
+- `/text-play/download` 요청이 `308`과 `location: /text-play`를 반환하고, 브라우저 이동 후 `h1`이 표시되는지 확인
+- 홈 주요 메뉴의 Text-Play 관련 링크가 하나이고, `Text-Play 다운로드` 선택 후 `/text-play`에서 다운로드 버튼이 하나인지 확인
+- 마무리 안내의 `다운로드 버튼으로 이동` 선택 시 주소가 `#text-play-download`로 바뀌고, 해당 영역의 위쪽 끝이 공통 헤더(`.app-header`) 아래에 있는지 확인
+- 390px, 820px, 1440px 너비(높이 900px)에서 문서의 가로 스크롤 너비가 화면 너비를 넘지 않는지 확인
 
 ---
 ### `tests/components/app-shell.test.tsx`
@@ -576,7 +688,7 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 - 그 링크의 이름이 `Text-Play 다운로드`이고 경로가 `/text-play`인지 확인
 - 모바일 메뉴의 `Text-Play` 링크 경로가 `/text-play`인지 확인
 
-`/text-play/download` 이동 규칙은 `next.config.ts` 설정이므로 Vitest에서 검증하지 않는다. 개발 서버나 프로덕션 서버에서 직접 요청해 308 응답과 `/text-play` 이동을 확인한다.
+`/text-play/download` 이동 규칙은 `next.config.ts` 설정이므로 Vitest에서 검증하지 않는다. `tests/e2e/text-play.spec.ts`가 308 응답과 `/text-play` 이동을 검증하며, 개발 서버나 프로덕션 서버에 직접 요청해 확인할 수도 있다.
 
 ---
 ## 20. 검증 명령
@@ -585,12 +697,15 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 | --- | --- | --- |
 | 전체 테스트 | `npm run test:run` | 실패 테스트 없음 |
 | Text-Play 단위 테스트 | `npx vitest run tests/unit/text-play-release.test.ts` | URL 검사 테스트 통과 |
-| Text-Play 통합 테스트 | `npx vitest run tests/integration/text-play.test.tsx` | 화면 상태 테스트 통과 |
+| Text-Play 통합 테스트 | `npx vitest run tests/integration/text-play.test.tsx` | 화면 구성과 상태 테스트 통과 |
 | 앱 셸 테스트 | `npx vitest run tests/components/app-shell.test.tsx` | 공통 메뉴 테스트 통과 |
+| Text-Play E2E 테스트 | `npx playwright test tests/e2e/text-play.spec.ts --project=chromium --workers=1` | 주소 이동, 단일 메뉴, 앵커 위치, 가로 넘침 시나리오 통과 |
 | 타입 검사 | `npm run typecheck` | TypeScript 오류 없음 |
 | 린트 | `npm run lint` | ESLint 오류 없음 |
 | 프로덕션 빌드 | `npm run build` | `/text-play` 경로 생성, 별도 `/text-play/download` 페이지 없음 |
 | 이전 주소 이동 | 서버 실행 후 `curl -I http://localhost:3000/text-play/download` | `308` 응답과 `location: /text-play` |
+
+E2E 테스트는 `playwright.config.ts`의 `webServer` 설정에 따라 `127.0.0.1`의 `PLAYWRIGHT_PORT`(기본 `3000`) 포트에서 개발 서버를 실행하거나, 이미 실행 중인 서버를 재사용한다.
 
 브라우저에서는 최소한 다음 크기를 확인한다.
 
@@ -617,7 +732,8 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 - 코드 서명 적용
 - 서명 게시자 이름 확인
 - 최종 파일 SHA-256 계산
-- 페이지 해시와 실제 파일 해시 비교
+- SHA-256과 코드 서명 상태를 보여 주는 화면 구역 복원(현재 화면에는 없음)
+- 페이지에 표시한 해시와 실제 파일 해시 비교
 - Windows SmartScreen 동작 확인
 - 배포 서버의 HTTPS 인증서 확인
 
@@ -646,9 +762,13 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 ### 페이지
 
 - `textPlayRelease` 실제 값 입력
+- 버전, 파일 형식, 용량, 게시일, 파일명, 지원 Windows, 최소 요구사항을 보여 줄 화면 구역 복원 여부 결정
+- 안전 정보 구역을 복원하면 `page.tsx` 메타데이터 설명에도 반영
 - 준비 중 상태를 beta 또는 stable로 변경
 - 베타 경고 확인
 - 활성 다운로드 링크 확인
+- 마무리 안내의 설치 파일 등록 전 안내 문구를 실제 배포 상태에 맞게 수정
+- 런처 화면 예시와 `figcaption`을 실제 프로그램 화면 기준으로 갱신할지 결정
 - 모바일·태블릿·데스크톱 확인
 - 키보드만으로 전체 조작 확인
 - 실제 설치 파일 기준 FAQ 수정
@@ -659,15 +779,16 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 
 1. 실제 다운로드 URL이 없어 버튼이 비활성화되어 있다.
 2. 버전, 용량, 게시일, 해시, 서명, 시스템 요구사항이 확정되지 않았다.
-3. 개인정보처리방침, 이용약관, 고객지원 링크가 준비 중이다.
-4. 실제 Text-Play 프로그램 스크린샷이나 실행 영상이 없다.
-5. 별도의 릴리스 노트와 알려진 문제 목록이 없다.
-6. 이전 버전 다운로드와 롤백 정책이 없다.
-7. 다운로드 실패를 서버 수준에서 감지하지 않는다.
-8. 해시는 표시만 하며 브라우저에서 자동 검증하지 않는다.
-9. 다운로드 버튼은 히어로에만 있으므로, 아래쪽 다운로드 정보 구역까지 내려간 사용자는 버튼을 보려면 다시 위로 올라가야 한다.
-10. 화면 너비 전환 시 열린 앱 셸 패널을 자동으로 닫지 않는다.
-11. `/text-play/download` 영구 이동(308)은 브라우저에 캐시될 수 있어, 같은 경로를 나중에 다른 용도로 쓰기 어렵다.
+3. 사용자 요청으로 다운로드 정보 구역을 제거해, `release-config.ts`의 버전·채널·파일 형식·용량·게시일·파일명·지원 Windows·최소 요구사항·SHA-256·코드 서명 상태를 화면에서 확인할 수 없다. 실제 배포 파일을 공개하기 전에 최소한 파일 해시와 코드 서명 정보는 다시 표시해야 한다.
+4. 개인정보처리방침, 이용약관, 고객지원 링크가 준비 중이다.
+5. 실제 Text-Play 프로그램 스크린샷이나 실행 영상이 없다. 히어로의 런처 화면은 출시 전 구성 예시다.
+6. 별도의 릴리스 노트와 알려진 문제 목록이 없다.
+7. 이전 버전 다운로드와 롤백 정책이 없다.
+8. 다운로드 실패를 서버 수준에서 감지하지 않는다.
+9. 해시를 화면에 표시하지 않으며, 브라우저에서 자동 검증하는 기능도 없다.
+10. 다운로드 버튼은 히어로에만 있다. 페이지 아래쪽에서는 마무리 안내의 `다운로드 버튼으로 이동` 링크로 돌아가야 한다.
+11. 화면 너비 전환 시 열린 앱 셸 패널을 자동으로 닫지 않는다.
+12. `/text-play/download` 영구 이동(308)은 브라우저에 캐시될 수 있어, 같은 경로를 나중에 다른 용도로 쓰기 어렵다.
 
 ---
 ## 23. 향후 개선 우선순위
@@ -678,6 +799,7 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 - 설치 파일 등록
 - 정확한 배포 메타데이터 입력
 - 코드 서명과 SHA-256 확정
+- 파일 해시와 코드 서명 정보를 보여 주는 화면 구역 복원
 - 실제 다운로드 검증
 
 ---
@@ -691,7 +813,7 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 ---
 ### 3순위: 제품 이해 개선
 
-- 프로그램 실제 화면 이미지
+- 출시 전 구성 예시를 실제 프로그램 화면 이미지로 교체
 - 작품 실행 흐름
 - 세이브와 장기 기억 화면
 - 릴리스 노트
@@ -700,10 +822,9 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 ---
 ### 4순위: 모바일 사용성 개선
 
-- 다운로드 정보 구역에서 히어로 다운로드 버튼으로 돌아가는 방법 검토
 - 콘텐츠 길이 축소
 - 화면 전환 시 패널 자동 닫기
-- 주요 배포 정보 우선 배치
+- 배포 정보 구역을 복원할 때 주요 배포 정보 우선 배치
 
 ---
 ## 24. 수정 시 주의 사항
@@ -719,6 +840,12 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 - 모바일 메뉴 항목 수를 변경하면 최소 44px 조작 영역을 다시 확인한다.
 - 새 상태를 추가하면 상태 라벨, CSS, 테스트를 함께 수정한다.
 - 새 설정 필드를 추가하면 타입, 화면, 테스트, 이 문서를 함께 수정한다.
+- 색상은 `.page`의 `--tp-*` 토큰을 우선 사용한다.
+- 다운로드 버튼 배경을 바꾸면 글자색 `#2b1400`과의 대비를 다시 확인한다.
+- 장식 요소를 페이지 밖으로 배치하는 경우 `.page`의 `overflow-x: clip`을 유지하고 E2E 가로 넘침 테스트를 실행한다.
+- 런처 화면 예시는 `aria-hidden` 장식이므로 사용자가 알아야 할 정보를 그 안에만 두지 않는다.
+- 다운로드 영역 id `text-play-download`를 바꾸면 마무리 안내 링크와 E2E 테스트를 함께 수정한다.
+- `h2` 구역을 추가·삭제·이동하면 통합 테스트의 제목 순서 검증을 함께 수정한다.
 
 ---
 ## 25. 자주 발생할 수 있는 개발 문제
@@ -745,6 +872,21 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 브라우저에서 사전 `HEAD` 요청을 보내면 CORS, 서명 URL, GET 전용 서버 때문에 정상 파일도 실패로 판단할 수 있다. 현재 구현은 사용자 클릭으로 브라우저가 직접 다운로드하도록 설계됐다.
 
 ---
+### 배포 정보를 입력했는데 화면에 나타나지 않음
+
+현재 화면은 `status`, `downloadUrl`, `fileName`만 사용한다. 버전, 해시, 서명 상태 등은 다운로드 정보 구역을 제거한 뒤 화면에 출력하지 않으므로, 표시가 필요하면 화면 구역을 다시 추가해야 한다.
+
+---
+### 앵커 이동 후 다운로드 버튼이 헤더에 가려짐
+
+`.heroDownload`의 `scroll-margin-top: 96px`가 유지되는지, 공통 헤더 높이가 이 값보다 커지지 않았는지 확인한다. `tests/e2e/text-play.spec.ts`의 앵커 위치 테스트로 검증할 수 있다.
+
+---
+### 가로 스크롤이 생김
+
+`.page`의 `overflow-x: clip`이 유지되는지, 새 장식 요소가 이 범위 밖에 배치되지 않았는지 확인한다. `tests/e2e/text-play.spec.ts`의 390px·820px·1440px 가로 넘침 테스트를 실행한다.
+
+---
 ### `Link` 경로 타입 오류
 
 프로젝트는 `typedRoutes: true`를 사용한다. 정적 분석이 경로를 추론하지 못하는 경우 기존 코드처럼 `Route` 타입을 명시하되, 실제 경로가 App Router에 존재하는지 먼저 확인한다.
@@ -765,10 +907,10 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 6. 동작 변경은 테스트를 먼저 추가하거나 수정한다.
 7. 필요한 최소 파일만 변경한다.
 8. 타입 검사와 린트를 실행한다.
-9. 전체 테스트를 실행한다.
+9. 전체 테스트와 Text-Play E2E 테스트를 실행한다.
 10. 프로덕션 빌드를 실행한다.
 11. 모바일·태블릿·데스크톱 화면을 직접 확인한다.
-12. 실제 배포 정보 변경이면 해시와 URL을 다시 검증한다.
+12. 실제 배포 정보 변경이면 해시와 URL을 다시 검증하고, 해시와 코드 서명 정보를 보여 주는 화면 구역이 있는지 확인한다.
 13. 이 문서의 현재 상태와 제한 사항을 함께 갱신한다.
 
 ---
@@ -779,21 +921,23 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - `/text-play`가 정상 렌더링됨
 - `/text-play/download`가 `/text-play`로 308 이동함
 - 다운로드 버튼이 페이지에 하나만 표시됨
-- `다운로드 정보 보기` 링크가 다운로드 정보 구역으로 이동함
+- 마무리 안내의 `다운로드 버튼으로 이동` 링크가 공통 헤더에 가리지 않는 위치의 다운로드 영역으로 이동함
+- 삭제한 히어로 보조 링크와 다운로드 정보 구역이 표시되지 않음
 - 공통 헤더와 모바일 메뉴에서 접근 가능
 - URL이 없으면 다운로드 버튼 비활성화
 - 유효한 내부 경로나 HTTPS URL이면 다운로드 링크 활성화
-- 미확정 정보는 `확인 필요`로 표시
-- 베타 상태는 별도 경고 표시
+- 미확정 배포 정보는 `release-config.ts`에서 `null` 또는 `확인 필요`로 유지
+- 베타 상태는 다운로드 버튼 아래에 별도 경고 표시
+- 런처 화면 예시는 보조 기술에서 숨기고 `figcaption`으로 예시임을 설명
 - 키보드 초점 확인 가능
-- 반응형 화면에서 가로 넘침 없음
-- Text-Play 테스트 통과
+- 390px·820px·1440px 화면에서 가로 넘침 없음
+- Text-Play 단위·통합·E2E 테스트 통과
 - 기존 앱 테스트 회귀 없음
 - 타입 검사 통과
 - 린트 통과
 - 프로덕션 빌드 통과
 
-실제 서비스 배포의 완료 기준은 위 조건에 더해 설치 파일, 코드 서명, SHA-256, 정책 문서, 고객지원, 시스템 요구사항이 모두 확정되어야 한다.
+실제 서비스 배포의 완료 기준은 위 조건에 더해 설치 파일, 코드 서명, SHA-256, 정책 문서, 고객지원, 시스템 요구사항이 모두 확정되고, 최소한 파일 해시와 코드 서명 정보가 페이지에 다시 표시되어야 한다.
 
 ---
 ## 28. 관련 경로 요약
@@ -801,7 +945,7 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 | 목적 | 경로 |
 | --- | --- |
 | Text-Play 페이지 | `/text-play` |
-| 다운로드 정보 구역 | `/text-play#download-info` |
+| 다운로드 버튼 앵커 | `/text-play#text-play-download` |
 | 이전 다운로드 주소 | `/text-play/download` → `/text-play` (308) |
 | 페이지 라우트 | `src/app/text-play/page.tsx` |
 | 이동 규칙 | `next.config.ts` |
@@ -809,8 +953,10 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 | 다운로드 동작 | `src/features/text-play/DownloadAction.tsx` |
 | 페이지 화면 | `src/features/text-play/TextPlayScreen.tsx` |
 | 페이지 스타일 | `src/features/text-play/TextPlayScreen.module.css` |
+| 장면 일러스트 | `public/images/text-play/twilight-post-office.svg` |
 | 단위 테스트 | `tests/unit/text-play-release.test.ts` |
 | 통합 테스트 | `tests/integration/text-play.test.tsx` |
+| E2E 테스트 | `tests/e2e/text-play.spec.ts` |
 | 공통 메뉴 테스트 | `tests/components/app-shell.test.tsx` |
 
 ---
