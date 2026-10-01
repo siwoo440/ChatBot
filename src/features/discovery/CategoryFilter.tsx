@@ -1,3 +1,5 @@
+import { getGenreKeyByLabel } from "@/lib/theme/genre-theme"; // 장르 색 조회
+
 interface CategoryFilterProps // 필터 속성
 { // 구조 시작
     categories: string[]; // 카테고리 목록
@@ -9,7 +11,7 @@ export function CategoryFilter({ categories, selected, onSelect }: CategoryFilte
 { // 함수 시작
     return ( // 필터 반환
         <div role="group" aria-label="캐릭터 카테고리"> {/* 필터 그룹 */}
-            {categories.map((category) => <button key={category} type="button" aria-pressed={selected === category} onClick={() => onSelect(category)}>{category}</button>)} {/* 필터 버튼 */}
+            {categories.map((category) => <button key={category} type="button" data-genre={getGenreKeyByLabel(category)} aria-pressed={selected === category} onClick={() => onSelect(category)}>{category}</button>)} {/* 필터 버튼 */}
         </div> // 그룹 종료
     ); // 반환 종료
 } // 함수 종료

@@ -31,6 +31,7 @@ export function DiscoveryHome() // 탐색 홈
             return categoryMatch && (normalized.length === 0 || searchTarget.includes(normalized)); // 복합 결과
         }); // 필터 종료
     }, [category, query, state.characters]); // 필터 의존
+    const publicCount = state.characters.filter((character) => character.publicationStatus === "published" && character.visibility === "public").length; // 공개 캐릭터 수
     const defaultView = query.length === 0 && category === "전체"; // 기본 화면 판정
     const rankingCharacters = defaultView ? filtered.slice(0, 10) : []; // 상위 랭킹 목록
     const browsableCharacters = defaultView ? filtered.slice(10) : filtered; // 탐색 대상 목록
@@ -49,17 +50,21 @@ export function DiscoveryHome() // 탐색 홈
         <main className={styles.home}> {/* 탐색 본문 */}
             <header className={styles.hero}> {/* 탐색 헤더 */}
                 <div> {/* 헤더 문구 */}
-                    <span>감정과 이야기가 이어지는 공간</span> {/* 상단 문구 */}
-                    <h1>오늘, 누구의 세계에 들어갈까요?</h1> {/* 페이지 제목 */}
+                    <span className={styles.eyebrow}>감정과 이야기가 이어지는 공간</span> {/* 상단 문구 */}
+                    <h1>오늘, <span className={styles.titleHighlight}>누구의 세계</span>에 들어갈까요?</h1> {/* 페이지 제목 */}
+                    <p className={styles.heroLead}>힐링부터 미스터리까지, {publicCount}명의 메이트가 각자의 이야기를 품고 기다리고 있어요.</p> {/* 페이지 설명 */}
                 </div> {/* 문구 종료 */}
-                <input type="search" aria-label="캐릭터와 세계관 검색" placeholder="캐릭터와 세계관 검색" value={query} onChange={(event) => updateQuery(event.target.value)} /> {/* 검색 입력 */}
+                <div className={styles.searchBox}> {/* 검색 영역 */}
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg> {/* 검색 아이콘 */}
+                    <input type="search" aria-label="캐릭터와 세계관 검색" placeholder="캐릭터와 세계관 검색" value={query} onChange={(event) => updateQuery(event.target.value)} /> {/* 검색 입력 */}
+                </div> {/* 검색 영역 종료 */}
             </header> {/* 헤더 종료 */}
             <CategoryFilter categories={categories} selected={category} onSelect={updateCategory} /> {/* 카테고리 */}
             {defaultView && filtered[0] !== undefined ? <FeaturedCharacter character={filtered[0]} /> : null} {/* 추천 영역 */}
             {defaultView && rankingCharacters.length > 0 ? <RankingRail characters={rankingCharacters} /> : null} {/* 랭킹 영역 */}
             <CharacterRail title="캐릭터 탐색 결과" characters={visibleCharacters} /> {/* 검색 결과 */}
             {visibleCharacters.length < browsableCharacters.length ? <button type="button" className={styles.loadMore} onClick={() => setVisibleCount((count) => count + pageSize)}>캐릭터 더 보기</button> : null} {/* 더 보기 */}
-            {filtered.length === 0 ? <p role="status">조건에 맞는 캐릭터가 없습니다.</p> : null} {/* 빈 결과 */}
+            {filtered.length === 0 ? <p className={styles.empty} role="status">조건에 맞는 캐릭터가 없습니다.</p> : null} {/* 빈 결과 */}
         </main> // 본문 종료
     ); // 반환 종료
 } // 함수 종료

@@ -3,12 +3,16 @@ import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
 import type { Character } from "@/features/core/types"; // 캐릭터 타입
 import styles from "@/features/discovery/DiscoveryHome.module.css"; // 탐색 스타일
+import { getGenreKey, getGenreLabel } from "@/lib/theme/genre-theme"; // 장르 색 조회
 
 export function CharacterCard({ character }: { character: Character }) // 캐릭터 카드
 { // 함수 시작
     return ( // 카드 반환
-        <Link className={styles.card} href={`/characters/${character.id}` as Route} aria-label={`${character.name} - ${character.summary}`}> {/* 상세 링크 */}
-            <Image src={character.coverImage} alt={character.name} width={360} height={480} /> {/* 대표 이미지 */}
+        <Link className={styles.card} href={`/characters/${character.id}` as Route} data-genre={getGenreKey(character.tags)} aria-label={`${character.name} - ${character.summary}`}> {/* 상세 링크 */}
+            <span className={styles.cardMedia}> {/* 이미지 영역 */}
+                <Image src={character.coverImage} alt={character.name} width={360} height={480} /> {/* 대표 이미지 */}
+                <em className={styles.genreChip}>{getGenreLabel(character.tags)}</em> {/* 장르 표시 */}
+            </span> {/* 이미지 영역 종료 */}
             <div> {/* 카드 설명 */}
                 <h3>{character.name}</h3> {/* 캐릭터 이름 */}
                 <p>{character.summary}</p> {/* 한 줄 소개 */}

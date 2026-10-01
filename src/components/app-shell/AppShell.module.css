@@ -1,8 +1,38 @@
 .shell /* 전체 셸 */
 { /* 셸 시작 */
     min-height: 100vh; /* 최소 높이 */
-    background: #090b10; /* 기본 배경 */
+    background: #090b10; /* 미전환 화면 기본 배경 */
 } /* 셸 종료 */
+
+.shell :global([data-accent="explore"]) /* 탐색 강조색 */
+{ /* 탐색 시작 */
+    --accent: var(--page-explore); /* 탐색 채움 */
+    --accent-soft: #f3edff; /* 탐색 연한 배경 */
+} /* 탐색 종료 */
+
+.shell :global([data-accent="ranking"]) /* 랭킹 강조색 */
+{ /* 랭킹 시작 */
+    --accent: var(--page-ranking); /* 랭킹 채움 */
+    --accent-soft: #fdecf4; /* 랭킹 연한 배경 */
+} /* 랭킹 종료 */
+
+.shell :global([data-accent="create"]) /* 만들기 강조색 */
+{ /* 만들기 시작 */
+    --accent: var(--page-create); /* 만들기 채움 */
+    --accent-soft: #e6f7ec; /* 만들기 연한 배경 */
+} /* 만들기 종료 */
+
+.shell :global([data-accent="library"]) /* 보관함 강조색 */
+{ /* 보관함 시작 */
+    --accent: var(--page-library); /* 보관함 채움 */
+    --accent-soft: #e1f5f2; /* 보관함 연한 배경 */
+} /* 보관함 종료 */
+
+.shell :global([data-accent="textplay"]) /* Text-Play 강조색 */
+{ /* Text-Play 시작 */
+    --accent: var(--page-textplay); /* Text-Play 채움 */
+    --accent-soft: #fff0e3; /* Text-Play 연한 배경 */
+} /* Text-Play 종료 */
 
 .storageMessages /* 저장소 메시지 묶음 */
 { /* 묶음 시작 */
@@ -21,11 +51,11 @@
 { /* 메시지 시작 */
     margin: 0; /* 기본 여백 제거 */
     padding: 12px 18px; /* 내부 여백 */
-    border: 1px solid #d66678; /* 오류 테두리 */
-    border-radius: 12px; /* 둥근 모서리 */
-    background: #5f202d; /* 오류 배경 */
-    color: white; /* 밝은 글자 */
-    box-shadow: 0 16px 40px rgb(0 0 0 / 36%); /* 메시지 그림자 */
+    border: 1px solid #fda4af; /* 오류 테두리 */
+    border-radius: 14px; /* 둥근 모서리 */
+    background: #fff1f2; /* 오류 배경 */
+    color: #881337; /* 오류 글자 */
+    box-shadow: 0 16px 40px rgb(31 26 46 / 16%); /* 메시지 그림자 */
     line-height: 1.55; /* 문구 줄 높이 */
     word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
 } /* 메시지 종료 */
@@ -36,14 +66,16 @@
     flex-wrap: wrap; /* 줄바꿈 허용 */
     gap: 8px 14px; /* 요소 간격 */
     align-items: center; /* 세로 중앙 */
-    border-color: #4b5fa8; /* 정보 테두리 */
-    background: #1b2547; /* 정보 배경 */
+    border-color: #93c5fd; /* 정보 테두리 */
+    background: #eff6ff; /* 정보 배경 */
+    color: #1e3a8a; /* 정보 글자 */
 } /* 안내 종료 */
 
 .storageNotice[data-tone="warning"] /* 경고 안내 */
 { /* 경고 시작 */
-    border-color: #c38a3c; /* 경고 테두리 */
-    background: #3b2814; /* 경고 배경 */
+    border-color: #fcd34d; /* 경고 테두리 */
+    background: #fffbeb; /* 경고 배경 */
+    color: #78350f; /* 경고 글자 */
 } /* 경고 종료 */
 
 .storageNotice p /* 안내 문구 */
@@ -57,9 +89,9 @@
 { /* 동작 시작 */
     min-height: 34px; /* 동작 높이 */
     padding: 0 12px; /* 동작 여백 */
-    border: 1px solid rgb(255 255 255 / 28%); /* 동작 테두리 */
+    border: 1px solid color-mix(in srgb, currentColor 30%, transparent); /* 동작 테두리 */
     border-radius: 10px; /* 동작 모서리 */
-    background: rgb(255 255 255 / 8%); /* 동작 배경 */
+    background: #ffffff; /* 동작 배경 */
     color: inherit; /* 글자 상속 */
     cursor: pointer; /* 선택 커서 */
     font: inherit; /* 글꼴 상속 */
@@ -71,7 +103,7 @@
 .storageNotice a:focus-visible, /* 링크 초점 */
 .storageNotice button:focus-visible /* 버튼 초점 */
 { /* 초점 시작 */
-    outline: 3px solid #63e0e4; /* 초점 외곽선 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
     outline-offset: 2px; /* 외곽선 간격 */
 } /* 초점 종료 */
 
@@ -86,48 +118,85 @@
     align-items: center; /* 세로 정렬 */
     min-height: 64px; /* 헤더 높이 */
     padding: 0 20px; /* 내부 여백 */
-    border-bottom: 1px solid #292f3d; /* 하단 선 */
-    background: rgb(9 11 16 / 92%); /* 헤더 배경 */
+    border-bottom: 1px solid var(--mv-line); /* 하단 선 */
+    background: rgb(255 255 255 / 97%); /* 헤더 배경 */
+    color: var(--mv-ink); /* 헤더 글자 */
     backdrop-filter: blur(16px); /* 배경 흐림 */
 } /* 헤더 종료 */
+
+.shell :global(.app-header)::after /* 헤더 색 띠 */
+{ /* 색 띠 시작 */
+    position: absolute; /* 하단 배치 */
+    right: 0; /* 오른쪽 끝 */
+    bottom: -1px; /* 하단 선 위치 */
+    left: 0; /* 왼쪽 끝 */
+    height: 3px; /* 띠 두께 */
+    background: linear-gradient(90deg, #7c3aed, #db2777 22%, #f97316 42%, #facc15 58%, #16a34a 76%, #0891b2 90%, #2563eb); /* 여러 색 띠 */
+    content: ""; /* 가상 요소 */
+    pointer-events: none; /* 조작 통과 */
+} /* 색 띠 종료 */
 
 .shell :global(.app-header button), /* 헤더 버튼 */
 .shell :global(.app-header a) /* 헤더 링크 */
 { /* 헤더 요소 시작 */
-    color: #f8f9ff; /* 글자 색상 */
+    color: var(--mv-ink); /* 글자 색상 */
 } /* 헤더 요소 종료 */
 
 .shell :global(.app-header nav) /* 헤더 메뉴 */
 { /* 메뉴 시작 */
     display: flex; /* 가로 배치 */
-    gap: 10px; /* 링크 간격 */
+    gap: 8px; /* 링크 간격 */
 } /* 메뉴 종료 */
 
 .shell :global(.app-navigation-link) /* 헤더 메뉴 버튼 */
 { /* 메뉴 버튼 시작 */
     display: inline-flex; /* 가로 중앙 배치 */
+    gap: 8px; /* 점 간격 */
     align-items: center; /* 세로 중앙 */
     min-height: 40px; /* 버튼 높이 */
     padding: 0 16px; /* 내부 여백 */
-    border: 1px solid #343a49; /* 패널형 테두리 */
-    border-radius: 12px; /* 둥근 모서리 */
-    background: #171b24; /* 패널형 배경 */
-    font-weight: 700; /* 굵은 글자 */
+    border: 1px solid var(--mv-line); /* 버튼 테두리 */
+    border-radius: 999px; /* 알약 모양 */
+    background: var(--mv-surface); /* 버튼 배경 */
+    font-weight: 750; /* 굵은 글자 */
     text-decoration: none; /* 밑줄 제거 */
     transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease; /* 메뉴 전환 */
 } /* 메뉴 버튼 종료 */
 
+.shell :global(.app-navigation-link)::before /* 메뉴 색 점 */
+{ /* 점 시작 */
+    width: 8px; /* 점 너비 */
+    height: 8px; /* 점 높이 */
+    border-radius: 50%; /* 원형 점 */
+    background: var(--accent); /* 점 색상 */
+    content: ""; /* 가상 요소 */
+} /* 점 종료 */
+
 .shell :global(.app-navigation-link:hover) /* 메뉴 올림 */
 { /* 올림 시작 */
-    border-color: #8070bd; /* 강조 테두리 */
-    background: #232836; /* 강조 배경 */
-    color: #d7caff; /* 강조 글자 */
+    border-color: var(--accent); /* 강조 테두리 */
+    background: var(--accent-soft); /* 강조 배경 */
+    color: var(--accent); /* 강조 글자 */
     transform: translateY(-1px); /* 위쪽 이동 */
 } /* 올림 종료 */
 
-.shell :global(.app-navigation-link:focus-visible) /* 메뉴 초점 */
+.shell :global(.app-navigation-link[aria-current="page"]) /* 현재 메뉴 */
+{ /* 현재 시작 */
+    border-color: var(--accent); /* 현재 테두리 */
+    background: var(--accent); /* 현재 배경 */
+    color: #ffffff; /* 현재 글자 */
+} /* 현재 종료 */
+
+.shell :global(.app-navigation-link[aria-current="page"])::before /* 현재 메뉴 점 */
+{ /* 현재 점 시작 */
+    background: #ffffff; /* 흰 점 */
+} /* 현재 점 종료 */
+
+.shell :global(.app-navigation-link:focus-visible), /* 메뉴 초점 */
+.shell :global(.app-header > button:focus-visible), /* 버튼 초점 */
+.shell :global(.app-brand:focus-visible) /* 브랜드 초점 */
 { /* 초점 시작 */
-    outline: 2px solid #bda8ff; /* 초점 외곽선 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
     outline-offset: 2px; /* 외곽선 간격 */
 } /* 초점 종료 */
 
@@ -138,9 +207,9 @@
     min-width: 44px; /* 최소 너비 */
     height: 44px; /* 버튼 높이 */
     padding: 0; /* 내부 여백 제거 */
-    border: 1px solid #3a4050; /* 버튼 테두리 */
-    border-radius: 12px; /* 버튼 모서리 */
-    background: #171b24; /* 버튼 배경 */
+    border: 1px solid var(--mv-line); /* 버튼 테두리 */
+    border-radius: 14px; /* 버튼 모서리 */
+    background: var(--mv-surface); /* 버튼 배경 */
     cursor: pointer; /* 선택 커서 */
     place-items: center; /* 중앙 정렬 */
     transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; /* 버튼 전환 */
@@ -148,16 +217,17 @@
 
 .shell :global(.app-header > button:hover) /* 버튼 올림 */
 { /* 올림 시작 */
-    border-color: #8070bd; /* 강조 테두리 */
-    background: #232836; /* 강조 배경 */
+    border-color: #c4b5fd; /* 강조 테두리 */
+    background: #f5f1ff; /* 강조 배경 */
     transform: translateY(-1px); /* 위쪽 이동 */
 } /* 올림 종료 */
 
-.shell :global(.app-header > button:focus-visible) /* 버튼 초점 */
-{ /* 초점 시작 */
-    outline: 2px solid #bda8ff; /* 초점 외곽선 */
-    outline-offset: 2px; /* 외곽선 간격 */
-} /* 초점 종료 */
+.shell :global(.app-header > button[aria-expanded="true"]) /* 열린 패널 버튼 */
+{ /* 열림 시작 */
+    border-color: #a78bfa; /* 열림 테두리 */
+    background: #ede9fe; /* 열림 배경 */
+    color: #5b21b6; /* 열림 아이콘 */
+} /* 열림 종료 */
 
 .shell :global(.app-header > button svg) /* 헤더 아이콘 */
 { /* 아이콘 시작 */
@@ -204,9 +274,11 @@
     width: min(86vw, 300px); /* 패널 너비 */
     overflow: hidden auto; /* 내부 스크롤 */
     padding: 20px; /* 내부 여백 */
-    border-right: 1px solid #292f3d; /* 오른쪽 선 */
-    background: rgb(17 20 28 / 96%); /* 패널 배경 */
-    box-shadow: 18px 0 48px rgb(0 0 0 / 34%); /* 패널 그림자 */
+    border-right: 1px solid var(--mv-line); /* 오른쪽 선 */
+    background: #ffffff; /* 패널 배경 */
+    color: var(--mv-ink); /* 패널 글자 */
+    box-shadow: 18px 0 48px rgb(76 29 149 / 12%); /* 패널 그림자 */
+    color-scheme: light; /* 밝은 입력 요소 */
     transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease; /* 패널 전환 */
 } /* 패널 종료 */
 
@@ -220,8 +292,8 @@
     right: 0; /* 오른쪽 정렬 */
     width: min(90vw, 360px); /* 오른쪽 너비 */
     border-right: 0; /* 오른쪽 선 제거 */
-    border-left: 1px solid #292f3d; /* 왼쪽 선 */
-    box-shadow: -18px 0 48px rgb(0 0 0 / 34%); /* 오른쪽 그림자 */
+    border-left: 1px solid var(--mv-line); /* 왼쪽 선 */
+    box-shadow: -18px 0 48px rgb(76 29 149 / 12%); /* 오른쪽 그림자 */
 } /* 오른쪽 패널 종료 */
 
 .grid aside[aria-hidden="true"] /* 숨김 패널 */
@@ -253,14 +325,21 @@
 .grid aside a, /* 패널 링크 */
 .grid aside button /* 패널 버튼 */
 { /* 패널 요소 시작 */
-    color: #dfe3f0; /* 글자 색상 */
+    color: var(--mv-ink); /* 글자 색상 */
     text-decoration: none; /* 밑줄 제거 */
 } /* 패널 요소 종료 */
+
+.grid aside a:focus-visible, /* 패널 링크 초점 */
+.grid aside button:focus-visible /* 패널 버튼 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 2px; /* 외곽선 간격 */
+} /* 초점 종료 */
 
 .grid aside span /* 보조 문구 */
 { /* 보조 시작 */
     display: block; /* 줄 분리 */
-    color: #9aa3b8; /* 보조 색상 */
+    color: var(--mv-muted); /* 보조 색상 */
 } /* 보조 종료 */
 
 .grid :global(.conversation-panel) /* 대화 패널 */
@@ -268,7 +347,7 @@
     display: flex; /* 세로 배치 */
     flex-direction: column; /* 세로 방향 */
     gap: 14px; /* 영역 간격 */
-    background: rgb(12 15 22 / 98%); /* 대화 배경 */
+    background: linear-gradient(180deg, #ffffff, #fbf9ff); /* 대화 배경 */
 } /* 대화 패널 종료 */
 
 .grid :global(.conversation-panel > *) /* 대화 패널 영역 */
@@ -284,7 +363,7 @@
 .grid :global(.conversation-panel-heading span) /* 대화 표제 */
 { /* 표제 시작 */
     margin-bottom: 5px; /* 제목 간격 */
-    color: #9584cf; /* 표제 색상 */
+    color: #6d28d9; /* 표제 색상 */
     font-size: .68rem; /* 표제 크기 */
     font-weight: 850; /* 표제 굵기 */
     letter-spacing: .14em; /* 표제 자간 */
@@ -293,7 +372,7 @@
 .grid :global(.conversation-panel-heading h2) /* 대화 제목 */
 { /* 제목 시작 */
     margin: 0; /* 기본 여백 제거 */
-    color: #f5f3fb; /* 제목 색상 */
+    color: var(--mv-ink); /* 제목 색상 */
     font-size: 1.35rem; /* 제목 크기 */
 } /* 제목 종료 */
 
@@ -304,19 +383,18 @@
     justify-content: center; /* 가로 중앙 */
     min-height: 44px; /* 조작 높이 */
     padding: 0 14px; /* 링크 여백 */
-    border: 1px solid #554874; /* 링크 테두리 */
-    border-radius: 12px; /* 링크 모서리 */
-    background: linear-gradient(135deg, #2b2340, #1b1d2a); /* 링크 배경 */
-    color: #e5dcff; /* 링크 글자 */
+    border-radius: 14px; /* 링크 모서리 */
+    background: linear-gradient(110deg, #15803d, #0f766e); /* 만들기 배경 */
+    color: #ffffff; /* 링크 글자 */
+    box-shadow: 0 10px 22px rgb(21 128 61 / 22%); /* 링크 그림자 */
     font-size: .88rem; /* 링크 크기 */
-    font-weight: 750; /* 링크 굵기 */
-    transition: border-color 150ms ease, background 150ms ease, transform 150ms ease; /* 링크 전환 */
+    font-weight: 800; /* 링크 굵기 */
+    transition: filter 150ms ease, transform 150ms ease; /* 링크 전환 */
 } /* 제작 링크 종료 */
 
 .grid :global(.conversation-create:hover) /* 제작 링크 올림 */
 { /* 제작 링크 올림 시작 */
-    border-color: #8d78cf; /* 강조 테두리 */
-    background: linear-gradient(135deg, #3a2f56, #232737); /* 강조 배경 */
+    filter: brightness(1.06); /* 밝기 강조 */
     transform: translateY(-1px); /* 위쪽 이동 */
 } /* 제작 링크 올림 종료 */
 
@@ -329,29 +407,29 @@
 .grid :global(.conversation-card) /* 대화 카드 */
 { /* 대화 카드 시작 */
     overflow: hidden; /* 모서리 정리 */
-    border: 1px solid #292f3d; /* 카드 테두리 */
-    border-radius: 13px; /* 카드 모서리 */
-    background: #151a24; /* 기본 카드 배경 */
+    border: 1px solid var(--mv-line); /* 카드 테두리 */
+    border-left: 4px solid var(--genre); /* 장르 색 띠 */
+    border-radius: 14px; /* 카드 모서리 */
+    background: #ffffff; /* 기본 카드 배경 */
     transition: border-color 150ms ease, background 150ms ease, transform 150ms ease; /* 카드 전환 */
 } /* 대화 카드 종료 */
 
 .grid :global(.conversation-card[data-tone="secondary"]) /* 보조 대화 카드 */
 { /* 보조 카드 시작 */
-    border-color: #333245; /* 보조 테두리 */
-    background: #1b1a27; /* 보조 카드 배경 */
+    background: #fcfbff; /* 보조 카드 배경 */
 } /* 보조 카드 종료 */
 
 .grid :global(.conversation-card:hover) /* 대화 카드 올림 */
 { /* 카드 올림 시작 */
-    border-color: #625783; /* 강조 테두리 */
-    background: #212634; /* 강조 배경 */
+    border-color: var(--genre); /* 강조 테두리 */
+    background: var(--genre-soft); /* 장르 연한 배경 */
     transform: translateX(2px); /* 오른쪽 이동 */
 } /* 카드 올림 종료 */
 
 .grid :global(.conversation-card-link) /* 대화 카드 링크 */
 { /* 카드 링크 시작 */
     display: block; /* 전체 영역 링크 */
-    padding: 13px 14px; /* 카드 여백 */
+    padding: 12px 14px; /* 카드 여백 */
 } /* 카드 링크 종료 */
 
 .grid :global(.conversation-card-link strong) /* 대화 카드 제목 */
@@ -359,7 +437,7 @@
     display: block; /* 제목 줄 분리 */
     margin-bottom: 5px; /* 메시지 간격 */
     overflow: hidden; /* 넘침 숨김 */
-    color: #f0edf7; /* 제목 색상 */
+    color: var(--genre-strong); /* 제목 색상 */
     font-size: .9rem; /* 제목 크기 */
     text-overflow: ellipsis; /* 말줄임 표시 */
     white-space: nowrap; /* 줄바꿈 방지 */
@@ -368,7 +446,7 @@
 .grid :global(.conversation-card-link span) /* 최근 메시지 */
 { /* 최근 메시지 시작 */
     overflow: hidden; /* 넘침 숨김 */
-    color: #929bad; /* 메시지 색상 */
+    color: var(--mv-muted); /* 메시지 색상 */
     font-size: .8rem; /* 메시지 크기 */
     line-height: 1.45; /* 메시지 행간 */
     text-overflow: ellipsis; /* 말줄임 표시 */
@@ -383,16 +461,17 @@
     min-height: 44px; /* 조작 높이 */
     margin-top: auto; /* 하단 배치 */
     padding: 0 14px; /* 링크 여백 */
-    border: 1px solid #2e3442; /* 링크 테두리 */
-    border-radius: 12px; /* 링크 모서리 */
-    background: #141923; /* 링크 배경 */
+    border: 1px solid #b7e4dd; /* 링크 테두리 */
+    border-radius: 14px; /* 링크 모서리 */
+    background: #e1f5f2; /* 링크 배경 */
+    color: #115e59 !important; /* 보관함 글자 */
     font-size: .86rem; /* 링크 크기 */
-    font-weight: 750; /* 링크 굵기 */
+    font-weight: 800; /* 링크 굵기 */
 } /* 보관함 종료 */
 
 .grid :global(.conversation-library::after) /* 보관함 화살표 */
 { /* 화살표 시작 */
-    color: #818ba0; /* 화살표 색상 */
+    color: #0f766e; /* 화살표 색상 */
     content: "›"; /* 화살표 문자 */
 } /* 화살표 종료 */
 
@@ -402,7 +481,7 @@
     flex-direction: column; /* 세로 방향 */
     gap: 14px; /* 영역 간격 */
     padding: 18px; /* 내부 여백 */
-    background: rgb(13 16 23 / 98%); /* 사용자 배경 */
+    background: linear-gradient(180deg, #ffffff, #fdfbff); /* 사용자 배경 */
 } /* 사용자 패널 종료 */
 
 .grid :global(.user-panel > *) /* 사용자 패널 영역 */
@@ -417,9 +496,9 @@
     gap: 14px; /* 프로필 간격 */
     align-items: center; /* 세로 중앙 */
     padding: 16px; /* 카드 여백 */
-    border: 1px solid #303646; /* 카드 테두리 */
-    border-radius: 16px; /* 카드 모서리 */
-    background: linear-gradient(145deg, #1b202c, #141822); /* 카드 배경 */
+    border: 1px solid #ede4ff; /* 카드 테두리 */
+    border-radius: 18px; /* 카드 모서리 */
+    background: linear-gradient(135deg, #f5f0ff, #fdf2f8); /* 카드 배경 */
 } /* 프로필 종료 */
 
 .grid :global(.profile-avatar) /* 프로필 이미지 */
@@ -429,9 +508,10 @@
     width: 58px; /* 이미지 너비 */
     height: 58px; /* 이미지 높이 */
     overflow: hidden; /* 초상화 자르기 */
-    border: 1px solid #a8c2d7; /* 이미지 테두리 */
+    border: 2px solid #ffffff; /* 이미지 테두리 */
     border-radius: 18px; /* 이미지 모서리 */
-    background: linear-gradient(145deg, #9fc0d7, #7fa8c5); /* 초상화 배경 */
+    background: linear-gradient(145deg, #a78bfa, #f472b6); /* 초상화 배경 */
+    box-shadow: 0 8px 18px rgb(124 58 237 / 24%); /* 초상화 그림자 */
 } /* 이미지 종료 */
 
 .grid :global(.profile-avatar::before) /* 초상화 머리 */
@@ -442,7 +522,7 @@
     width: 19px; /* 머리 너비 */
     height: 19px; /* 머리 높이 */
     border-radius: 50%; /* 원형 머리 */
-    background: #dce8f1; /* 머리 색상 */
+    background: #ffffff; /* 머리 색상 */
     content: ""; /* 가상 요소 */
     transform: translateX(-50%); /* 중앙 보정 */
 } /* 머리 종료 */
@@ -455,7 +535,7 @@
     width: 42px; /* 몸 너비 */
     height: 31px; /* 몸 높이 */
     border-radius: 50% 50% 16px 16px; /* 어깨 형태 */
-    background: #dce8f1; /* 몸 색상 */
+    background: #ffffff; /* 몸 색상 */
     content: ""; /* 가상 요소 */
     transform: translateX(-50%); /* 중앙 보정 */
 } /* 몸 종료 */
@@ -467,9 +547,9 @@
 
 .grid :global(.user-panel-eyebrow) /* 프로필 표제 */
 { /* 표제 시작 */
-    color: #a994e6; /* 표제 색상 */
+    color: #6d28d9; /* 표제 색상 */
     font-size: .68rem; /* 표제 크기 */
-    font-weight: 800; /* 표제 굵기 */
+    font-weight: 850; /* 표제 굵기 */
     letter-spacing: .13em; /* 표제 자간 */
 } /* 표제 종료 */
 
@@ -477,7 +557,7 @@
 { /* 이름 시작 */
     margin: 4px 0 8px; /* 이름 여백 */
     overflow: hidden; /* 넘침 숨김 */
-    color: #fff; /* 이름 색상 */
+    color: var(--mv-ink); /* 이름 색상 */
     font-size: 1.18rem; /* 이름 크기 */
     text-overflow: ellipsis; /* 말줄임 표시 */
     white-space: nowrap; /* 줄바꿈 방지 */
@@ -487,23 +567,23 @@
 { /* 배지 시작 */
     display: inline-flex; /* 배지 배치 */
     width: fit-content; /* 내용 너비 */
-    padding: 4px 8px; /* 배지 여백 */
-    border: 1px solid #4b5367; /* 배지 테두리 */
+    padding: 4px 9px; /* 배지 여백 */
+    border: 1px solid #e9d5ff; /* 배지 테두리 */
     border-radius: 999px; /* 캡슐 모양 */
-    background: #222837; /* 배지 배경 */
-    color: #cfd5e6; /* 배지 글자 */
+    background: #ffffff; /* 배지 배경 */
+    color: #6b21a8; /* 배지 글자 */
     font-size: .72rem; /* 배지 크기 */
-    font-weight: 700; /* 배지 굵기 */
+    font-weight: 750; /* 배지 굵기 */
 } /* 배지 종료 */
 
 .grid :global(.user-panel-wallet) /* 토큰 카드 */
 { /* 토큰 시작 */
     display: grid; /* 토큰 배치 */
     grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); /* 토큰 열 */
-    border: 1px solid #44385f; /* 토큰 테두리 */
-    border-radius: 16px; /* 토큰 모서리 */
-    background: linear-gradient(135deg, #241d36, #171b27); /* 토큰 배경 */
     overflow: hidden; /* 모서리 정리 */
+    border-radius: 18px; /* 토큰 모서리 */
+    background: linear-gradient(120deg, #6d28d9, #be185d 55%, #c2410c); /* 토큰 배경 */
+    box-shadow: 0 14px 30px rgb(190 24 93 / 22%); /* 토큰 그림자 */
 } /* 토큰 종료 */
 
 .grid :global(.user-panel-wallet-primary), /* 토큰 잔액 */
@@ -516,25 +596,24 @@
 
 .grid :global(.user-panel-wallet-secondary) /* 이미지 사용량 */
 { /* 이미지 사용량 시작 */
-    border-left: 1px solid #44385f; /* 구분선 */
+    border-left: 1px solid rgb(255 255 255 / 28%); /* 구분선 */
 } /* 이미지 사용량 종료 */
 
 .grid :global(.user-panel-wallet-label) /* 토큰 표제 */
 { /* 토큰 표제 시작 */
-    color: #aeb5c8; /* 표제 색상 */
+    color: rgb(255 255 255 / 88%); /* 표제 색상 */
     font-size: .75rem; /* 표제 크기 */
     font-weight: 800; /* 표제 굵기 */
 } /* 토큰 표제 종료 */
 
 .grid :global(.user-panel-wallet strong) /* 토큰 값 */
 { /* 토큰 값 시작 */
-    color: #fff; /* 값 색상 */
+    color: #ffffff; /* 값 색상 */
     font-size: 1.18rem; /* 값 크기 */
 } /* 토큰 값 종료 */
 
 .grid :global(.user-panel-wallet-primary strong) /* 토큰 잔액 값 */
 { /* 잔액 값 시작 */
-    color: #d3c2ff; /* 잔액 강조 */
     font-size: 1.45rem; /* 잔액 크기 */
 } /* 잔액 값 종료 */
 
@@ -546,22 +625,34 @@
 .grid :global(.user-panel-group) /* 메뉴 그룹 */
 { /* 그룹 시작 */
     overflow: hidden; /* 모서리 정리 */
-    border: 1px solid #292f3d; /* 그룹 테두리 */
-    border-radius: 14px; /* 그룹 모서리 */
-    background: #151923; /* 그룹 배경 */
+    border: 1px solid var(--mv-line); /* 그룹 테두리 */
+    border-radius: 16px; /* 그룹 모서리 */
+    background: #ffffff; /* 그룹 배경 */
 } /* 그룹 종료 */
 
 .grid :global(.user-panel-group-title) /* 그룹 표제 */
 { /* 그룹 표제 시작 */
     margin: 0; /* 기본 여백 제거 */
     padding: 11px 14px 9px; /* 표제 여백 */
-    border-bottom: 1px solid #292f3d; /* 표제 구분선 */
-    background: linear-gradient(90deg, #0b0f17, #121824); /* 진한 표제 배경 */
-    color: #c7cede; /* 표제 색상 */
+    border-bottom: 1px solid var(--mv-line); /* 표제 구분선 */
+    background: #faf8ff; /* 표제 배경 */
+    color: #4c1d95; /* 표제 색상 */
     font-size: .72rem; /* 표제 크기 */
     font-weight: 850; /* 표제 굵기 */
     letter-spacing: .08em; /* 표제 자간 */
 } /* 그룹 표제 종료 */
+
+.grid :global(.user-panel-group:nth-child(2) .user-panel-group-title) /* 설정 그룹 표제 */
+{ /* 설정 표제 시작 */
+    background: #eff6ff; /* 설정 배경 */
+    color: #1e3a8a; /* 설정 글자 */
+} /* 설정 표제 종료 */
+
+.grid :global(.user-panel-group:nth-child(3) .user-panel-group-title) /* 지원 그룹 표제 */
+{ /* 지원 표제 시작 */
+    background: #ecfdf5; /* 지원 배경 */
+    color: #065f46; /* 지원 글자 */
+} /* 지원 표제 종료 */
 
 .grid :global(.user-panel-link-list) /* 메뉴 링크 목록 */
 { /* 링크 목록 시작 */
@@ -575,7 +666,7 @@
     align-items: center; /* 세로 중앙 */
     min-height: 44px; /* 조작 높이 */
     padding: 0 14px; /* 링크 여백 */
-    border-bottom: 1px solid #252b38; /* 링크 구분선 */
+    border-bottom: 1px solid #f1edf8; /* 링크 구분선 */
     transition: background 150ms ease, color 150ms ease; /* 링크 전환 */
 } /* 링크 종료 */
 
@@ -586,19 +677,19 @@
 
 .grid :global(.user-panel-link-list a:hover) /* 메뉴 링크 올림 */
 { /* 링크 올림 시작 */
-    background: #202634; /* 링크 강조 배경 */
+    background: #f7f3ff; /* 링크 강조 배경 */
 } /* 링크 올림 종료 */
 
 .grid :global(.user-panel-link-list a span:first-child) /* 링크 이름 */
 { /* 링크 이름 시작 */
-    color: #e7eaf3; /* 이름 색상 */
+    color: var(--mv-ink); /* 이름 색상 */
     font-size: .88rem; /* 이름 크기 */
     font-weight: 650; /* 이름 굵기 */
 } /* 링크 이름 종료 */
 
 .grid :global(.user-panel-link-list a span:last-child) /* 링크 보조 */
 { /* 링크 보조 시작 */
-    color: #8993aa; /* 보조 색상 */
+    color: var(--mv-muted); /* 보조 색상 */
     font-size: .82rem; /* 보조 크기 */
 } /* 링크 보조 종료 */
 
@@ -606,10 +697,10 @@
 { /* 로그아웃 시작 */
     width: 100%; /* 전체 너비 */
     min-height: 46px; /* 버튼 높이 */
-    border: 1px solid #a23c52; /* 위험 테두리 */
-    border-radius: 12px; /* 버튼 모서리 */
-    background: #78293b; /* 위험 배경 */
-    color: #fff4f6; /* 위험 글자 */
+    border: 1px solid #fecdd3; /* 위험 테두리 */
+    border-radius: 14px; /* 버튼 모서리 */
+    background: #fff1f2; /* 위험 배경 */
+    color: #be123c !important; /* 위험 글자 */
     cursor: pointer; /* 선택 커서 */
     font-weight: 800; /* 버튼 굵기 */
     transition: border-color 150ms ease, background 150ms ease, transform 150ms ease; /* 버튼 전환 */
@@ -617,16 +708,10 @@
 
 .grid :global(.user-panel-logout:hover) /* 로그아웃 올림 */
 { /* 로그아웃 올림 시작 */
-    border-color: #d65d76; /* 강조 테두리 */
-    background: #a1334b; /* 강조 배경 */
+    border-color: #fb7185; /* 강조 테두리 */
+    background: #ffe4e6; /* 강조 배경 */
     transform: translateY(-1px); /* 위쪽 이동 */
 } /* 로그아웃 올림 종료 */
-
-.grid :global(.user-panel-logout:focus-visible) /* 로그아웃 초점 */
-{ /* 로그아웃 초점 시작 */
-    outline: 2px solid #ff9db0; /* 초점 외곽선 */
-    outline-offset: 2px; /* 외곽선 간격 */
-} /* 로그아웃 초점 종료 */
 
 .content /* 중앙 콘텐츠 */
 { /* 콘텐츠 시작 */
@@ -641,8 +726,8 @@
     z-index: 15; /* 패널 아래 표시 */
     border: 0; /* 테두리 제거 */
     padding: 0; /* 내부 여백 제거 */
-    background: rgb(2 4 9 / 42%); /* 어두운 배경 */
-    backdrop-filter: blur(6px); /* 배경 흐림 */
+    background: rgb(31 26 46 / 28%); /* 반투명 배경 */
+    backdrop-filter: blur(4px); /* 배경 흐림 */
     cursor: pointer; /* 닫기 커서 */
 } /* 배경 종료 */
 
@@ -725,25 +810,51 @@
         z-index: 30; /* 표시 순서 */
         display: grid; /* 그리드 배치 */
         grid-template-columns: repeat(5, 1fr); /* 다섯 메뉴 */
+        gap: 4px; /* 메뉴 간격 */
         padding: 6px 8px max(6px, env(safe-area-inset-bottom)); /* 안전 영역 여백 */
-        background: #11141c; /* 메뉴 배경 */
+        border-top: 1px solid var(--mv-line); /* 상단 선 */
+        background: rgb(255 255 255 / 96%); /* 메뉴 배경 */
+        box-shadow: 0 -10px 30px rgb(76 29 149 / 8%); /* 메뉴 그림자 */
         text-align: center; /* 가운데 정렬 */
+        backdrop-filter: blur(12px); /* 배경 흐림 */
     } /* 메뉴 종료 */
 
     .shell :global(.mobile-bottom-navigation a) /* 모바일 메뉴 링크 */
     { /* 링크 시작 */
         display: grid; /* 중앙 배치 */
         min-height: 44px; /* 터치 높이 */
-        border-radius: 10px; /* 선택 모양 */
-        color: #aeb6c9; /* 기본 글자 */
+        border-radius: 12px; /* 선택 모양 */
+        color: var(--mv-muted); /* 기본 글자 */
+        font-size: .86rem; /* 글자 크기 */
+        font-weight: 650; /* 글자 굵기 */
         place-items: center; /* 중앙 정렬 */
         text-decoration: none; /* 밑줄 제거 */
     } /* 링크 종료 */
 
     .shell :global(.mobile-bottom-navigation a[aria-current="page"]) /* 현재 메뉴 */
     { /* 현재 시작 */
-        background: #2a2040; /* 현재 배경 */
-        color: #cbb7ff; /* 현재 글자 */
-        font-weight: 700; /* 굵은 글자 */
+        background: var(--accent-soft); /* 현재 배경 */
+        color: var(--accent); /* 현재 글자 */
+        font-weight: 800; /* 굵은 글자 */
+        box-shadow: inset 0 -3px 0 var(--accent); /* 현재 밑줄 */
     } /* 현재 종료 */
+
+    .shell :global(.mobile-bottom-navigation a:focus-visible) /* 모바일 메뉴 초점 */
+    { /* 초점 시작 */
+        outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+        outline-offset: 1px; /* 외곽선 간격 */
+    } /* 초점 종료 */
 } /* 미디어 종료 */
+
+@media (prefers-reduced-motion: reduce) /* 동작 축소 환경 */
+{ /* 동작 축소 시작 */
+    .shell :global(.app-navigation-link), /* 메뉴 버튼 */
+    .shell :global(.app-header > button), /* 헤더 버튼 */
+    .grid > aside, /* 패널 */
+    .grid :global(.conversation-card), /* 대화 카드 */
+    .grid :global(.conversation-create), /* 제작 링크 */
+    .grid :global(.user-panel-logout) /* 로그아웃 버튼 */
+    { /* 전환 대상 시작 */
+        transition: none; /* 전환 제거 */
+    } /* 전환 대상 종료 */
+} /* 동작 축소 종료 */

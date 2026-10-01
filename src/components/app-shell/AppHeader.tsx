@@ -1,5 +1,8 @@
+"use client"; // 클라이언트 컴포넌트
+
 import Image from "next/image"; // 이미지 최적화
 import Link from "next/link"; // 내부 경로 링크
+import { usePathname } from "next/navigation"; // 현재 경로 도구
 
 interface AppHeaderProps // 헤더 속성
 { // 구조 시작
@@ -33,6 +36,8 @@ function MenuIcon() // 메뉴 아이콘
 
 export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, onNavigate, leftButtonRef, rightButtonRef }: AppHeaderProps) // 앱 헤더
 { // 함수 시작
+    const pathname = usePathname() || "/"; // 현재 경로 조회
+    const current = (active: boolean) => (active ? "page" : undefined); // 현재 메뉴 표시
     return ( // 헤더 반환
         <header className="app-header"> {/* 상단 헤더 */}
             <button ref={leftButtonRef} type="button" aria-label="대화방 패널 열기와 닫기" aria-expanded={leftOpen} aria-controls="conversation-panel" onClick={onToggleLeft}> {/* 왼쪽 버튼 */}
@@ -42,9 +47,9 @@ export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, on
                 <Image src="/images/brand/mate-verse-logo-v3.png" alt="Mate Verse" width={2172} height={724} priority /> {/* 브랜드 로고 */}
             </Link> {/* 브랜드 링크 종료 */}
             <nav aria-label="주요 메뉴"> {/* 주요 메뉴 */}
-                <Link href="/" className="app-navigation-link" onClick={onNavigate}>탐색</Link> {/* 탐색 링크 */}
-                <Link href="/library" className="app-navigation-link" onClick={onNavigate}>내 작품</Link> {/* 작품 링크 */}
-                <Link href="/text-play" className="app-navigation-link" onClick={onNavigate}>Text-Play 다운로드</Link> {/* Text-Play 링크 */}
+                <Link href="/" className="app-navigation-link" data-accent="explore" aria-current={current(pathname === "/")} onClick={onNavigate}>탐색</Link> {/* 탐색 링크 */}
+                <Link href="/library" className="app-navigation-link" data-accent="library" aria-current={current(pathname.startsWith("/library"))} onClick={onNavigate}>내 작품</Link> {/* 작품 링크 */}
+                <Link href="/text-play" className="app-navigation-link" data-accent="textplay" aria-current={current(pathname.startsWith("/text-play"))} onClick={onNavigate}>Text-Play 다운로드</Link> {/* Text-Play 링크 */}
             </nav> {/* 메뉴 종료 */}
             <button ref={rightButtonRef} type="button" aria-label="사용자 패널 열기와 닫기" aria-expanded={rightOpen} aria-controls="user-panel" onClick={onToggleRight}> {/* 오른쪽 버튼 */}
                 <MenuIcon /> {/* 메뉴 아이콘 */}

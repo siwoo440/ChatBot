@@ -16,7 +16,7 @@ export function RankingRail({ characters }: { characters: Character[] }) // 랭�
             <div className={styles.rankingGrid}> {/* 랭킹 목록 */}
                 {characters.map((character, index) => // 랭킹 반복
                 <div key={character.id} className={styles.rankingItem}> {/* 랭킹 항목 */}
-                    <span className={styles.rankBadge}>{index + 1}위</span> {/* 순위 표시 */}
+                    <span className={styles.rankBadge} data-rank={index < 3 ? index + 1 : undefined}>{index + 1}위</span> {/* 순위 표시 */}
                     <CharacterCard character={character} /> {/* 캐릭터 카드 */}
                 </div>)} {/* 반복 종료 */}
             </div> {/* 목록 종료 */}

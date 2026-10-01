@@ -3,6 +3,7 @@ import Link from "next/link"; // 내부 경로 링크
 import { createConversationHref } from "@/features/character/character-detail-model"; // 대화 주소 생성
 import { getConversationSummary } from "@/features/conversation/conversation-versioning"; // 대화 요약 조회
 import type { AppState } from "@/features/core/types"; // 앱 상태 타입
+import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
 
 interface ConversationPanelProps // 패널 속성
 { // 구조 시작
@@ -24,8 +25,9 @@ export function ConversationPanel({ state, open, onNavigate }: ConversationPanel
                 {state.conversations.map((conversation, index) => // 대화 순회
                 { // 순회 시작
                     const summary = getConversationSummary(state, conversation.id); // 대화 요약 조회
+                    const character = state.characters.find((item) => item.id === conversation.characterId); // 대화 캐릭터 조회
                     return summary === null ? null : ( // 요약 존재 판정
-                        <li key={conversation.id} className="conversation-card" data-tone={index % 2 === 0 ? "primary" : "secondary"}> {/* 대화 항목 */}
+                        <li key={conversation.id} className="conversation-card" data-tone={index % 2 === 0 ? "primary" : "secondary"} data-genre={getGenreKey(character?.tags ?? [])}> {/* 대화 항목 */}
                             <Link href={createConversationHref(conversation.characterId, conversation.id, conversation.currentVersionId) as Route} className="conversation-card-link" onClick={onNavigate}> {/* 대화 링크 */}
                                 <strong>{conversation.title}</strong> {/* 대화 제목 */}
                                 <span>{summary.lastMessage}</span> {/* 최근 메시지 */}

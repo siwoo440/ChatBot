@@ -3,15 +3,17 @@ import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
 import type { Character } from "@/features/core/types"; // 캐릭터 타입
 import styles from "@/features/discovery/DiscoveryHome.module.css"; // 탐색 스타일
+import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
 
 export function FeaturedCharacter({ character }: { character: Character }) // 추천 캐릭터
 { // 함수 시작
     return ( // 추천 반환
-        <section className={styles.featured} aria-labelledby="featured-title"> {/* 추천 영역 */}
+        <section className={styles.featured} data-genre={getGenreKey(character.tags)} aria-labelledby="featured-title"> {/* 추천 영역 */}
             <div> {/* 추천 설명 */}
-                <span>오늘의 추천</span> {/* 추천 표시 */}
+                <span className={styles.featuredLabel}>오늘의 추천</span> {/* 추천 표시 */}
                 <h2 id="featured-title">{character.name}</h2> {/* 추천 제목 */}
                 <p>{character.description}</p> {/* 추천 설명 */}
+                <ul className={styles.tagList} aria-label="캐릭터 태그">{character.tags.map((tag) => <li key={tag}>#{tag}</li>)}</ul> {/* 태그 목록 */}
                 <Link href={`/characters/${character.id}` as Route}>세계관 살펴보기</Link> {/* 상세 링크 */}
             </div> {/* 설명 종료 */}
             <Image src={character.coverImage} alt={character.name} width={420} height={520} priority /> {/* 추천 이미지 */}
