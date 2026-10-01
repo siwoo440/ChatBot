@@ -60,9 +60,10 @@ npx playwright install chromium
 npm run test:e2e -- --project=chromium --workers=1
 ```
 
-2026-09-30에 GitHub `main`을 별도 폴더로 새로 복제하여 다음 결과를 확인했다.
+2026-10-01에 GitHub `main`을 새로 복제하고 Next.js 보안 패치를 적용한 뒤 다음 결과를 확인했다.
 
-- `npm ci`: 성공, 취약점 0건
+- `npm ci`: 성공
+- Next.js `16.3.8`: `next/og` 원격 코드 실행 취약점(GHSA-vcvr-r3jv-pc5j) 해결, `npm audit` 취약점 0건
 - TypeScript: 성공
 - ESLint: 성공
 - Vitest: 테스트 파일 29개, 테스트 208개 통과
