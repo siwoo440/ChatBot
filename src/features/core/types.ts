@@ -10,6 +10,7 @@ export type RelationshipStage = "첫 만남" | "아는 사이" | "가까운 사�
 export type MemoryCategory = "summary" | "event" | "preference"; // 기억 분류
 export type ReportReason = "incorrect-rating" | "harmful-content" | "copyright" | "spam" | "other"; // 신고 사유
 export type AdultVerificationMethod = "mock"; // 성인 인증 방식
+export type ConversationSort = "recent" | "relationship" | "turns" | "title"; // 대화방 정렬 기준
 
 export interface AdultVerification // 성인 인증 구조
 { // 구조 시작
@@ -218,11 +219,12 @@ export interface AppSettings // 앱 설정 구조
     notificationEndTime: string; // 알림 종료 시각
     dailyNotificationLimit: number; // 일일 알림 제한
     matureContentEnabled: boolean; // 19세 이상 콘텐츠 표시
+    conversationSort: ConversationSort; // 왼쪽 대화방 정렬
 } // 구조 종료
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 8; // 스키마 버전
+    schemaVersion: 9; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록
@@ -236,5 +238,6 @@ export interface AppState // 앱 상태 구조
     likedCharacterIds: string[]; // 좋아요 캐릭터
     followedCreatorIds: string[]; // 팔로우 제작자
     localReports: CharacterReport[]; // 로컬 신고 목록
+    pinnedConversationIds: string[]; // 고정 대화방(최근 고정 순)
     selectedConversationId: string | null; // 선택 대화방
 } // 구조 종료

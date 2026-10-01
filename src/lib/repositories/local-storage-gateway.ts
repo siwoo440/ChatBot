@@ -18,6 +18,8 @@ const memoryCategories = ["summary", "event", "preference"] as const; // 기억 
 const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam", "other"] as const; // 신고 사유 목록
 const contentRatings = ["all", "teen", "mature"] as const; // 이용 등급 목록
 const adultVerificationMethods = ["mock"] as const; // 성인 인증 방식 목록
+const conversationSorts = ["recent", "relationship", "turns", "title"] as const; // 대화방 정렬 목록
+const backupReasons = ["manual", "import", "reset", "restore", "recovery", "message-delete", "version-delete", "conversation-delete"] as const; // 백업 사유 목록
 
 export interface LoadResult // 읽기 결과 구조
 { // 구조 시작
@@ -41,7 +43,7 @@ export interface PreparedImport // 가져오기 준비 구조
     summary: DataSummary; // 데이터 요약
 } // 구조 종료
 
-export type BackupReason = "manual" | "import" | "reset" | "restore" | "recovery" | "message-delete" | "version-delete"; // 백업 사유
+export type BackupReason = typeof backupReasons[number]; // 백업 사유
 
 export interface BackupSnapshot // 백업 구조
 { // 구조 시작
@@ -344,7 +346,8 @@ function hasAppStateData(value: unknown, conversationValidator: (item: unknown) 
 } // 함수 종료
 
 type SchemaEightFields = "profile" | "characters" | "settings"; // 스키마 8 변경 필드
-type VersionSevenState = Omit<AppState, "schemaVersion" | SchemaEightFields> & { schemaVersion: 7; profile: Omit<UserProfile, "adultVerification">; characters: Array<Omit<Character, "contentRating">>; settings: Omit<AppSettings, "matureContentEnabled"> }; // 버전 7 상태 타입
+type VersionEightState = Omit<AppState, "schemaVersion" | "pinnedConversationIds" | "settings"> & { schemaVersion: 8; settings: Omit<AppSettings, "conversationSort"> }; // 버전 8 상태 타입
+type VersionSevenState = Omit<AppState, "schemaVersion" | "pinnedConversationIds" | SchemaEightFields> & { schemaVersion: 7; profile: Omit<UserProfile, "adultVerification">; characters: Array<Omit<Character, "contentRating">>; settings: Omit<AppSettings, "matureContentEnabled" | "conversationSort"> }; // 버전 7 상태 타입
 type SchemaSevenFields = "schemaVersion" | "conversations" | "conversationVersions" | "messages" | "memories" | "likedCharacterIds" | "followedCreatorIds" | "localReports"; // 스키마 7 필드 묶음
 type VersionSixConversation = Omit<Conversation, "currentVersionId"> & { relationshipLevel: number; relationshipStage: ConversationVersion["relationshipStage"]; emotion: string; currentScene: string; lastMessage: string }; // 버전 6 대화 타입
 type LegacyConversation = Omit<VersionSixConversation, "archivedAt" | "startSettings"> & { archivedAt?: string | null }; // 이전 대화 타입
@@ -365,7 +368,19 @@ function hasSchemaEightFields(value: Record<string, unknown>): boolean // 스키
         && (value.characters as Array<Record<string, unknown>>).every((character) => isOneOf(character.contentRating, contentRatings)); // 이용 등급 확인
 } // 함수 종료
 
+function hasSchemaNineFields(value: Record<string, unknown>): boolean // 스키마 9 필드 판정 함수
+{ // 함수 시작
+    const settings = value.settings as Record<string, unknown>; // 설정 정보
+    return isStringArray(value.pinnedConversationIds) // 고정 대화 확인
+        && isOneOf(settings.conversationSort, conversationSorts); // 대화방 정렬 확인
+} // 함수 종료
+
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
+{ // 함수 시작
+    return hasVersionedGraph(value, 9) && hasSchemaEightFields(value) && hasSchemaNineFields(value); // 버전 9 상태 반환
+} // 함수 종료
+
+function isVersionEightState(value: unknown): value is VersionEightState // 버전 8 상태 판정 함수
 { // 함수 시작
     return hasVersionedGraph(value, 8) && hasSchemaEightFields(value); // 버전 8 상태 반환
 } // 함수 종료
@@ -375,7 +390,7 @@ function isVersionSevenState(value: unknown): value is VersionSevenState // 버�
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인
@@ -484,6 +499,17 @@ export function migrateVersionSeven(value: Record<string, unknown>): AppState | 
     const profile = { ...value.profile, adultVerification: null }; // 성인 인증 전 상태
     const settings = { ...value.settings, matureContentEnabled: false }; // 19세 콘텐츠 숨김
     const candidate: unknown = { ...value, schemaVersion: 8, profile, characters, settings }; // 버전 8 후보
+    return isVersionEightState(candidate) ? migrateVersionEight(candidate) : null; // 연속 변환 반환
+} // 함수 종료
+
+export function migrateVersionEight(value: Record<string, unknown>): AppState | null // 버전 8 변환 함수
+{ // 함수 시작
+    if (!isVersionEightState(value)) // 버전 8 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const settings = { ...value.settings, conversationSort: "recent" }; // 최근 대화순 정렬
+    const candidate: unknown = { ...value, schemaVersion: 9, pinnedConversationIds: [], settings }; // 버전 9 후보
     return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
@@ -666,8 +692,12 @@ function migrateParsedState(parsed: unknown): AppState | null // 분석 상태 �
     } // 버전 6 종료
     if (parsed.schemaVersion === 7) // 버전 7 판정
     { // 버전 7 시작
-        return migrateVersionSeven(parsed); // 버전 8 변환
+        return migrateVersionSeven(parsed); // 버전 9 변환
     } // 버전 7 종료
+    if (parsed.schemaVersion === 8) // 버전 8 판정
+    { // 버전 8 시작
+        return migrateVersionEight(parsed); // 버전 9 변환
+    } // 버전 8 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 
@@ -682,7 +712,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     { // 실패 시작
         throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
     } // 실패 종료
-    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 8) // 미래 버전 판정
+    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 9) // 미래 버전 판정
     { // 미래 버전 시작
         throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
     } // 미래 버전 종료
@@ -696,7 +726,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
 
 function isBackupReason(value: unknown): value is BackupReason // 백업 사유 판정 함수
 { // 함수 시작
-    return isOneOf(value, ["manual", "import", "reset", "restore", "recovery", "message-delete", "version-delete"] as const); // 사유 여부 반환
+    return isOneOf(value, backupReasons); // 사유 여부 반환
 } // 함수 종료
 
 function isStoredBackup(value: unknown): value is StoredBackup // 저장 백업 판정 함수

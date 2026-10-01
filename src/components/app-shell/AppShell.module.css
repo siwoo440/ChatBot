@@ -353,11 +353,16 @@
     color: var(--mv-muted); /* 보조 색상 */
 } /* 보조 종료 */
 
+.grid > aside:first-child /* 왼쪽 패널 너비 */
+{ /* 너비 시작 */
+    width: min(88vw, 328px); /* 대화 카드 공간 확보 */
+} /* 너비 종료 */
+
 .grid :global(.conversation-panel) /* 대화 패널 */
 { /* 대화 패널 시작 */
     display: flex; /* 세로 배치 */
     flex-direction: column; /* 세로 방향 */
-    gap: 14px; /* 영역 간격 */
+    gap: 12px; /* 영역 간격 */
     background: linear-gradient(180deg, #ffffff, #fbf9ff); /* 대화 배경 */
 } /* 대화 패널 종료 */
 
@@ -368,10 +373,14 @@
 
 .grid :global(.conversation-panel-heading) /* 대화 제목 영역 */
 { /* 제목 영역 시작 */
+    display: flex; /* 가로 배치 */
+    align-items: flex-end; /* 아래 정렬 */
+    justify-content: space-between; /* 양끝 배치 */
+    gap: 10px; /* 요소 간격 */
     padding: 2px 2px 0; /* 제목 여백 */
 } /* 제목 영역 종료 */
 
-.grid :global(.conversation-panel-heading span) /* 대화 표제 */
+.grid :global(.conversation-panel-title > span) /* 대화 표제 */
 { /* 표제 시작 */
     margin-bottom: 5px; /* 제목 간격 */
     color: #6d28d9; /* 표제 색상 */
@@ -380,12 +389,48 @@
     letter-spacing: .14em; /* 표제 자간 */
 } /* 표제 종료 */
 
-.grid :global(.conversation-panel-heading h2) /* 대화 제목 */
+.grid :global(.conversation-panel-title > div) /* 제목과 개수 */
+{ /* 줄 시작 */
+    display: flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    gap: 8px; /* 요소 간격 */
+} /* 줄 종료 */
+
+.grid :global(.conversation-panel-title h2) /* 대화 제목 */
 { /* 제목 시작 */
     margin: 0; /* 기본 여백 제거 */
     color: var(--mv-ink); /* 제목 색상 */
     font-size: 1.35rem; /* 제목 크기 */
 } /* 제목 종료 */
+
+.grid :global(.conversation-panel-count) /* 진행 대화 수 */
+{ /* 개수 시작 */
+    display: inline-grid; /* 중앙 배치 */
+    min-width: 24px; /* 최소 너비 */
+    height: 22px; /* 높이 */
+    padding: 0 7px; /* 내부 여백 */
+    border-radius: 999px; /* 알약 모양 */
+    background: #ede9fe; /* 개수 배경 */
+    color: #5b21b6; /* 개수 글자 */
+    font-size: .74rem; /* 글자 크기 */
+    font-weight: 800; /* 글자 굵기 */
+    place-items: center; /* 가운데 정렬 */
+} /* 개수 종료 */
+
+.grid :global(.conversation-sort) /* 정렬 선택 */
+{ /* 정렬 시작 */
+    max-width: 128px; /* 최대 너비 */
+    min-height: 34px; /* 조작 높이 */
+    padding: 0 8px; /* 내부 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 10px; /* 모서리 */
+    background: #ffffff; /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .78rem; /* 글자 크기 */
+    font-weight: 700; /* 글자 굵기 */
+    cursor: pointer; /* 선택 커서 */
+} /* 정렬 종료 */
 
 .grid :global(.conversation-create) /* 제작 링크 */
 { /* 제작 링크 시작 */
@@ -409,20 +454,175 @@
     transform: translateY(-1px); /* 위쪽 이동 */
 } /* 제작 링크 올림 종료 */
 
+.grid :global(.conversation-search) /* 검색 영역 */
+{ /* 검색 시작 */
+    position: relative; /* 아이콘 기준 */
+    display: flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    color: var(--mv-muted); /* 아이콘 색 */
+} /* 검색 종료 */
+
+.grid :global(.conversation-search svg) /* 검색 아이콘 */
+{ /* 아이콘 시작 */
+    position: absolute; /* 입력 안 배치 */
+    left: 12px; /* 왼쪽 위치 */
+    pointer-events: none; /* 선택 통과 */
+} /* 아이콘 종료 */
+
+.grid :global(.conversation-search input) /* 검색 입력 */
+{ /* 입력 시작 */
+    width: 100%; /* 전체 너비 */
+    min-height: 40px; /* 조작 높이 */
+    padding: 0 12px 0 36px; /* 아이콘 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 12px; /* 모서리 */
+    background: #ffffff; /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .84rem; /* 글자 크기 */
+} /* 입력 종료 */
+
+.grid :global(.conversation-search input::placeholder) /* 검색 안내 글자 */
+{ /* 안내 시작 */
+    color: #7c7891; /* 안내 색 */
+} /* 안내 종료 */
+
+.grid :global(.conversation-search input:focus-visible), /* 검색 초점 */
+.grid :global(.conversation-sort:focus-visible), /* 정렬 초점 */
+.grid :global(.conversation-rename input:focus-visible) /* 이름 초점 */
+{ /* 초점 시작 */
+    border-color: #a78bfa; /* 강조 테두리 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 1px; /* 외곽선 간격 */
+} /* 초점 종료 */
+
+.grid :global(.conversation-notice) /* 패널 안내 */
+{ /* 안내 시작 */
+    display: flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    gap: 6px; /* 요소 간격 */
+    padding: 8px 8px 8px 12px; /* 내부 여백 */
+    border: 1px solid #ddd6fe; /* 테두리 */
+    border-radius: 12px; /* 모서리 */
+    background: #f5f3ff; /* 배경 */
+} /* 안내 종료 */
+
+.grid :global(.conversation-notice p) /* 안내 문구 */
+{ /* 문구 시작 */
+    flex: 1; /* 남은 공간 */
+    margin: 0; /* 기본 여백 제거 */
+    color: #4c1d95; /* 문구 색 */
+    font-size: .78rem; /* 문구 크기 */
+    line-height: 1.45; /* 행간 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+} /* 문구 종료 */
+
+.grid :global(.conversation-notice button) /* 안내 버튼 */
+{ /* 버튼 시작 */
+    min-height: 30px; /* 조작 높이 */
+    padding: 0 10px; /* 내부 여백 */
+    border: 1px solid #c4b5fd; /* 테두리 */
+    border-radius: 8px; /* 모서리 */
+    background: #ffffff; /* 배경 */
+    color: #5b21b6; /* 글자 */
+    font-size: .76rem; /* 글자 크기 */
+    font-weight: 800; /* 글자 굵기 */
+    cursor: pointer; /* 선택 커서 */
+    white-space: nowrap; /* 줄바꿈 방지 */
+} /* 버튼 종료 */
+
+.grid :global(.conversation-notice .conversation-notice-close) /* 안내 닫기 */
+{ /* 닫기 시작 */
+    width: 30px; /* 너비 */
+    padding: 0; /* 여백 제거 */
+    border: 0; /* 테두리 제거 */
+    background: transparent; /* 배경 제거 */
+    color: #6b6880; /* 글자 */
+    font-size: 1rem; /* 글자 크기 */
+} /* 닫기 종료 */
+
+.grid :global(.conversation-empty) /* 빈 목록 안내 */
+{ /* 빈 안내 시작 */
+    padding: 18px 16px; /* 내부 여백 */
+    border: 1px dashed #c4b5fd; /* 점선 테두리 */
+    border-radius: 14px; /* 모서리 */
+    background: #faf8ff; /* 배경 */
+    text-align: center; /* 가운데 정렬 */
+} /* 빈 안내 종료 */
+
+.grid :global(.conversation-empty strong) /* 빈 안내 제목 */
+{ /* 제목 시작 */
+    display: block; /* 줄 분리 */
+    color: var(--mv-ink); /* 제목 색 */
+    font-size: .9rem; /* 제목 크기 */
+} /* 제목 종료 */
+
+.grid :global(.conversation-empty p) /* 빈 안내 설명 */
+{ /* 설명 시작 */
+    margin: 6px 0 12px; /* 여백 */
+    color: var(--mv-muted); /* 설명 색 */
+    font-size: .8rem; /* 설명 크기 */
+    line-height: 1.5; /* 행간 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+} /* 설명 종료 */
+
+.grid :global(.conversation-empty a) /* 빈 안내 링크 */
+{ /* 링크 시작 */
+    display: inline-flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    min-height: 36px; /* 조작 높이 */
+    padding: 0 14px; /* 내부 여백 */
+    border-radius: 10px; /* 모서리 */
+    background: #ede9fe; /* 배경 */
+    color: #5b21b6; /* 글자 */
+    font-size: .8rem; /* 글자 크기 */
+    font-weight: 800; /* 글자 굵기 */
+} /* 링크 종료 */
+
+.grid :global(.conversation-empty-search) /* 검색 결과 없음 */
+{ /* 결과 없음 시작 */
+    margin: 2px 2px 0; /* 여백 */
+    color: var(--mv-muted); /* 글자 색 */
+    font-size: .82rem; /* 글자 크기 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+} /* 결과 없음 종료 */
+
+.grid :global(.conversation-group) /* 대화 묶음 */
+{ /* 묶음 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 7px; /* 제목과 목록 간격 */
+} /* 묶음 종료 */
+
+.grid :global(.conversation-group-title) /* 묶음 제목 */
+{ /* 묶음 제목 시작 */
+    display: flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    gap: 5px; /* 아이콘 간격 */
+    margin: 2px 2px 0; /* 여백 */
+    color: #6b6880; /* 제목 색 */
+    font-size: .72rem; /* 제목 크기 */
+    font-weight: 800; /* 제목 굵기 */
+    letter-spacing: .02em; /* 자간 */
+} /* 묶음 제목 종료 */
+
+.grid :global(.conversation-group-title[data-group="pinned"]) /* 고정 묶음 제목 */
+{ /* 고정 제목 시작 */
+    color: #6d28d9; /* 고정 색 */
+} /* 고정 제목 종료 */
+
 .grid :global(.conversation-list) /* 대화 목록 */
 { /* 대화 목록 시작 */
     margin: 0; /* 기본 여백 제거 */
-    gap: 9px; /* 카드 간격 */
+    gap: 8px; /* 카드 간격 */
 } /* 대화 목록 종료 */
 
 .grid :global(.conversation-card) /* 대화 카드 */
 { /* 대화 카드 시작 */
-    overflow: hidden; /* 모서리 정리 */
     border: 1px solid var(--mv-line); /* 카드 테두리 */
     border-left: 4px solid var(--genre); /* 장르 색 띠 */
     border-radius: 14px; /* 카드 모서리 */
     background: #ffffff; /* 기본 카드 배경 */
-    transition: border-color 150ms ease, background 150ms ease, transform 150ms ease; /* 카드 전환 */
+    transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease; /* 카드 전환 */
 } /* 대화 카드 종료 */
 
 .grid :global(.conversation-card[data-tone="secondary"]) /* 보조 대화 카드 */
@@ -434,42 +634,330 @@
 { /* 카드 올림 시작 */
     border-color: var(--genre); /* 강조 테두리 */
     background: var(--genre-soft); /* 장르 연한 배경 */
-    transform: translateX(2px); /* 오른쪽 이동 */
 } /* 카드 올림 종료 */
+
+.grid :global(.conversation-card[data-active="true"]) /* 지금 보는 대화 */
+{ /* 현재 카드 시작 */
+    border-color: var(--genre); /* 장르 테두리 */
+    background: var(--genre-soft); /* 장르 배경 */
+    box-shadow: 0 8px 18px var(--genre-glow), inset 0 0 0 1px var(--genre); /* 강조 그림자 */
+} /* 현재 카드 종료 */
+
+.grid :global(.conversation-card-main) /* 링크·더보기 영역 */
+{ /* 영역 시작 */
+    position: relative; /* 더보기·메뉴 기준(이름·삭제 상자와 겹침 방지) */
+} /* 영역 종료 */
 
 .grid :global(.conversation-card-link) /* 대화 카드 링크 */
 { /* 카드 링크 시작 */
-    display: block; /* 전체 영역 링크 */
-    padding: 12px 14px; /* 카드 여백 */
+    display: grid; /* 세 열 배치 */
+    grid-template-columns: 40px minmax(0, 1fr) auto; /* 얼굴·본문·오른쪽 정보 */
+    gap: 10px; /* 열 간격 */
+    align-items: start; /* 위 정렬 */
+    padding: 11px 10px 11px 10px; /* 카드 여백 */
+    border-radius: 10px; /* 초점 모서리 */
 } /* 카드 링크 종료 */
 
-.grid :global(.conversation-card-link strong) /* 대화 카드 제목 */
+.grid :global(.conversation-card-avatar) /* 캐릭터 얼굴 */
+{ /* 얼굴 시작 */
+    display: block; /* 블록 표시 */
+    width: 40px; /* 너비 */
+    height: 40px; /* 높이 */
+    overflow: hidden; /* 원형 자르기 */
+    border: 2px solid #ffffff; /* 흰 테 */
+    border-radius: 50%; /* 원형 */
+    background: var(--genre-soft); /* 이미지 전 배경 */
+    box-shadow: 0 0 0 1.5px var(--genre); /* 장르 테 */
+} /* 얼굴 종료 */
+
+.grid :global(.conversation-card-avatar img) /* 얼굴 이미지 */
+{ /* 이미지 시작 */
+    display: block; /* 블록 표시 */
+    width: 100%; /* 너비 채움 */
+    height: 100%; /* 높이 채움 */
+    object-fit: cover; /* 비율 유지 자르기 */
+    object-position: center 20%; /* 얼굴 쪽 위치 */
+} /* 이미지 종료 */
+
+.grid :global(.conversation-card[data-locked="true"] .conversation-card-avatar img) /* 잠긴 얼굴 */
+{ /* 잠금 얼굴 시작 */
+    filter: blur(6px) saturate(.6); /* 흐림 처리 */
+    transform: scale(1.2); /* 흐린 가장자리 숨김 */
+} /* 잠금 얼굴 종료 */
+
+.grid :global(.conversation-card-body) /* 카드 본문 */
+{ /* 본문 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 3px; /* 줄 간격 */
+    min-width: 0; /* 말줄임 허용 */
+} /* 본문 종료 */
+
+.grid :global(.conversation-card-heading) /* 제목 줄 */
+{ /* 제목 줄 시작 */
+    display: flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    gap: 4px; /* 아이콘 간격 */
+    min-width: 0; /* 말줄임 허용 */
+} /* 제목 줄 종료 */
+
+.grid :global(.conversation-pin-icon) /* 고정 아이콘 */
+{ /* 고정 아이콘 시작 */
+    flex: none; /* 크기 고정 */
+    color: #6d28d9; /* 고정 색 */
+} /* 고정 아이콘 종료 */
+
+.grid :global(.conversation-card-title) /* 대화 카드 제목 */
 { /* 카드 제목 시작 */
-    display: block; /* 제목 줄 분리 */
-    margin-bottom: 5px; /* 메시지 간격 */
+    min-width: 0; /* 말줄임 허용 */
     overflow: hidden; /* 넘침 숨김 */
     color: var(--genre-strong); /* 제목 색상 */
-    font-size: .9rem; /* 제목 크기 */
+    font-size: .88rem; /* 제목 크기 */
+    font-weight: 800; /* 제목 굵기 */
     text-overflow: ellipsis; /* 말줄임 표시 */
     white-space: nowrap; /* 줄바꿈 방지 */
 } /* 카드 제목 종료 */
 
-.grid :global(.conversation-card-link span) /* 최근 메시지 */
+.grid :global(.conversation-card-message) /* 최근 메시지 */
 { /* 최근 메시지 시작 */
     overflow: hidden; /* 넘침 숨김 */
     color: var(--mv-muted); /* 메시지 색상 */
-    font-size: .8rem; /* 메시지 크기 */
+    font-size: .78rem; /* 메시지 크기 */
     line-height: 1.45; /* 메시지 행간 */
     text-overflow: ellipsis; /* 말줄임 표시 */
     white-space: nowrap; /* 줄바꿈 방지 */
 } /* 최근 메시지 종료 */
+
+.grid :global(.conversation-card-relation) /* 관계 정보 */
+{ /* 관계 시작 */
+    display: flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    gap: 6px; /* 요소 간격 */
+    min-width: 0; /* 줄임 허용 */
+    margin-top: 2px; /* 위 여백 */
+} /* 관계 종료 */
+
+.grid :global(.conversation-card-stage) /* 관계 단계·감정 */
+{ /* 단계 시작 */
+    display: inline; /* 줄 안 표시 */
+    flex: none; /* 크기 유지 */
+    color: var(--genre-strong); /* 장르 진한 글자 */
+    font-size: .7rem; /* 글자 크기 */
+    font-weight: 700; /* 글자 굵기 */
+} /* 단계 종료 */
+
+.grid :global(.conversation-card-meter) /* 관계 막대 */
+{ /* 막대 시작 */
+    flex: 1; /* 남은 공간 */
+    min-width: 20px; /* 최소 너비 */
+    height: 4px; /* 막대 높이 */
+    overflow: hidden; /* 채움 자르기 */
+    border-radius: 999px; /* 둥근 막대 */
+    background: #ebe7f3; /* 빈 막대 */
+} /* 막대 종료 */
+
+.grid :global(.conversation-card-meter > span) /* 관계 채움 */
+{ /* 채움 시작 */
+    height: 100%; /* 높이 채움 */
+    border-radius: inherit; /* 모서리 상속 */
+    background: var(--genre); /* 장르 채움 */
+} /* 채움 종료 */
+
+.grid :global(.conversation-card-meta) /* 오른쪽 정보 */
+{ /* 오른쪽 시작 */
+    display: grid; /* 세로 배치 */
+    justify-items: end; /* 오른쪽 정렬 */
+    gap: 5px; /* 줄 간격 */
+    padding-bottom: 30px; /* 더보기 버튼 자리 */
+    white-space: nowrap; /* 줄바꿈 방지 */
+} /* 오른쪽 종료 */
+
+.grid :global(.conversation-card-meta time) /* 마지막 활동 */
+{ /* 시간 시작 */
+    color: #6b6880; /* 시간 색 */
+    font-size: .7rem; /* 시간 크기 */
+    font-weight: 600; /* 시간 굵기 */
+} /* 시간 종료 */
+
+.grid :global(.conversation-card-turns) /* 진행한 턴 */
+{ /* 턴 시작 */
+    display: inline-grid; /* 중앙 배치 */
+    min-width: 34px; /* 최소 너비 */
+    padding: 2px 7px; /* 내부 여백 */
+    border-radius: 999px; /* 알약 모양 */
+    background: var(--genre-soft); /* 장르 연한 배경 */
+    color: var(--genre-strong); /* 장르 진한 글자 */
+    font-size: .7rem; /* 글자 크기 */
+    font-weight: 800; /* 글자 굵기 */
+    font-variant-numeric: tabular-nums; /* 숫자 폭 고정 */
+    place-items: center; /* 가운데 정렬 */
+} /* 턴 종료 */
+
+.grid :global(.conversation-card[data-active="true"] .conversation-card-turns), /* 현재 카드 턴 */
+.grid :global(.conversation-card:hover .conversation-card-turns) /* 올린 카드 턴 */
+{ /* 강조 턴 시작 */
+    background: #ffffff; /* 흰 배경 */
+} /* 강조 턴 종료 */
+
+.grid :global(.conversation-card-more) /* 더보기 버튼 */
+{ /* 더보기 시작 */
+    position: absolute; /* 카드 안 배치 */
+    right: 6px; /* 오른쪽 위치 */
+    bottom: 6px; /* 아래 위치 */
+    display: grid; /* 중앙 배치 */
+    width: 32px; /* 너비 */
+    height: 28px; /* 높이 */
+    padding: 0; /* 여백 제거 */
+    border: 0; /* 테두리 제거 */
+    border-radius: 8px; /* 모서리 */
+    background: transparent; /* 배경 제거 */
+    color: #6b6880; /* 아이콘 색 */
+    cursor: pointer; /* 선택 커서 */
+    place-items: center; /* 가운데 정렬 */
+} /* 더보기 종료 */
+
+.grid :global(.conversation-card-more:hover), /* 더보기 올림 */
+.grid :global(.conversation-card-more[aria-expanded="true"]) /* 메뉴 열림 */
+{ /* 더보기 강조 시작 */
+    background: rgb(109 40 217 / 10%); /* 강조 배경 */
+    color: #5b21b6; /* 강조 색 */
+} /* 더보기 강조 종료 */
+
+.grid :global(.conversation-menu) /* 대화 메뉴 */
+{ /* 메뉴 시작 */
+    position: absolute; /* 카드 위 표시 */
+    top: calc(100% - 6px); /* 버튼 아래 */
+    right: 6px; /* 오른쪽 정렬 */
+    z-index: 5; /* 다른 카드 위 */
+    display: grid; /* 세로 배치 */
+    min-width: 150px; /* 최소 너비 */
+    padding: 6px; /* 내부 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 12px; /* 모서리 */
+    background: #ffffff; /* 배경 */
+    box-shadow: 0 14px 32px rgb(31 26 46 / 16%); /* 떠 있는 그림자 */
+} /* 메뉴 종료 */
+
+.grid :global(.conversation-menu[data-placement="top"]) /* 위로 펼친 메뉴 */
+{ /* 위 메뉴 시작 */
+    top: auto; /* 아래 기준 해제 */
+    bottom: 38px; /* 더보기 버튼 위 */
+} /* 위 메뉴 종료 */
+
+.grid :global(.conversation-menu [role="menuitem"]) /* 메뉴 항목 */
+{ /* 항목 시작 */
+    display: flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    width: 100%; /* 전체 너비 */
+    min-height: 36px; /* 조작 높이 */
+    padding: 0 10px; /* 내부 여백 */
+    border: 0; /* 테두리 제거 */
+    border-radius: 8px; /* 모서리 */
+    background: transparent; /* 배경 제거 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .82rem; /* 글자 크기 */
+    font-weight: 700; /* 글자 굵기 */
+    text-align: left; /* 왼쪽 정렬 */
+    cursor: pointer; /* 선택 커서 */
+} /* 항목 종료 */
+
+.grid :global(.conversation-menu [role="menuitem"]:hover), /* 항목 올림 */
+.grid :global(.conversation-menu [role="menuitem"]:focus) /* 항목 초점 */
+{ /* 항목 강조 시작 */
+    background: #f5f3ff; /* 강조 배경 */
+    color: #5b21b6; /* 강조 글자 */
+} /* 항목 강조 종료 */
+
+.grid :global(.conversation-menu .conversation-menu-danger) /* 삭제 항목 */
+{ /* 삭제 시작 */
+    color: #be123c; /* 위험 색 */
+} /* 삭제 종료 */
+
+.grid :global(.conversation-menu .conversation-menu-danger:hover), /* 삭제 올림 */
+.grid :global(.conversation-menu .conversation-menu-danger:focus) /* 삭제 초점 */
+{ /* 삭제 강조 시작 */
+    background: #fff1f2; /* 위험 배경 */
+    color: #9f1239; /* 위험 글자 */
+} /* 삭제 강조 종료 */
+
+.grid :global(.conversation-rename), /* 이름 변경 */
+.grid :global(.conversation-delete) /* 삭제 확인 */
+{ /* 펼침 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 8px; /* 요소 간격 */
+    margin: 0 10px 10px; /* 바깥 여백 */
+} /* 펼침 종료 */
+
+.grid :global(.conversation-rename input) /* 이름 입력 */
+{ /* 입력 시작 */
+    min-height: 38px; /* 조작 높이 */
+    padding: 0 10px; /* 내부 여백 */
+    border: 1px solid #c4b5fd; /* 테두리 */
+    border-radius: 10px; /* 모서리 */
+    background: #ffffff; /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .85rem; /* 글자 크기 */
+} /* 입력 종료 */
+
+.grid :global(.conversation-delete) /* 삭제 확인 상자 */
+{ /* 삭제 상자 시작 */
+    padding: 10px; /* 내부 여백 */
+    border: 1px solid #fecdd3; /* 위험 테두리 */
+    border-radius: 10px; /* 모서리 */
+    background: #fff1f2; /* 위험 배경 */
+} /* 삭제 상자 종료 */
+
+.grid :global(.conversation-delete p) /* 삭제 안내 */
+{ /* 안내 시작 */
+    margin: 0; /* 기본 여백 제거 */
+    color: #881337; /* 위험 글자 */
+    font-size: .78rem; /* 글자 크기 */
+    line-height: 1.5; /* 행간 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+} /* 안내 종료 */
+
+.grid :global(.conversation-rename div), /* 이름 동작 */
+.grid :global(.conversation-delete div) /* 삭제 동작 */
+{ /* 동작 시작 */
+    display: flex; /* 가로 배치 */
+    justify-content: flex-end; /* 오른쪽 정렬 */
+    gap: 6px; /* 버튼 간격 */
+} /* 동작 종료 */
+
+.grid :global(.conversation-rename button), /* 이름 버튼 */
+.grid :global(.conversation-delete button) /* 삭제 버튼 */
+{ /* 버튼 시작 */
+    min-height: 32px; /* 조작 높이 */
+    padding: 0 12px; /* 내부 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 8px; /* 모서리 */
+    background: #ffffff; /* 배경 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .78rem; /* 글자 크기 */
+    font-weight: 800; /* 글자 굵기 */
+    cursor: pointer; /* 선택 커서 */
+} /* 버튼 종료 */
+
+.grid :global(.conversation-rename) button[type="submit"] /* 이름 저장 */
+{ /* 저장 시작 */
+    border-color: #6d28d9; /* 보라 테두리 */
+    background: #6d28d9; /* 보라 배경 */
+    color: #ffffff; /* 흰 글자 */
+} /* 저장 종료 */
+
+.grid :global(.conversation-delete) button:global(.conversation-delete-confirm) /* 삭제 확정 */
+{ /* 확정 시작 */
+    border-color: #be123c; /* 위험 테두리 */
+    background: #be123c; /* 위험 배경 */
+    color: #ffffff; /* 흰 글자 */
+} /* 확정 종료 */
 
 .grid :global(.conversation-card[data-locked="true"]) /* 잠긴 대화 카드 */
 { /* 잠금 시작 */
     border-left-color: #e11d48; /* 19세 색 띠 */
 } /* 잠금 종료 */
 
-.grid :global(.conversation-card[data-locked="true"] .conversation-card-link span) /* 잠긴 대화 안내 */
+.grid :global(.conversation-card[data-locked="true"] .conversation-card-message) /* 잠긴 대화 안내 */
 { /* 안내 시작 */
     color: #be123c; /* 안내 색상 */
     font-weight: 700; /* 안내 굵기 */
@@ -477,9 +965,9 @@
 
 .grid :global(.conversation-library) /* 보관함 링크 */
 { /* 보관함 시작 */
-    display: flex; /* 중앙 배치 */
+    display: flex; /* 가로 배치 */
     align-items: center; /* 세로 중앙 */
-    justify-content: space-between; /* 양끝 배치 */
+    gap: 8px; /* 요소 간격 */
     min-height: 44px; /* 조작 높이 */
     margin-top: auto; /* 하단 배치 */
     padding: 0 14px; /* 링크 여백 */
@@ -491,11 +979,52 @@
     font-weight: 800; /* 링크 굵기 */
 } /* 보관함 종료 */
 
+.grid :global(.conversation-library span) /* 보관함 이름 */
+{ /* 이름 시작 */
+    flex: 1; /* 남은 공간 */
+    color: inherit; /* 링크 색 상속 */
+} /* 이름 종료 */
+
+.grid :global(.conversation-library small) /* 보관 대화 수 */
+{ /* 개수 시작 */
+    padding: 2px 8px; /* 내부 여백 */
+    border-radius: 999px; /* 알약 모양 */
+    background: #ffffff; /* 흰 배경 */
+    color: #0f766e; /* 청록 글자 */
+    font-size: .72rem; /* 글자 크기 */
+    font-weight: 800; /* 글자 굵기 */
+} /* 개수 종료 */
+
 .grid :global(.conversation-library::after) /* 보관함 화살표 */
 { /* 화살표 시작 */
     color: #0f766e; /* 화살표 색상 */
     content: "›"; /* 화살표 문자 */
 } /* 화살표 종료 */
+
+@media (max-width: 760px) /* 모바일 대화 패널 */
+{ /* 모바일 시작 */
+    .grid :global(.conversation-card-more) /* 모바일 더보기 */
+    { /* 더보기 시작 */
+        width: 40px; /* 터치 너비 */
+        height: 36px; /* 터치 높이 */
+    } /* 더보기 종료 */
+
+    .grid :global(.conversation-card-meta) /* 모바일 오른쪽 정보 */
+    { /* 오른쪽 시작 */
+        padding-bottom: 36px; /* 더보기 자리 */
+    } /* 오른쪽 종료 */
+
+    .grid :global(.conversation-menu[data-placement="top"]) /* 모바일 위 메뉴 */
+    { /* 위 메뉴 시작 */
+        bottom: 46px; /* 큰 더보기 버튼 위 */
+    } /* 위 메뉴 종료 */
+
+    .grid :global(.conversation-search input), /* 모바일 검색 입력 */
+    .grid :global(.conversation-rename input) /* 모바일 이름 입력 */
+    { /* 입력 시작 */
+        font-size: 16px; /* 확대 방지 글자 크기 */
+    } /* 입력 종료 */
+} /* 모바일 종료 */
 
 .grid :global(.user-panel) /* 사용자 패널 */
 { /* 사용자 패널 시작 */
@@ -849,6 +1378,7 @@
     .grid > aside:last-child /* 오른쪽 서랍 */
     { /* 서랍 시작 */
         width: min(88vw, 320px); /* 서랍 너비 */
+        padding-bottom: calc(88px + env(safe-area-inset-bottom)); /* 하단 메뉴에 가리지 않는 여백 */
     } /* 서랍 종료 */
 
     .shell :global(.app-header nav) /* 데스크톱 메뉴 */

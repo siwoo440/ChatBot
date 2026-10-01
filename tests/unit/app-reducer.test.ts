@@ -182,4 +182,69 @@ describe("앱 상태 리듀서", () => // 리듀서 묶음
         expect(removedVersion.conversationVersions.some((version) => version.id === fork.version.id)).toBe(false); // 버전 삭제 확인
         expect(removedVersion.conversations[0].currentVersionId).toBe(base.id); // 부모 버전 복귀 확인
     }); // 검증 종료
+
+    it("대화방 고정을 켜고 끄며 최근에 고정한 대화를 앞에 둔다", () => // 고정 전환 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태
+        const first = appReducer(state, { type: "toggle-conversation-pin", conversationId: "conversation-noah" }); // 노아 고정
+        const second = appReducer(first, { type: "toggle-conversation-pin", conversationId: "conversation-sera" }); // 세라 고정
+        const released = appReducer(second, { type: "toggle-conversation-pin", conversationId: "conversation-noah" }); // 노아 해제
+        expect(second.pinnedConversationIds).toEqual(["conversation-sera", "conversation-noah"]); // 고정 순서 확인
+        expect(released.pinnedConversationIds).toEqual(["conversation-sera"]); // 해제 확인
+        expect(state.pinnedConversationIds).toEqual([]); // 원본 유지
+    }); // 검증 종료
+
+    it("없는 대화·보관한 대화·한도 초과는 고정하지 않는다", () => // 고정 제한 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태
+        expect(appReducer(state, { type: "toggle-conversation-pin", conversationId: "없는-대화" })).toBe(state); // 없는 대화 확인
+        const archived = appReducer(state, { type: "archive-conversation", conversationId: "conversation-noah", archivedAt: "2026-09-30T00:00:00.000Z" }); // 노아 보관
+        expect(appReducer(archived, { type: "toggle-conversation-pin", conversationId: "conversation-noah" })).toBe(archived); // 보관 대화 확인
+        const extra = Array.from({ length: 5 }, (_, index) => ({ ...state.conversations[0], id: `extra-${index}` })); // 추가 대화
+        const full = { ...state, conversations: [...state.conversations, ...extra], pinnedConversationIds: extra.map((conversation) => conversation.id) }; // 한도 상태
+        expect(appReducer(full, { type: "toggle-conversation-pin", conversationId: "conversation-rian" })).toBe(full); // 한도 초과 확인
+    }); // 검증 종료
+
+    it("고정한 대화를 보관·삭제하거나 캐릭터를 지우면 고정 목록에서도 뺀다", () => // 고정 정리 검증
+    { // 검증 시작
+        const state = { ...createInitialState(), pinnedConversationIds: ["conversation-rian", "conversation-sera", "conversation-noah"] }; // 고정 상태
+        const archived = appReducer(state, { type: "archive-conversation", conversationId: "conversation-rian", archivedAt: "2026-09-30T00:00:00.000Z" }); // 리안 보관
+        const deleted = appReducer(archived, { type: "delete-conversation", conversationId: "conversation-sera" }); // 세라 삭제
+        const removedCharacter = appReducer(deleted, { type: "delete-character", characterId: "noah" }); // 노아 캐릭터 삭제
+        expect(archived.pinnedConversationIds).toEqual(["conversation-sera", "conversation-noah"]); // 보관 정리 확인
+        expect(deleted.pinnedConversationIds).toEqual(["conversation-noah"]); // 삭제 정리 확인
+        expect(removedCharacter.pinnedConversationIds).toEqual([]); // 캐릭터 삭제 정리 확인
+    }); // 검증 종료
+
+    it("채팅 상태를 합칠 때 다른 화면에서 바꾼 이름·보관·설정·고정을 유지한다", () => // 채팅 병합 검증
+    { // 검증 시작
+        const chat = createInitialState(); // 채팅 화면 상태
+        const reply = { id: "merge-reply", conversationId: "conversation-rian", versionId: "conversation-rian-version-1", sourceMessageId: null, role: "assistant" as const, content: "새 응답", emotion: "기대", sceneEvent: null, createdAt: "2026-10-01T00:00:00.000Z" }; // 새 응답
+        chat.messages = [...chat.messages, reply]; // 응답 추가
+        chat.wallet = { ...chat.wallet, balance: 1200 }; // 토큰 차감
+        let global = createInitialState(); // 전역 상태
+        global = appReducer(global, { type: "rename-conversation", conversationId: "conversation-rian", title: "바뀐 이름" }); // 이름 변경
+        global = appReducer(global, { type: "archive-conversation", conversationId: "conversation-rian", archivedAt: "2026-10-01T00:00:00.000Z" }); // 리안 보관
+        global = appReducer(global, { type: "toggle-conversation-pin", conversationId: "conversation-sera" }); // 세라 고정
+        global = appReducer(global, { type: "update-settings", settings: { conversationSort: "turns", leftPanelOpen: false } }); // 설정 변경
+        const merged = appReducer(global, { type: "merge-chat-state", conversationId: "conversation-rian", state: chat, allowCreate: false }); // 채팅 병합
+        expect(merged.messages.some((message) => message.id === "merge-reply")).toBe(true); // 응답 반영 확인
+        expect(merged.wallet.balance).toBe(1200); // 토큰 반영 확인
+        expect(merged.conversations.find((conversation) => conversation.id === "conversation-rian")?.title).toBe("바뀐 이름"); // 이름 유지 확인
+        expect(merged.conversations.find((conversation) => conversation.id === "conversation-rian")?.archivedAt).toBe("2026-10-01T00:00:00.000Z"); // 보관 유지 확인
+        expect(merged.pinnedConversationIds).toEqual(["conversation-sera"]); // 고정 유지 확인
+        expect(merged.settings.conversationSort).toBe("turns"); // 정렬 유지 확인
+        expect(merged.settings.leftPanelOpen).toBe(false); // 패널 유지 확인
+    }); // 검증 종료
+
+    it("채팅에서 처음 만든 대화만 새로 추가하고 다른 곳에서 지운 대화는 되살리지 않는다", () => // 채팅 생성 검증
+    { // 검증 시작
+        const chat = createInitialState(); // 채팅 화면 상태
+        const global = appReducer(createInitialState(), { type: "delete-conversation", conversationId: "conversation-rian" }); // 리안 삭제
+        const created = appReducer(global, { type: "merge-chat-state", conversationId: "conversation-rian", state: chat, allowCreate: true }); // 새 대화 병합
+        const revived = appReducer(global, { type: "merge-chat-state", conversationId: "conversation-rian", state: chat, allowCreate: false }); // 삭제 대화 병합
+        expect(created.conversations.some((conversation) => conversation.id === "conversation-rian")).toBe(true); // 새 대화 추가 확인
+        expect(created.messages.filter((message) => message.conversationId === "conversation-rian")).toHaveLength(3); // 새 메시지 추가 확인
+        expect(revived).toBe(global); // 삭제 대화 유지 확인
+    }); // 검증 종료
 }); // 묶음 종료

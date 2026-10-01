@@ -2,7 +2,7 @@
 
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
-import { useEffect, useState } from "react"; // 리액트 도구
+import { useEffect, useRef, useState } from "react"; // 리액트 도구
 import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
 import { isCharacterLocked } from "@/features/adult/adult-access"; // 19세 잠금 판정
 import { AdultContentGate } from "@/features/adult/AdultContentGate"; // 19세 잠금 화면
@@ -62,8 +62,15 @@ function ChatConversationScreen({ characterId, initialConversationId, initialVer
         const base = ensureConversationForCharacter(state, characterId); // 기본 대화 준비
         const route = resolveConversationRoute(base.state, characterId, initialConversationId, initialVersionId); // 주소 대화 선택
         const routedState = appReducer(base.state, { type: "select-conversation-version", conversationId: route.conversation.id, versionId: route.version.id }); // 선택 버전 적용
-        return { ...base, state: routedState, conversation: route.conversation, version: route.version, href: route.canonicalHref, recovered: route.recovered }; // 준비 결과 반환
+        const created = !state.conversations.some((conversation) => conversation.id === route.conversation.id); // 이 화면에서 새로 만든 대화 여부
+        return { ...base, state: routedState, conversation: route.conversation, version: route.version, href: route.canonicalHref, recovered: route.recovered, created }; // 준비 결과 반환
     }); // 초기화 종료
+    const allowCreate = useRef(prepared.created); // 새 대화 첫 저장 허용
+    const latestGlobalState = useRef(state); // 최신 전역 상태
+    useEffect(() => // 전역 상태 기록 효과
+    { // 효과 시작
+        latestGlobalState.current = state; // 최신 상태 기록
+    }, [state]); // 전역 상태 의존
     const [controller] = useState(() => new ChatController({ state: prepared.state, conversationId: prepared.conversation.id, llm: llm ?? new MockLLMAdapter(), images: images ?? new MockImageAdapter() })); // 제어기 생성
     const [snapshot, setSnapshot] = useState(prepared.state); // 화면 상태
     const [busy, setBusy] = useState(false); // 응답 상태
@@ -93,17 +100,23 @@ function ChatConversationScreen({ characterId, initialConversationId, initialVer
     const width = typeof window === "undefined" ? 1440 : window.innerWidth; // 화면 너비
     const height = typeof window === "undefined" ? 900 : window.innerHeight; // 화면 높이
     const layout = state.settings.layoutId ?? recommendLayout({ width, height, platformMode: state.settings.platformMode, layoutId: null }); // 현재 레이아웃
+    const createMergeAction = (nextState: AppState) => ({ type: "merge-chat-state" as const, conversationId: prepared.conversation.id, state: nextState, allowCreate: allowCreate.current }); // 채팅 상태 병합 동작 생성
+    const publish = (nextState: AppState) => // 전역 상태 반영
+    { // 함수 시작
+        dispatch(createMergeAction(nextState)); // 왼쪽 창 변경을 지키며 전역 반영
+        allowCreate.current = false; // 첫 저장 이후 재생성 차단
+    }; // 함수 종료
     const sync = () => // 상태 동기화
     { // 함수 시작
         const nextState = controller.snapshot(); // 제어 상태 조회
         setSnapshot(nextState); // 화면 상태 갱신
-        dispatch({ type: "replace-state", state: nextState }); // 전역 상태 갱신
+        publish(nextState); // 전역 상태 반영
     }; // 함수 종료
     const applyControllerState = (nextState: AppState) => // 제어 상태 적용
     { // 함수 시작
         controller.replaceState(nextState); // 제어기 상태 교체
         setSnapshot(nextState); // 화면 상태 갱신
-        dispatch({ type: "replace-state", state: nextState }); // 전역 상태 갱신
+        publish(nextState); // 전역 상태 반영
     }; // 함수 종료
     const runRequest = async (request: (onProgress: (progress: ChatProgress) => void) => Promise<SendResult>) => // 응답 요청 실행
     { // 함수 시작
@@ -157,13 +170,14 @@ function ChatConversationScreen({ characterId, initialConversationId, initialVer
             if (result.ok) // 수정 성공 판정
             { // 조건 시작
                 const nextState = controller.snapshot(); // 수정 상태 조회
-                if (!commitState(nextState)) // 저장 실패 판정
+                if (!commitState(appReducer(latestGlobalState.current, createMergeAction(nextState)))) // 저장 실패 판정
                 { // 실패 시작
                     controller.replaceState(originalState); // 제어 상태 복원
                     setSnapshot(originalState); // 화면 상태 복원
                     setNotice("저장하지 못해 원본 대화를 유지했습니다."); // 저장 실패 안내
                     return { ok: false, reason: "storage-failed" }; // 저장 실패 반환
                 } // 실패 종료
+                allowCreate.current = false; // 첫 저장 이후 재생성 차단
                 setSnapshot(nextState); // 확정 화면 반영
                 replaceRoute(createConversationHref(characterId, conversation.id, result.versionId) as Route, { scroll: false }); // 새 버전 주소 적용
             } // 조건 종료

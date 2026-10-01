@@ -1,4 +1,5 @@
 import { removeMessageFromVersion, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 변경 함수
+import { CONVERSATION_PIN_LIMIT } from "@/features/conversation/conversation-list-model"; // 고정 한도
 import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
 import type { AdultVerification, AppSettings, AppState, Character, CharacterReport, Conversation, ConversationVersion, Message, PublicationStatus, UserProfile } from "@/features/core/types"; // 상태 타입
 import { trySpend, type TokenAction } from "@/lib/story/token-policy"; // 토큰 정책
@@ -30,6 +31,8 @@ export type AppAction = // 앱 동작
     | { type: "archive-conversation"; conversationId: string; archivedAt: string } // 대화 보관
     | { type: "restore-conversation"; conversationId: string } // 대화 복구
     | { type: "delete-conversation"; conversationId: string } // 대화 삭제
+    | { type: "toggle-conversation-pin"; conversationId: string } // 대화 고정 전환
+    | { type: "merge-chat-state"; conversationId: string; state: AppState; allowCreate: boolean } // 채팅 화면 상태 병합
     | { type: "spend-token"; action: TokenAction } // 토큰 차감
     | { type: "replace-state"; state: AppState }; // 상태 복원
 
@@ -88,6 +91,7 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
                 followedCreatorIds: deletedCharacter === undefined || creatorStillExists ? state.followedCreatorIds : state.followedCreatorIds.filter((id) => id !== deletedCharacter.creatorId), // 고아 팔로우 제거
                 localReports: state.localReports.filter((report) => report.characterId !== action.characterId), // 신고 상태 제거
                 memories: state.memories.filter((memory) => memory.characterId !== action.characterId && !conversationIds.includes(memory.conversationId)), // 기억 상태 제거
+                pinnedConversationIds: state.pinnedConversationIds.filter((id) => !conversationIds.includes(id)), // 고정 상태 제거
                 selectedConversationId: state.selectedConversationId !== null && conversationIds.includes(state.selectedConversationId) ? null : state.selectedConversationId, // 선택 대화 정리
             }); // 상태 종료
         } // 삭제 범위 종료
@@ -179,11 +183,40 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             return { ...state, conversations: state.conversations.map((conversation) => conversation.id === action.conversationId ? { ...conversation, title } : conversation) }; // 이름 상태 반환
         } // 변경 범위 종료
         case "archive-conversation": // 대화 보관
-            return { ...state, conversations: state.conversations.map((conversation) => conversation.id === action.conversationId ? { ...conversation, archivedAt: action.archivedAt } : conversation) }; // 보관 상태 반환
+            return { ...state, conversations: state.conversations.map((conversation) => conversation.id === action.conversationId ? { ...conversation, archivedAt: action.archivedAt } : conversation), pinnedConversationIds: state.pinnedConversationIds.filter((id) => id !== action.conversationId) }; // 보관 상태 반환(고정 해제)
         case "restore-conversation": // 대화 복구
             return { ...state, conversations: state.conversations.map((conversation) => conversation.id === action.conversationId ? { ...conversation, archivedAt: null } : conversation) }; // 복구 상태 반환
         case "delete-conversation": // 대화 삭제
-            return { ...state, conversations: state.conversations.filter((conversation) => conversation.id !== action.conversationId), conversationVersions: state.conversationVersions.filter((version) => version.conversationId !== action.conversationId), messages: state.messages.filter((message) => message.conversationId !== action.conversationId), selectedConversationId: state.selectedConversationId === action.conversationId ? null : state.selectedConversationId }; // 삭제 상태 반환
+            return { ...state, conversations: state.conversations.filter((conversation) => conversation.id !== action.conversationId), conversationVersions: state.conversationVersions.filter((version) => version.conversationId !== action.conversationId), messages: state.messages.filter((message) => message.conversationId !== action.conversationId), pinnedConversationIds: state.pinnedConversationIds.filter((id) => id !== action.conversationId), selectedConversationId: state.selectedConversationId === action.conversationId ? null : state.selectedConversationId }; // 삭제 상태 반환
+        case "toggle-conversation-pin": // 대화 고정 전환
+        { // 고정 범위 시작
+            if (state.pinnedConversationIds.includes(action.conversationId)) // 고정 해제 판정
+            { // 조건 시작
+                return { ...state, pinnedConversationIds: state.pinnedConversationIds.filter((id) => id !== action.conversationId) }; // 해제 상태 반환
+            } // 조건 종료
+            const target = state.conversations.find((conversation) => conversation.id === action.conversationId); // 대상 대화 조회
+            const activePinCount = state.pinnedConversationIds.filter((id) => state.conversations.some((conversation) => conversation.id === id && conversation.archivedAt === null)).length; // 유효 고정 수
+            if (target === undefined || target.archivedAt !== null || activePinCount >= CONVERSATION_PIN_LIMIT) // 고정 불가 판정
+            { // 조건 시작
+                return state; // 기존 상태 반환
+            } // 조건 종료
+            return { ...state, pinnedConversationIds: [action.conversationId, ...state.pinnedConversationIds] }; // 최근 고정 우선 반환
+        } // 고정 범위 종료
+        case "merge-chat-state": // 채팅 화면 상태 병합
+        { // 병합 범위 시작
+            const chat = structuredClone(action.state); // 채팅 상태 복사
+            const chatConversation = chat.conversations.find((conversation) => conversation.id === action.conversationId); // 채팅 대화 조회
+            const existing = state.conversations.find((conversation) => conversation.id === action.conversationId); // 전역 대화 조회
+            if (chatConversation === undefined || (existing === undefined && !action.allowCreate)) // 다른 곳에서 지운 대화 판정
+            { // 조건 시작
+                return state; // 되살리지 않음
+            } // 조건 종료
+            const conversation = existing === undefined ? chatConversation : { ...chatConversation, title: existing.title, archivedAt: existing.archivedAt }; // 왼쪽 창의 이름·보관 유지
+            const conversations = existing === undefined ? [...state.conversations, conversation] : state.conversations.map((item) => item.id === conversation.id ? conversation : item); // 대화 목록 생성
+            const conversationVersions = [...state.conversationVersions.filter((version) => version.conversationId !== action.conversationId), ...chat.conversationVersions.filter((version) => version.conversationId === action.conversationId)]; // 채팅 대화 버전 교체
+            const messages = [...state.messages.filter((message) => message.conversationId !== action.conversationId), ...chat.messages.filter((message) => message.conversationId === action.conversationId)]; // 채팅 대화 메시지 교체
+            return { ...state, conversations, conversationVersions, messages, wallet: chat.wallet, selectedConversationId: chat.selectedConversationId }; // 채팅 소유 필드만 반영
+        } // 병합 범위 종료
         case "spend-token": // 토큰 차감
         { // 차감 범위 시작
             const result = trySpend(state.wallet, action.action); // 차감 실행

@@ -1381,7 +1381,7 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - `/settings/*`는 `src/app/settings/layout.tsx`가 `SettingsShell`을 감싸고, `/support`는 페이지에서 직접 `SettingsShell`을 감싼다.
 - 저장공간 부족 안내와 복구 경고의 `데이터 관리 열기` 링크는 `/settings/privacy#data`를 가리킨다.
 - 표(`<table>`) 안에는 줄 끝 JSX 주석을 두지 않는다. 주석 앞 공백이 표의 텍스트 자식이 되어 하이드레이션 오류가 난다.
-- 남은 단계(기능 확장, 앱 상태 버전 9의 토큰 사용 내역)는 `HANDOFF.md` 7절을 따른다. 버전 8은 40장의 성인 인증이 사용했다.
+- 남은 단계(기능 확장, 앱 상태 버전 10의 토큰 사용 내역)는 `HANDOFF.md` 7절을 따른다. 버전 8은 40장의 성인 인증, 버전 9는 41장의 왼쪽 대화방 창이 사용했다.
 - 검증: `tests/integration/settings-pages.test.tsx` 8개, `tests/e2e/settings.spec.ts` 3개
 
 ## 40. 성인 인증과 19+ 콘텐츠
@@ -1449,5 +1449,81 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - `tests/unit/local-storage-gateway.test.ts`의 스키마 8 변환 2개
 - `tests/integration/adult-content.test.tsx` 7개(스위치·인증 창·미성년 거절, 상세·대화·보관함 잠금, 프로필 배지·인증 카드, 제작 등급)
 - `tests/e2e/adult-content.spec.ts` 2개(인증 후 상세 열기와 새로고침 유지, 390px·800px 헤더 넘침)
+
+## 41. 왼쪽 대화방 창 편의 기능
+
+왼쪽 창은 사용자가 진행하던 대화방을 모아 두는 곳이다. 이전에는 대화방 이름과 최근 메시지만 만든 순서대로 보여 주었고, 보관한 대화도 섞여 보였다. 기획한 편의 기능 7개(①~⑦)를 모두 적용하고, 사용자 요청으로 카드 오른쪽에 **진행한 턴 수**를 추가했다.
+
+### 화면 구성(위에서 아래로)
+
+| 영역 | 내용 |
+| --- | --- |
+| 제목 줄 | `MY CHATS`, `대화방`과 진행 중인 대화 수, 정렬 선택(최근 대화순·관계 높은 순·턴 많은 순·이름순) |
+| 만들기 | `＋ 새 캐릭터 만들기`(기존 유지) |
+| 검색 | 대화방 이름·캐릭터 이름·최근 메시지. 띄어쓰기·대소문자 무시, 초성 검색(`ㄹㅇ` → 리안), 초성 섞어 쓰기(`ㄷ서ㄱ` → 도서관). Esc로 검색어 지우기 |
+| 안내 | 보관 후 `되돌리기`, 고정 한도 안내, 삭제 완료 안내(`role="status"`) |
+| 묶음 | `고정됨`(최근에 고정한 순서) → 최근 대화순이면 `오늘`·`어제`·`최근 7일`·`이전`, 다른 정렬이면 `전체 대화` 한 묶음 |
+| 카드 | 왼쪽 캐릭터 얼굴, 제목(고정 표시), 최근 메시지, 관계 단계·감정과 관계 막대(0~100) / 오른쪽 마지막 활동 시간, 진행한 턴 수, 더보기(⋯) |
+| 더보기 메뉴 | 고정·고정 해제, 이름 변경(1~60자, Enter 저장·Esc 취소), 캐릭터 보기, 보관, 삭제 |
+| 보관함 링크 | 맨 아래, 보관한 대화가 있으면 `보관한 대화 N` 표시 |
+| 빈 목록 | `진행 중인 대화가 없습니다.`와 `캐릭터 탐색하기` 링크(검색·정렬은 숨김) |
+
+지금 보고 있는 대화(`/chat/[id]?conversation=`)의 카드는 장르색 테두리·배경으로 강조하고 링크에 `aria-current="page"`를 붙인다. 카드 색은 기존처럼 캐릭터 대표 장르색(`data-genre`)을 쓰고, 19+ 잠금 카드는 얼굴을 흐리게 하고 메시지를 가린다.
+
+### 계산 규칙 (`src/features/conversation/conversation-list-model.ts`)
+
+- 목록 대상: 보관하지 않았고 캐릭터와 현재 버전이 있는 대화(`buildConversationListItems`)
+- 진행한 턴: 현재 버전의 사용자 메시지 수. 수정 분기를 고르면 그 분기의 턴 수로 바뀐다. 응답이 실패하거나 중단돼도 보낸 사용자 메시지는 1턴으로 센다(왼쪽 창 숫자는 응답이 끝난 뒤 갱신된다).
+- 마지막 활동 시각: 대화방 `updatedAt`과 현재 버전 `updatedAt` 중 더 최근 값
+- 상대 시간(`formatConversationTime`): 1분 미만 `방금 전`, 1시간 미만 `n분 전`, 같은 날 `n시간 전`, `어제`, 7일 미만 `n일 전`, 올해 `9월 22일`, 지난해 `2025. 12. 30.`. 날짜는 서울 시간 기준이며 창이 열려 있는 동안 1분마다 다시 계산한다.
+- 정렬(`sortConversationItems`): 같은 값이면 최근 대화를 앞에 둔다. 이름순은 한국어 가나다순이다.
+- 검색(`matchesConversationQuery`): 19+로 잠긴 대화는 최근 메시지로 검색하지 않는다. 가린 내용이 검색 결과로 드러나지 않게 하기 위해서다.
+- 고정 한도: `CONVERSATION_PIN_LIMIT = 5`
+
+### 저장 구조 (앱 상태 버전 9)
+
+- `AppState.pinnedConversationIds: string[]`: 최근에 고정한 대화가 앞에 온다.
+- `AppSettings.conversationSort: "recent" | "relationship" | "turns" | "title"`
+- 버전 8 데이터는 `migrateVersionEight`가 빈 고정 목록과 최근 대화순을 추가한다. 0~7 버전도 이 단계를 거쳐 9가 되고, 전체 JSON 가져오기도 같은 변환을 쓴다. 대화 파일 내보내기 형식은 바뀌지 않는다(고정 여부는 넣지 않는다).
+- 리듀서 `toggle-conversation-pin`: 없는 대화·보관한 대화·한도 초과는 무시한다. 보관·삭제·캐릭터 삭제 때 고정 목록에서도 뺀다.
+- 왼쪽 창 삭제는 `createBackup("conversation-delete")` 성공 뒤에만 실행한다. 데이터 관리의 백업 목록에는 `대화 삭제 전`으로 보인다.
+- 버전 10은 오른쪽 메뉴 3단계(토큰 사용 내역)가 쓴다(`HANDOFF.md` 7절).
+
+### 채팅 화면과의 상태 병합
+
+채팅 화면(`ChatScreen`)은 앱 상태 전체의 복사본을 제어기에 두고 응답이 끝나면 전역 상태를 통째로 바꿨다. 그래서 채팅 중 왼쪽 창이나 헤더에서 바꾼 값(대화 이름, 보관, 고정, 정렬, 패널 열림, 19+ 스위치)이 다음 메시지를 보낼 때 되돌아갔다.
+
+- 이제 `merge-chat-state` 동작으로 채팅이 바꾸는 부분만 반영한다: 현재 대화의 버전·메시지·현재 버전, 토큰 지갑, 선택 대화. 대화 이름과 보관 상태, 그 밖의 설정은 전역 값을 유지한다.
+- 이 화면에서 새로 만든 대화만 처음 저장할 때 추가한다(`allowCreate`). 다른 곳에서 지운 대화는 되살리지 않는다.
+- 메시지 수정의 원자적 저장(`commitState`)도 최신 전역 상태에 병합한 결과를 저장한다.
+- 지금 보고 있는 대화를 왼쪽 창에서 삭제하면 캐릭터 상세(`/characters/[id]`)로 이동한다.
+
+### 키보드와 접근성
+
+- 더보기 버튼 `aria-haspopup="menu"`·`aria-expanded`, 메뉴 `role="menu"`, 항목 `role="menuitem"`. 열면 첫 항목에 초점, ↑↓·Home·End로 이동, Esc로 닫고 더보기 버튼으로 초점 복귀, 메뉴 바깥을 누르면 닫힌다.
+- Esc는 메뉴·이름 입력·검색어가 먼저 처리하고 `preventDefault()`로 표시한다. `AppShell`은 처리되지 않은 Esc(`!event.defaultPrevented`)만 패널 닫기에 쓴다. Next.js는 React 이벤트를 문서(`document`)에서 받으므로 `stopPropagation()`으로는 같은 문서의 패널 닫기 리스너를 막을 수 없다.
+- 아래 공간이 부족하면(모바일 하단 메뉴 포함) 메뉴를 위로 펼친다(`data-placement="top"`).
+- 삭제 확인은 카드 안에 펼치고 `취소`에 먼저 초점을 둔다. 이름 변경 입력은 열리면 기존 이름을 선택한다.
+- 관계 막대는 `role="meter"`(이름 `관계 수치`), 현재 대화 링크는 `aria-current="page"`
+- 모바일: 더보기 버튼 40×36px, 입력 글자 16px(확대 방지), 서랍 아래에 하단 메뉴 높이만큼 여백을 둬 보관함 링크가 가리지 않는다.
+- 왼쪽 패널 너비는 `min(88vw, 328px)`이다.
+
+### 파일
+
+- `src/features/conversation/conversation-list-model.ts`: 목록 항목, 턴 수, 정렬, 날짜 묶음, 상대 시간, 초성 검색, 고정 한도
+- `src/components/app-shell/ConversationPanel.tsx`: 왼쪽 창 화면. 현재 주소는 `useSearchParams`를 `Suspense` 안에서 읽는다.
+- `src/components/app-shell/AppShell.module.css`: `conversation-*` 규칙과 모바일 여백
+- `src/features/core/app-reducer.ts`: `toggle-conversation-pin`, `merge-chat-state`, 고정 정리
+- `src/lib/repositories/local-storage-gateway.ts`: 버전 9 판정, `migrateVersionEight`, 백업 사유 `conversation-delete`
+- `src/features/chat/ChatScreen.tsx`: 저장할 때 `merge-chat-state` 사용
+
+### 검증
+
+- `tests/unit/conversation-list-model.test.ts` 10개(보관 제외, 턴 수, 활동 시각, 잠금·고정 표시, 정렬 4종, 날짜 묶음, 상대 시간, 초성 검색, 잠금 검색, 고정 한도)
+- `tests/unit/app-reducer.test.ts`의 고정·병합 5개, `tests/unit/local-storage-gateway.test.ts`의 스키마 9 4개
+- `tests/components/conversation-panel.test.tsx` 14개(보관 제외, 카드 정보, 현재 대화, 검색·초성, 정렬 저장, 고정·한도, 이름 변경, 보관·되돌리기, 백업 후 삭제, 백업 실패, 현재 대화 삭제 이동, 19+ 잠금, 빈 목록)
+- `tests/integration/chat-flow.test.tsx`의 채팅 중 외부 변경 유지 1개
+- `tests/e2e/conversation-panel.spec.ts` 3개(실제 브라우저 Esc 처리, 새로고침 뒤 고정·정렬 유지, 채팅 중 이름·패널 상태 유지와 턴 증가)
+- 390px·820px·1440px에서 메뉴·검색·삭제 확인·보관 안내 상태의 가로 넘침 없음
 
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

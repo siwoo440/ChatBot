@@ -1,8 +1,15 @@
 import { fireEvent, screen, within } from "@testing-library/react"; // 화면 도구
 import userEvent from "@testing-library/user-event"; // 사용자 동작
-import { describe, expect, it } from "vitest"; // 테스트 도구
+import { describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { AppShell } from "@/components/app-shell/AppShell"; // 앱 셸
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더
+
+vi.mock("next/navigation", () => // 경로 도구 대체
+({ // 대체 시작
+    usePathname: () => "/", // 현재 경로 제공
+    useSearchParams: () => new URLSearchParams(), // 검색 매개변수 제공
+    useRouter: () => ({ push: () => undefined, replace: () => undefined }), // 이동 함수 제공
+})); // 대체 종료
 
 describe("앱 셸 패널", () => // 패널 묶음
 { // 묶음 시작

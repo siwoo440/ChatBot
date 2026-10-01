@@ -653,4 +653,28 @@ describe("채팅 흐름", () => // 채팅 묶음
         expect(await within(targetItem).findByRole("alert")).toHaveTextContent("메시지를 복사하지 못했습니다."); // 실패 안내 확인
         expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 메시지 유지 확인
     }); // 검증 종료
+
+    it("채팅 중 왼쪽 창에서 바꾼 이름·고정·정렬은 메시지를 보내도 유지된다", async () => // 외부 변경 유지 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        renderWithApp(<><ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} /><ExternalPanelEditor /></>); // 채팅 화면 렌더
+        await user.click(screen.getByRole("button", { name: "왼쪽 창에서 바꾸기" })); // 외부 변경 실행
+        await user.type(screen.getByLabelText("메시지"), "이름 유지 확인"); // 메시지 입력
+        await user.click(screen.getByRole("button", { name: "전송" })); // 메시지 전송
+        await waitFor(() => expect(screen.getByLabelText("리안 대화방 상태")).toHaveTextContent("외부에서 바꾼 이름|conversation-rian|turns|2")); // 변경 유지와 턴 반영 확인
+    }); // 검증 종료
 }); // 묶음 종료
+
+function ExternalPanelEditor() // 왼쪽 창 변경 대역
+{ // 함수 시작
+    const { state, dispatch } = useAppStore(); // 앱 상태 조회
+    const conversation = state.conversations.find((item) => item.id === "conversation-rian"); // 리안 대화 조회
+    const turns = state.messages.filter((message) => message.conversationId === "conversation-rian" && message.versionId === conversation?.currentVersionId && message.role === "user").length; // 턴 수 계산
+    const change = () => // 외부 변경 함수
+    { // 함수 시작
+        dispatch({ type: "rename-conversation", conversationId: "conversation-rian", title: "외부에서 바꾼 이름" }); // 이름 변경
+        dispatch({ type: "toggle-conversation-pin", conversationId: "conversation-rian" }); // 고정
+        dispatch({ type: "update-settings", settings: { conversationSort: "turns" } }); // 정렬 변경
+    }; // 함수 종료
+    return <><button type="button" onClick={change}>왼쪽 창에서 바꾸기</button><output aria-label="리안 대화방 상태">{conversation?.title}|{state.pinnedConversationIds.join(",")}|{state.settings.conversationSort}|{turns}</output></>; // 변경 도구 반환
+} // 함수 종료

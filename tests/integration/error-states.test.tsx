@@ -22,6 +22,7 @@ vi.mock("next/navigation", () => // 경로 도구 대체
 ({ // 대체 시작
     useRouter: () => ({ push: () => undefined, replace: () => undefined }), // 이동 함수 제공
     usePathname: () => "/", // 현재 경로 제공
+    useSearchParams: () => new URLSearchParams(), // 검색 매개변수 제공
 })); // 대체 종료
 
 vi.mock("@/features/settings/data-download", () => // 다운로드 대체
