@@ -1,6 +1,7 @@
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
 import { isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 그래프 검증
 import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, GeneratedImage, Message, Story, StoryCastMember, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
+import { createDefaultConversationSettings, createDefaultPersona, createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본값
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { STORY_CAST_LIMIT } from "@/features/story/story-model"; // 등장인물 최대 수
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
@@ -17,7 +18,18 @@ const visibilities = ["private", "unlisted", "public"] as const; // 공개 범�
 const publicationStatuses = ["draft", "published"] as const; // 발행 상태 목록
 const relationshipStages = ["첫 만남", "아는 사이", "가까운 사이", "특별한 사이"] as const; // 관계 단계 목록
 const messageRoles = ["user", "assistant", "system"] as const; // 메시지 역할 목록
-const memoryCategories = ["summary", "event", "preference"] as const; // 기억 분류 목록
+const legacyMemoryCategories = ["summary", "event", "preference"] as const; // 버전 11 이하 기억 분류
+const memoryCategoriesV12 = ["long", "short", "relation", "goal"] as const; // 버전 12 기억 분류(장기·단기·관계도·목표)
+const memoryCategories = [...legacyMemoryCategories, ...memoryCategoriesV12] as const; // 모든 기억 분류
+const chatTierIds = ["basic", "plus", "premium"] as const; // 채팅 모델 등급
+const lengthMultipliers = [1, 1.5, 3, 5]; // 답변 길이 배수
+const thinkingDepths = ["off", "basic", "deep", "deeper"] as const; // 생각 깊이
+const writingStyles = ["default", "romance", "hardboiled", "comic", "literary"] as const; // 문체
+const chatFonts = ["default", "nanum-myeongjo", "gowun-batang", "noto-serif"] as const; // 채팅 글꼴
+const chatFontSizes = ["small", "medium", "large"] as const; // 채팅 글자 크기
+const chatThemes = ["light", "dark"] as const; // 채팅 테마
+const conversationFilters = ["all", "character", "story"] as const; // 대화 종류 탭
+const notificationKinds = ["notice", "image", "memory"] as const; // 알림 종류
 const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam", "other"] as const; // 신고 사유 목록
 const contentRatings = ["all", "teen", "mature"] as const; // 이용 등급 목록
 const adultVerificationMethods = ["mock"] as const; // 성인 인증 방식 목록
@@ -407,6 +419,97 @@ function isGeneratedImage(value: unknown): value is GeneratedImage // 생성 이
         && isString(value.createdAt); // 생성 시각 확인
 } // 함수 종료
 
+function isStatusTemplate(value: unknown): boolean // 상태창 형식 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isBoolean(value.enabled) && isBoolean(value.location) && isBoolean(value.time) && isBoolean(value.tip) && isBoolean(value.affection) && isBoolean(value.thought) && isStringArray(value.customLabels) && value.customLabels.length <= 2; // 항목 확인
+} // 함수 종료
+
+function isWorkUpdate(value: unknown): boolean // 업데이트 기록 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.id) && isString(value.version) && isString(value.date) && isString(value.note); // 기록 확인
+} // 함수 종료
+
+function hasWorkFields(value: unknown): boolean // 작품 추가 필드 판정 함수(플레이 가이드·상태창·업데이트)
+{ // 함수 시작
+    return isRecord(value) && isString(value.playGuide) && isStatusTemplate(value.statusTemplate) && Array.isArray(value.updates) && value.updates.every(isWorkUpdate); // 필드 확인
+} // 함수 종료
+
+function isTierOption(value: unknown): boolean // 등급별 답변 설정 판정 함수
+{ // 함수 시작
+    return isRecord(value) && lengthMultipliers.includes(value.length as number) && isOneOf(value.thinking, thinkingDepths); // 길이·생각 확인
+} // 함수 종료
+
+function isConversationSettings(value: unknown): boolean // 대화방 설정 판정 함수
+{ // 함수 시작
+    return isRecord(value) // 객체 확인
+        && isOneOf(value.tier, chatTierIds) // 등급 확인
+        && isRecord(value.tierOptions) && chatTierIds.every((tier) => isTierOption((value.tierOptions as Record<string, unknown>)[tier])) // 등급별 설정 확인
+        && (value.personaId === null || isString(value.personaId)) // 대화 프로필 확인
+        && isString(value.userNote) && value.userNote.length <= 2000 // 유저 노트 확인
+        && isBoolean(value.userNoteExtended) // 확장 확인
+        && isOneOf(value.writingStyle, writingStyles) // 문체 확인
+        && isBoolean(value.preventImpersonation); // 사칭 방지 확인
+} // 함수 종료
+
+function isStatusSnapshot(value: unknown): boolean // 상태창 값 판정 함수
+{ // 함수 시작
+    return isRecord(value) // 객체 확인
+        && isFiniteNumber(value.turn) // 턴 확인
+        && (value.location === null || isString(value.location)) // 장소 확인
+        && (value.time === null || isString(value.time)) // 시간 확인
+        && (value.tip === null || isString(value.tip)) // 팁 확인
+        && Array.isArray(value.affection) && value.affection.every((item) => isRecord(item) && isString(item.name) && isFiniteNumber(item.value) && isFiniteNumber(item.delta)) // 호감도 확인
+        && Array.isArray(value.thoughts) && value.thoughts.every((item) => isRecord(item) && isString(item.name) && isString(item.text)) // 속마음 확인
+        && Array.isArray(value.custom) && value.custom.every((item) => isRecord(item) && isString(item.label) && isString(item.value)); // 직접 항목 확인
+} // 함수 종료
+
+function isPersona(value: unknown): boolean // 대화 프로필 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.id) && value.id.length > 0 && isString(value.name) && value.name.trim().length > 0 && isString(value.description) && isString(value.createdAt) && isString(value.updatedAt); // 프로필 확인
+} // 함수 종료
+
+function isConversationFolder(value: unknown): boolean // 대화 폴더 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.id) && value.id.length > 0 && isString(value.name) && value.name.trim().length > 0 && isString(value.createdAt); // 폴더 확인
+} // 함수 종료
+
+function isAppNotification(value: unknown): boolean // 알림 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.id) && isOneOf(value.kind, notificationKinds) && isString(value.title) && isString(value.body) && (value.href === null || isString(value.href)) && isBoolean(value.read) && isString(value.createdAt); // 알림 확인
+} // 함수 종료
+
+function hasUniqueIds(items: unknown[]): boolean // 식별자 중복 판정 함수
+{ // 함수 시작
+    return new Set(items.map((item) => (item as { id: string }).id)).size === items.length; // 중복 없음
+} // 함수 종료
+
+function hasSchemaTwelveFields(value: Record<string, unknown>): boolean // 스키마 12 필드 판정 함수
+{ // 함수 시작
+    const settings = value.settings as Record<string, unknown>; // 설정
+    if (!(value.characters as unknown[]).every(hasWorkFields) || !(value.stories as unknown[]).every(hasWorkFields)) // 작품 필드 확인
+    { // 조건 시작
+        return false; // 거부
+    } // 조건 종료
+    if (!Array.isArray(value.personas) || value.personas.length === 0 || !value.personas.every(isPersona) || !hasUniqueIds(value.personas)) // 대화 프로필 확인
+    { // 조건 시작
+        return false; // 거부
+    } // 조건 종료
+    if (!Array.isArray(value.conversationFolders) || !value.conversationFolders.every(isConversationFolder) || !hasUniqueIds(value.conversationFolders)) // 폴더 확인
+    { // 조건 시작
+        return false; // 거부
+    } // 조건 종료
+    if (!Array.isArray(value.notifications) || !value.notifications.every(isAppNotification)) // 알림 확인
+    { // 조건 시작
+        return false; // 거부
+    } // 조건 종료
+    const folderIds = new Set((value.conversationFolders as Array<{ id: string }>).map((folder) => folder.id)); // 폴더 식별자
+    const conversationsValid = (value.conversations as Array<Record<string, unknown>>).every((conversation) => isConversationSettings(conversation.settings) && (conversation.folderId === null || (isString(conversation.folderId) && folderIds.has(conversation.folderId)))); // 대화 설정·폴더 확인
+    const messagesValid = (value.messages as Array<Record<string, unknown>>).every((message) => (message.status === undefined || message.status === null || isStatusSnapshot(message.status)) && (message.sceneImage === undefined || message.sceneImage === null || isString(message.sceneImage))); // 메시지 상태창·이미지 확인
+    const memoriesValid = (value.memories as Array<Record<string, unknown>>).every((memory) => isOneOf(memory.category, memoryCategoriesV12)); // 새 기억 분류 확인
+    const settingsValid = isOneOf(settings.conversationFilter, conversationFilters) && isOneOf(settings.chatFont, chatFonts) && isOneOf(settings.chatFontSize, chatFontSizes) && isOneOf(settings.chatTheme, chatThemes) && isBoolean(settings.showSceneImages) && isBoolean(settings.statusPanelOpen); // 새 설정 확인
+    return conversationsValid && messagesValid && memoriesValid && settingsValid; // 결과 반환
+} // 함수 종료
+
 function hasSchemaElevenFields(value: Record<string, unknown>): boolean // 스키마 11 필드 판정 함수
 { // 함수 시작
     return Array.isArray(value.images) && value.images.every(isGeneratedImage) && new Set((value.images as GeneratedImage[]).map((image) => image.id)).size === value.images.length; // 생성 이미지 목록 확인
@@ -455,6 +558,11 @@ function hasSchemaTenFields(value: Record<string, unknown>): boolean // 스키�
 
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
+    return hasVersionedGraph(value, 12) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value); // 버전 12 상태 반환
+} // 함수 종료
+
+function isVersionElevenState(value: unknown): value is Record<string, unknown> // 버전 11 상태 판정 함수
+{ // 함수 시작
     return hasVersionedGraph(value, 11) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value); // 버전 11 상태 반환
 } // 함수 종료
 
@@ -478,7 +586,7 @@ function isVersionSevenState(value: unknown): value is VersionSevenState // 버�
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인
@@ -555,7 +663,7 @@ export function migrateVersionSix(value: Record<string, unknown>): AppState | nu
         return null; // 비파괴 거부
     } // 손상 상태 종료
     const versionIds = new Map(value.conversations.map((conversation) => [conversation.id, `${conversation.id}-version-1`])); // 최초 버전 식별자 색인
-    const conversations: Array<Omit<Conversation, "mode" | "storyId" | "storyCast">> = value.conversations.map((conversation) => // 대화 버전 연결(버전 7 형식)
+    const conversations: Array<Omit<Conversation, "mode" | "storyId" | "storyCast" | "settings" | "folderId">> = value.conversations.map((conversation) => // 대화 버전 연결(버전 7 형식)
     { // 변환 시작
         return { id: conversation.id, characterId: conversation.characterId, userId: conversation.userId, title: conversation.title, startSettings: conversation.startSettings, currentVersionId: versionIds.get(conversation.id) as string, archivedAt: conversation.archivedAt, createdAt: conversation.createdAt, updatedAt: conversation.updatedAt }; // 공통 대화 반환
     }); // 변환 종료
@@ -621,6 +729,29 @@ export function migrateVersionTen(value: Record<string, unknown>): AppState | nu
         return null; // 변환 중단
     } // 잘못된 상태 종료
     const candidate: unknown = { ...value, schemaVersion: 11, images: [] }; // 버전 11 후보(빈 이미지 갤러리)
+    return isVersionElevenState(candidate) ? migrateVersionEleven(candidate) : null; // 연속 변환 반환
+} // 함수 종료
+
+const legacyCategoryMap: Record<string, string> = { summary: "long", event: "short", preference: "goal" }; // 이전 기억 분류 대응
+
+export function migrateVersionEleven(value: Record<string, unknown>): AppState | null // 버전 11 변환 함수(대화 설정·상태창·요약 메모리·폴더·알림)
+{ // 함수 시작
+    if (!isVersionElevenState(value)) // 버전 11 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const extrasFor = (id: string, builtIns: ReadonlyArray<{ id: string; playGuide: string; statusTemplate: unknown; updates: unknown[] }>) => // 작품 추가 필드
+    { // 함수 시작
+        const builtIn = builtIns.find((item) => item.id === id); // 기본 작품
+        return builtIn === undefined ? { playGuide: "", statusTemplate: createDefaultStatusTemplate(true), updates: [] } : { playGuide: builtIn.playGuide, statusTemplate: structuredClone(builtIn.statusTemplate), updates: structuredClone(builtIn.updates) }; // 기본 작품은 기준값, 나머지는 빈 가이드
+    }; // 함수 종료
+    const characters = (value.characters as Array<Record<string, unknown>>).map((character) => ({ ...character, ...extrasFor(character.id as string, mockCharacters) })); // 캐릭터 추가 필드
+    const stories = (value.stories as Array<Record<string, unknown>>).map((story) => ({ ...story, ...extrasFor(story.id as string, mockStories) })); // 스토리 추가 필드
+    const conversations = (value.conversations as Array<Record<string, unknown>>).map((conversation) => ({ ...conversation, settings: createDefaultConversationSettings(), folderId: null })); // 대화 기본 설정
+    const memories = (value.memories as Array<Record<string, unknown>>).map((memory) => ({ ...memory, category: legacyCategoryMap[memory.category as string] ?? memory.category })); // 기억 분류 대응
+    const profile = value.profile as UserProfile; // 사용자
+    const settings = { ...(value.settings as Record<string, unknown>), conversationFilter: "all", chatFont: "default", chatFontSize: "medium", chatTheme: "light", showSceneImages: true, statusPanelOpen: true }; // 새 설정 기본값
+    const candidate: unknown = { ...value, schemaVersion: 12, characters, stories, conversations, memories, settings, personas: [createDefaultPersona(profile, new Date().toISOString())], conversationFolders: [], notifications: [] }; // 버전 12 후보
     return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
@@ -815,8 +946,12 @@ function migrateParsedState(parsed: unknown): AppState | null // 분석 상태 �
     } // 버전 9 종료
     if (parsed.schemaVersion === 10) // 버전 10 판정
     { // 버전 10 시작
-        return migrateVersionTen(parsed); // 버전 11 변환
+        return migrateVersionTen(parsed); // 버전 12 변환
     } // 버전 10 종료
+    if (parsed.schemaVersion === 11) // 버전 11 판정
+    { // 버전 11 시작
+        return migrateVersionEleven(parsed); // 버전 12 변환
+    } // 버전 11 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 
@@ -831,7 +966,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     { // 실패 시작
         throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
     } // 실패 종료
-    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 11) // 미래 버전 판정
+    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 12) // 미래 버전 판정
     { // 미래 버전 시작
         throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
     } // 미래 버전 종료

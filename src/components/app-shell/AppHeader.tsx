@@ -4,6 +4,7 @@ import type { Route } from "next"; // 경로 타입
 import Image from "next/image"; // 이미지 최적화
 import Link from "next/link"; // 내부 경로 링크
 import { usePathname } from "next/navigation"; // 현재 경로 도구
+import { NotificationBell } from "@/components/app-shell/NotificationBell"; // 알림함
 import { AdultContentSwitch } from "@/features/adult/AdultContentSwitch"; // 19+ 스위치
 
 interface AppHeaderProps // 헤더 속성
@@ -56,6 +57,7 @@ export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, on
                 <Link href="/text-play" className="app-navigation-link" data-accent="textplay" aria-label="Text-Play 다운로드" aria-current={current(pathname.startsWith("/text-play"))} onClick={onNavigate}>Text-Play<span className="app-navigation-extra"> 다운로드</span></Link> {/* Text-Play 링크(태블릿은 화면에서 '다운로드' 생략) */}
             </nav> {/* 메뉴 종료 */}
             <AdultContentSwitch /> {/* 19+ 스위치 */}
+            <NotificationBell onNavigate={onNavigate} /> {/* 알림함 */}
             <button ref={rightButtonRef} type="button" aria-label="사용자 패널 열기와 닫기" aria-expanded={rightOpen} aria-controls="user-panel" onClick={onToggleRight}> {/* 오른쪽 버튼 */}
                 <MenuIcon /> {/* 메뉴 아이콘 */}
             </button> {/* 오른쪽 버튼 종료 */}

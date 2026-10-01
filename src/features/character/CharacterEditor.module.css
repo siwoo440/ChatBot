@@ -232,6 +232,116 @@
     text-align: center; /* 중앙 정렬 */
 } /* 이름 종료 */
 
+.optionGroup /* 선택 묶음 */
+{ /* 묶음 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 10px; /* 간격 */
+    margin: 12px 0 0; /* 위 여백 */
+    padding: 14px 16px; /* 안쪽 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 16px; /* 모서리 */
+    background: #fcfbfe; /* 배경 */
+    min-width: 0; /* 줄임 허용 */
+} /* 묶음 종료 */
+
+.optionGroup legend /* 묶음 제목 */
+{ /* 제목 시작 */
+    padding: 0 6px; /* 여백 */
+    font-weight: 750; /* 굵기 */
+} /* 제목 종료 */
+
+.switchRow, /* 켜고 끄기 줄 */
+.checkGrid label /* 체크 항목 */
+{ /* 항목 시작 */
+    display: inline-flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    gap: 8px; /* 간격 */
+    font-weight: 650; /* 굵기 */
+} /* 항목 종료 */
+
+.optionGroup input[type="checkbox"] /* 체크 상자 */
+{ /* 상자 시작 */
+    width: 18px; /* 너비 */
+    min-height: 18px; /* 높이 */
+    height: 18px; /* 높이 */
+    padding: 0; /* 여백 제거 */
+    accent-color: var(--tone); /* 대표색 */
+} /* 상자 종료 */
+
+.checkGrid /* 체크 격자 */
+{ /* 격자 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 */
+    gap: 8px 16px; /* 간격 */
+} /* 격자 종료 */
+
+.inlineFields /* 한 줄 입력 */
+{ /* 줄 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 */
+    align-items: end; /* 아래 정렬 */
+    gap: 10px; /* 간격 */
+} /* 줄 종료 */
+
+.inlineFields label /* 한 줄 입력 묶음 */
+{ /* 묶음 시작 */
+    display: grid; /* 세로 배치 */
+    flex: 1 1 140px; /* 유연한 너비 */
+    gap: 6px; /* 간격 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: 13px; /* 글자 크기 */
+    font-weight: 700; /* 굵기 */
+} /* 묶음 종료 */
+
+.inlineFields .grow /* 넓은 입력 */
+{ /* 넓은 시작 */
+    flex: 3 1 220px; /* 넓게 */
+} /* 넓은 종료 */
+
+.smallButton, /* 작은 버튼 */
+.updateList button /* 기록 삭제 */
+{ /* 버튼 시작 */
+    min-height: 44px; /* 높이 */
+    padding: 0 14px; /* 여백 */
+    border: 1px solid color-mix(in srgb, var(--tone) 35%, white); /* 테두리 */
+    border-radius: 12px; /* 모서리 */
+    background: #ffffff; /* 배경 */
+    color: var(--tone-strong); /* 글자 */
+    font-weight: 750; /* 굵기 */
+    cursor: pointer; /* 커서 */
+} /* 버튼 종료 */
+
+.updateList /* 기록 목록 */
+{ /* 목록 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 8px; /* 간격 */
+    margin: 0; /* 여백 제거 */
+    padding: 0; /* 여백 제거 */
+    list-style: none; /* 점 제거 */
+} /* 목록 종료 */
+
+.updateList li /* 기록 */
+{ /* 기록 시작 */
+    display: grid; /* 격자 */
+    grid-template-columns: auto auto minmax(0, 1fr) auto; /* 버전·날짜·내용·삭제 */
+    gap: 10px; /* 간격 */
+    align-items: center; /* 세로 중앙 */
+    padding: 8px 10px; /* 여백 */
+    border-radius: 12px; /* 모서리 */
+    background: #ffffff; /* 배경 */
+} /* 기록 종료 */
+
+.updateList small /* 날짜 */
+{ /* 날짜 시작 */
+    color: var(--mv-muted); /* 보조 글자 */
+} /* 날짜 종료 */
+
+.updateList button /* 기록 삭제 */
+{ /* 삭제 시작 */
+    min-height: 34px; /* 높이 */
+    color: #be123c; /* 빨강 */
+} /* 삭제 종료 */
+
 .actions /* 저장 동작 */
 { /* 동작 시작 */
     display: grid; /* 격자 배치 */

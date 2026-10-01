@@ -95,7 +95,7 @@ describe("앱 상태 리듀서", () => // 리듀서 묶음
         state.likedCharacterIds = ["rian"]; // 좋아요 상태 적용
         state.followedCreatorIds = [rian.creatorId]; // 팔로우 상태 적용
         state.localReports = [{ id: "report-rian", characterId: "rian", reason: "other", createdAt: "2026-09-29T10:00:00.000Z" }]; // 신고 상태 적용
-        state.memories = [{ id: "memory-rian", characterId: "rian", conversationId: "conversation-rian", category: "summary", content: "리안 대화 기억", sourceMessageIds: [], editedByUser: false, createdAt: "2026-09-29T10:00:00.000Z", updatedAt: "2026-09-29T10:00:00.000Z" }]; // 기억 상태 적용
+        state.memories = [{ id: "memory-rian", characterId: "rian", conversationId: "conversation-rian", category: "long", content: "리안 대화 기억", sourceMessageIds: [], editedByUser: false, createdAt: "2026-09-29T10:00:00.000Z", updatedAt: "2026-09-29T10:00:00.000Z" }]; // 기억 상태 적용
         const next = appReducer(state, { type: "delete-character", characterId: "rian" }); // 캐릭터 삭제
         expect(next.characters.some((character) => character.id === "rian")).toBe(false); // 캐릭터 제거 확인
         expect(next.conversations.some((conversation) => conversation.characterId === "rian")).toBe(false); // 대화 제거 확인

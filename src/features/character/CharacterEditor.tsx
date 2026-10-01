@@ -10,6 +10,8 @@ import { CharacterPreview } from "@/features/character/CharacterPreview"; // 미
 import { normalizeCharacterDraft, validateCharacterDraft, type CharacterValidationResult } from "@/features/character/character-validation"; // 초안 검증
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { useUnsavedChangesGuard } from "@/features/core/useUnsavedChangesGuard"; // 이탈 경고
+import { createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본 상태창
+import { WorkExtrasFields } from "@/features/character/WorkExtrasFields"; // 플레이 가이드·상태창·업데이트 입력
 import type { Character, CharacterDraft, PublicationStatus } from "@/features/core/types"; // 캐릭터 타입
 import { canUseImageForRating, findImageBySource, isGeneratedImageSource } from "@/features/images/image-model"; // 내 이미지 도구
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
@@ -31,6 +33,9 @@ function createEmptyDraft(): CharacterDraft // 빈 초안 생성
         coverImage: imageOptions[0], // 기본 이미지
         visibility: "private", // 기본 공개 범위
         contentRating: "all", // 기본 이용 등급
+        playGuide: "", // 플레이 가이드
+        statusTemplate: createDefaultStatusTemplate(true), // 상태창 형식
+        updates: [], // 업데이트 기록
     }); // 초안 종료
 } // 함수 종료
 
@@ -49,6 +54,9 @@ function toDraft(character: Character): CharacterDraft // 캐릭터 초안 변�
         coverImage: character.coverImage, // 이미지 복사
         visibility: character.visibility, // 공개 범위 복사
         contentRating: character.contentRating, // 이용 등급 복사
+        playGuide: character.playGuide, // 플레이 가이드 복사
+        statusTemplate: structuredClone(character.statusTemplate), // 상태창 형식 복사
+        updates: structuredClone(character.updates), // 업데이트 기록 복사
     }); // 초안 종료
 } // 함수 종료
 
@@ -155,6 +163,7 @@ export function CharacterEditor({ characterId, initialImageId }: { characterId?:
                     {error("prompt")} {/* 프롬프트 오류 */}
                     <label>태그<input value={draft.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(","))} placeholder="힐링, 판타지, 여행" /></label> {/* 태그 입력 */}
                     {error("tags")} {/* 태그 오류 */}
+                    <WorkExtrasFields value={draft} errors={result.errors} onChange={(patch) => { setDraft((current) => ({ ...current, ...patch })); setDirty(true); setNotice(""); }} /> {/* 플레이 가이드·상태창·업데이트 */}
                     <fieldset className={styles.images}> {/* 이미지 선택 */}
                         <legend>대표 이미지</legend> {/* 이미지 제목 */}
                         {imageOptions.map((path) => <label key={path} data-selected={draft.coverImage === path}><input type="radio" name="cover-image" value={path} checked={draft.coverImage === path} onChange={() => update("coverImage", path)} /><ImageOption path={path} /></label>)} {/* 이미지 목록 */}

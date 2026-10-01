@@ -1,5 +1,7 @@
 import { contentRatingLabels } from "@/features/adult/adult-access"; // 등급 문구
-import type { AppState, Character, GeneratedImage, CharacterVisibility, ContentRating, Story, StoryCastMember } from "@/features/core/types"; // 도메인 타입
+import type { AppState, Character, GeneratedImage, CharacterVisibility, ContentRating, StatusTemplate, Story, StoryCastMember, WorkUpdate } from "@/features/core/types"; // 도메인 타입
+import { normalizeWorkExtras, validateWorkExtras } from "@/features/character/work-extras"; // 플레이 가이드·상태창·업데이트 규칙
+import { createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본 상태창
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { deriveDisplayName, getRequiredStoryRating, STORY_CAST_LIMIT, STORY_NARRATOR_LABEL } from "@/features/story/story-model"; // 스토리 도구
 
@@ -15,6 +17,9 @@ export interface StoryDraft // 스토리 편집 초안
     coverImage: string; // 표지 이미지
     visibility: CharacterVisibility; // 공개 범위
     contentRating: ContentRating; // 이용 등급
+    playGuide: string; // 플레이 가이드
+    statusTemplate: StatusTemplate; // 상태창 형식
+    updates: WorkUpdate[]; // 업데이트 기록
 } // 구조 종료
 
 export interface StoryValidationResult // 검증 결과
@@ -49,12 +54,12 @@ const ratingOrder: Record<ContentRating, number> = { all: 0, teen: 1, mature: 2 
 
 export function createEmptyStoryDraft(): StoryDraft // 빈 초안
 { // 함수 시작
-    return { title: "", summary: "", synopsis: "", opening: "", userRole: "", cast: [], tags: [], coverImage: storyCoverOptions[0], visibility: "private", contentRating: "all" }; // 초안 반환
+    return { title: "", summary: "", synopsis: "", opening: "", userRole: "", cast: [], tags: [], coverImage: storyCoverOptions[0], visibility: "private", contentRating: "all", playGuide: "", statusTemplate: createDefaultStatusTemplate(true), updates: [] }; // 초안 반환
 } // 함수 종료
 
 export function toStoryDraft(story: Story): StoryDraft // 기존 스토리를 초안으로
 { // 함수 시작
-    return { title: story.title, summary: story.summary, synopsis: story.synopsis, opening: story.opening, userRole: story.userRole, cast: story.cast.map((member) => ({ ...member })), tags: [...story.tags], coverImage: story.coverImage, visibility: story.visibility, contentRating: story.contentRating }; // 복사 초안 반환
+    return { title: story.title, summary: story.summary, synopsis: story.synopsis, opening: story.opening, userRole: story.userRole, cast: story.cast.map((member) => ({ ...member })), tags: [...story.tags], coverImage: story.coverImage, visibility: story.visibility, contentRating: story.contentRating, playGuide: story.playGuide, statusTemplate: structuredClone(story.statusTemplate), updates: structuredClone(story.updates) }; // 복사 초안 반환
 } // 함수 종료
 
 export function createStoryCastMember(character: Pick<Character, "id" | "name">): StoryCastMember // 새 등장인물
@@ -69,7 +74,7 @@ export function getStoryCandidates(state: Pick<AppState, "characters" | "profile
 
 export function normalizeStoryDraft(draft: StoryDraft): StoryDraft // 초안 정리
 { // 함수 시작
-    return ( // 정리 초안 반환
+    return normalizeWorkExtras( // 정리 초안 반환(추가 필드 정리 포함)
     { // 초안 시작
         ...draft, // 기존 값
         title: draft.title.trim(), // 제목 정리
@@ -193,5 +198,6 @@ export function validateStoryDraft(draft: StoryDraft, characters: readonly Chara
     { // 조건 시작
         errors.contentRating = `등장인물 기준으로 ${contentRatingLabels[required]} 이상이어야 합니다.`; // 등급 오류
     } // 조건 종료
+    Object.assign(errors, validateWorkExtras(normalized)); // 플레이 가이드·상태창·업데이트 검증
     return { valid: Object.keys(errors).length === 0, errors }; // 검증 결과 반환
 } // 함수 종료

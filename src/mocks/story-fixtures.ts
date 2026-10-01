@@ -1,6 +1,9 @@
+import { withWorkDefaults, type WorkExtras } from "@/features/core/defaults"; // 기본값 도우미
 import type { Story } from "@/features/core/types"; // 스토리 타입
 
-export const mockStories: Story[] = // 기본 예시 스토리
+type BaseStory = Omit<Story, keyof WorkExtras>; // 추가 필드 전 스토리
+
+const baseStories: BaseStory[] = // 기본 예시 스토리(추가 필드 전)
 [ // 목록 시작
     { // 여러 인물 스토리 시작
         id: "story-moonlit-archive", // 스토리 식별자
@@ -247,7 +250,9 @@ interface StudioStoryInput // 스튜디오 예시 스토리 입력
     createdAt: string; // 생성 시각
 } // 구조 종료
 
-function createStudioStory(input: StudioStoryInput): Story // 스튜디오 공개 스토리 만들기
+function createStudioStory(input: StudioStoryInput): BaseStory // 스튜디오 공개 스토리 만들기
 { // 함수 시작
     return { ...input, creatorId: "creator-mateverse-story", creatorName: "메이트버스 스토리 연구소", visibility: "public", publicationStatus: "published", updatedAt: input.createdAt }; // 공통 값을 채운 스토리 반환
 } // 함수 종료
+
+export const mockStories: Story[] = baseStories.map(withWorkDefaults); // 기본 필드를 채운 예시 스토리

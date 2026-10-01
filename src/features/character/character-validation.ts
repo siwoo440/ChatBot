@@ -1,5 +1,6 @@
 import type { CharacterDraft } from "@/features/core/types"; // 초안 타입
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
+import { normalizeWorkExtras, validateWorkExtras } from "@/features/character/work-extras"; // 플레이 가이드·상태창·업데이트 규칙
 
 export interface CharacterValidationResult // 검증 결과
 { // 구조 시작
@@ -11,7 +12,7 @@ const localCharacterImagePattern = /^\/images\/characters\/[a-z0-9-]+\.webp$/; /
 
 export function normalizeCharacterDraft(draft: CharacterDraft): CharacterDraft // 초안 정규화
 { // 함수 시작
-    return ( // 정규 초안 반환
+    return normalizeWorkExtras( // 정규 초안 반환(추가 필드 정리 포함)
     { // 초안 시작
         ...draft, // 기존 초안 복사
         name: draft.name.trim(), // 이름 정리
@@ -85,5 +86,6 @@ export function validateCharacterDraft(draft: CharacterDraft): CharacterValidati
     { // 조건 시작
         errors.coverImage = "프로젝트에 포함된 캐릭터 이미지를 선택해 주세요."; // 이미지 오류
     } // 조건 종료
+    Object.assign(errors, validateWorkExtras(normalized)); // 플레이 가이드·상태창·업데이트 검증
     return { valid: Object.keys(errors).length === 0, errors }; // 검증 결과 반환
 } // 함수 종료

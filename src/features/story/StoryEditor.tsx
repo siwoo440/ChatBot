@@ -12,6 +12,7 @@ import { useUnsavedChangesGuard } from "@/features/core/useUnsavedChangesGuard";
 import { matchesKoreanText } from "@/features/conversation/conversation-list-model"; // 초성 포함 검색
 import { canUseImageForRating, findImageBySource } from "@/features/images/image-model"; // 내 이미지 도구
 import { STORY_CAST_LIMIT } from "@/features/story/story-model"; // 등장인물 최대 수
+import { WorkExtrasFields } from "@/features/character/WorkExtrasFields"; // 플레이 가이드·상태창·업데이트 입력
 import { createEmptyStoryDraft, createStoryCastMember, getCastRequiredRating, getStoryCandidates, getStoryCoverChoices, isRatingBelow, normalizeStoryDraft, storyCoverOptions, toStoryDraft, validateStoryDraft, type StoryDraft, type StoryValidationResult } from "@/features/story/story-validation"; // 초안 도구
 import editorStyles from "@/features/character/CharacterEditor.module.css"; // 공통 편집기 스타일
 import styles from "@/features/story/StoryEditor.module.css"; // 스토리 편집기 스타일
@@ -224,6 +225,7 @@ export function StoryEditor({ storyId, initialImageId }: { storyId?: string; ini
                     {error("userRole")} {/* 역할 오류 */}
                     <label>태그<input value={draft.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(","))} placeholder="미스터리, 학원, 판타지" /></label> {/* 태그 */}
                     {error("tags")} {/* 태그 오류 */}
+                    <WorkExtrasFields value={draft} errors={result.errors} onChange={(patch) => { setDraft((current) => ({ ...current, ...patch })); touch(); }} /> {/* 플레이 가이드·상태창·업데이트 */}
                     <fieldset className={`${editorStyles.images} ${styles.covers}`}> {/* 표지 고르기 */}
                         <legend>표지 이미지</legend> {/* 표지 제목 */}
                         {getStoryCoverChoices(draft.cast, state.characters, myImages).map((choice) => <label key={choice.path} data-selected={draft.coverImage === choice.path}><input type="radio" name="story-cover" value={choice.path} checked={draft.coverImage === choice.path} onChange={() => update("coverImage", choice.path)} /><span><Image src={choice.path} alt={`${choice.label} 표지`} width={240} height={150} unoptimized={choice.path.startsWith("data:")} /><small>{choice.label}</small></span></label>)} {/* 표지 목록(장면 + 등장인물) */}

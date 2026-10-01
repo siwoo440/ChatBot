@@ -117,8 +117,8 @@
     gap: 6px; /* 간격 */
 } /* 정보 종료 */
 
-.meta span, /* 감정 */
-.meta strong /* 토큰 */
+.meta > span, /* 감정 */
+.meta > strong /* 토큰 */
 { /* 칩 시작 */
     display: inline-flex; /* 알약 배치 */
     align-items: center; /* 세로 중앙 */
@@ -132,7 +132,7 @@
     font-weight: 700; /* 굵은 글자 */
 } /* 칩 종료 */
 
-.meta strong /* 토큰 */
+.meta > strong /* 토큰 */
 { /* 토큰 시작 */
     border-color: color-mix(in srgb, var(--genre) 30%, white); /* 장르 테두리 */
     color: var(--genre-strong); /* 장르 진한 글자 */
@@ -682,3 +682,209 @@
         animation: none; /* 동작 제거 */
     } /* 표시 종료 */
 } /* 축소 종료 */
+
+.story ol, /* 메시지 목록 글꼴 */
+.story > form textarea /* 입력 글꼴 */
+{ /* 글꼴 시작 */
+    font-family: var(--chat-font, inherit); /* 고른 글꼴 */
+    font-size: var(--chat-font-size, 1rem); /* 고른 크기 */
+} /* 글꼴 종료 */
+
+.playGuide /* 플레이 가이드 카드 */
+{ /* 카드 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 6px; /* 간격 */
+    margin-top: 14px; /* 위 여백 */
+    padding: 12px 14px; /* 여백 */
+    border: 1px dashed color-mix(in srgb, var(--genre) 40%, white); /* 점선 테두리 */
+    border-radius: 14px; /* 모서리 */
+    background: color-mix(in srgb, var(--genre-soft) 50%, white); /* 연한 배경 */
+} /* 카드 종료 */
+
+.playGuide h2 /* 가이드 제목 */
+{ /* 제목 시작 */
+    margin: 0; /* 여백 제거 */
+    color: var(--genre-strong); /* 장르 글자 */
+    font-size: .82rem; /* 크기 */
+    font-weight: 900; /* 굵기 */
+} /* 제목 종료 */
+
+.playGuide p /* 가이드 내용 */
+{ /* 내용 시작 */
+    display: -webkit-box; /* 줄 수 제한 */
+    margin: 0; /* 여백 제거 */
+    overflow: hidden; /* 넘침 숨김 */
+    color: var(--mv-ink); /* 글자 */
+    font-size: .88rem; /* 크기 */
+    line-height: 1.6; /* 행간 */
+    white-space: pre-wrap; /* 줄바꿈 유지 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+    -webkit-box-orient: vertical; /* 세로 */
+    -webkit-line-clamp: 2; /* 두 줄 */
+} /* 내용 종료 */
+
+.playGuide[data-expanded="true"] p /* 펼친 가이드 */
+{ /* 펼침 시작 */
+    display: block; /* 전체 표시 */
+    max-height: 240px; /* 높이 제한 */
+    overflow-y: auto; /* 스크롤 */
+} /* 펼침 종료 */
+
+.playGuideActions, /* 가이드 동작 */
+.composerTools /* 입력 보조 */
+{ /* 동작 시작 */
+    display: flex; /* 가로 */
+    flex-wrap: wrap; /* 줄바꿈 */
+    gap: 6px; /* 간격 */
+} /* 동작 종료 */
+
+.playGuideActions button, /* 가이드 버튼 */
+.composerTools button /* 보조 버튼 */
+{ /* 버튼 시작 */
+    min-width: 36px; /* 너비 */
+    min-height: 32px; /* 높이 */
+    padding: 0 10px; /* 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 999px; /* 알약 */
+    background: var(--mv-surface); /* 배경 */
+    color: var(--genre-strong); /* 장르 글자 */
+    font-size: .8rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+    cursor: pointer; /* 커서 */
+} /* 버튼 종료 */
+
+.composerTools /* 입력 보조 위치 */
+{ /* 위치 시작 */
+    margin-top: 8px; /* 위 여백 */
+} /* 위치 종료 */
+
+.composerTools button[aria-expanded="true"] /* 열린 보조 */
+{ /* 열림 시작 */
+    border-color: var(--genre); /* 장르 테두리 */
+    background: var(--genre-soft); /* 장르 배경 */
+} /* 열림 종료 */
+
+.composerTools button:disabled /* 비활성 보조 */
+{ /* 비활성 시작 */
+    opacity: .45; /* 흐리게 */
+    cursor: not-allowed; /* 금지 */
+} /* 비활성 종료 */
+
+.suggestButton /* 추천 답변 버튼 */
+{ /* 추천 시작 */
+    margin-left: auto; /* 오른쪽 끝 */
+} /* 추천 종료 */
+
+.suggestions, /* 추천 답변 */
+.commandMenu /* 명령어 메뉴 */
+{ /* 목록 시작 */
+    display: grid; /* 세로 */
+    gap: 6px; /* 간격 */
+    margin-bottom: 8px; /* 아래 여백 */
+    padding: 8px; /* 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 14px; /* 모서리 */
+    background: #faf8fd; /* 배경 */
+} /* 목록 종료 */
+
+.suggestions button, /* 추천 */
+.commandMenu button /* 명령 */
+{ /* 항목 시작 */
+    display: flex; /* 가로 */
+    align-items: baseline; /* 기준선 */
+    gap: 10px; /* 간격 */
+    min-height: 38px; /* 높이 */
+    padding: 6px 12px; /* 여백 */
+    border: 1px solid transparent; /* 테두리 자리 */
+    border-radius: 10px; /* 모서리 */
+    background: var(--mv-surface); /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+    font-size: .88rem; /* 크기 */
+    line-height: 1.5; /* 행간 */
+    text-align: left; /* 왼쪽 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+    cursor: pointer; /* 커서 */
+} /* 항목 종료 */
+
+.suggestions button:hover, /* 추천 올림 */
+.commandMenu button:hover, /* 명령 올림 */
+.commandMenu button:focus /* 명령 초점 */
+{ /* 강조 시작 */
+    border-color: var(--genre); /* 장르 테두리 */
+} /* 강조 종료 */
+
+.commandMenu strong /* 명령 이름 */
+{ /* 이름 시작 */
+    flex: none; /* 크기 유지 */
+    min-width: 64px; /* 너비 */
+    color: var(--genre-strong); /* 장르 글자 */
+} /* 이름 종료 */
+
+.commandMenu small /* 명령 설명 */
+{ /* 설명 시작 */
+    color: var(--mv-muted); /* 회색 */
+} /* 설명 종료 */
+
+.chat[data-chat-theme="dark"] /* 채팅 다크 모드 */
+{ /* 다크 시작 */
+    --mv-canvas: #100e16; /* 바탕 */
+    --mv-surface: #1a1724; /* 표면 */
+    --mv-ink: #ece9f5; /* 글자 */
+    --mv-muted: #a59fb8; /* 보조 글자 */
+    --mv-line: #2f2a3d; /* 선 */
+    --genre-soft: color-mix(in srgb, var(--genre) 22%, #1a1724); /* 어두운 장르 배경 */
+    --genre-strong: color-mix(in srgb, var(--genre) 45%, white); /* 밝은 장르 글자 */
+    color-scheme: dark; /* 어두운 입력 요소 */
+} /* 다크 종료 */
+
+.chat[data-chat-theme="dark"] .story, /* 다크 대화 */
+.chat[data-chat-theme="dark"] .controls /* 다크 설정 */
+{ /* 다크 시작 */
+    box-shadow: none; /* 그림자 제거 */
+} /* 다크 종료 */
+
+.chat[data-chat-theme="dark"] .meta > span, /* 다크 칩 */
+.chat[data-chat-theme="dark"] .meta > strong, /* 다크 토큰 */
+.chat[data-chat-theme="dark"] .suggestions, /* 다크 추천 */
+.chat[data-chat-theme="dark"] .commandMenu, /* 다크 명령 */
+.chat[data-chat-theme="dark"] .storyControls /* 다크 스토리 조작 */
+{ /* 다크 시작 */
+    background: #221e2e; /* 배경 */
+} /* 다크 종료 */
+
+.chat[data-chat-theme="dark"] .story > form textarea /* 다크 입력 */
+{ /* 다크 시작 */
+    border-color: var(--mv-line); /* 테두리 */
+    background: #14121b; /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+} /* 다크 종료 */
+
+.chat[data-chat-theme="dark"] .playGuide /* 다크 가이드 */
+{ /* 다크 시작 */
+    border-color: #3a3550; /* 테두리 */
+    background: #1d1a29; /* 배경 */
+} /* 다크 종료 */
+
+.chat[data-chat-theme="dark"] .story > form textarea:focus, /* 다크 입력 초점 */
+.chat[data-chat-theme="dark"] .controls select, /* 다크 화면 배치 */
+.chat[data-chat-theme="dark"] .storyControls select, /* 다크 상대 선택 */
+.chat[data-chat-theme="dark"] .myImages button /* 다크 내 이미지 */
+{ /* 다크 시작 */
+    border-color: var(--mv-line); /* 테두리 */
+    background: #14121b; /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+} /* 다크 종료 */
+
+.chat[data-chat-theme="dark"] .story > form > button /* 다크 전송 */
+{ /* 다크 시작 */
+    border-color: var(--mv-line); /* 테두리 */
+    background: #2a2538; /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+} /* 다크 종료 */
+
+.chat[data-chat-theme="dark"] .aiNotice /* 다크 AI 안내 */
+{ /* 다크 시작 */
+    border-color: #4a3b12; /* 테두리 */
+    background: #2a2210; /* 배경 */
+    color: #fde68a; /* 글자 */
+} /* 다크 종료 */

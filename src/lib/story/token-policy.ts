@@ -38,6 +38,16 @@ export function getDailyUsage(wallet: TokenWallet, now = new Date()): { chat: nu
     return sameDay ? { chat: wallet.dailyChatUsed, image: wallet.dailyImageUsed } : { chat: 0, image: 0 }; // 오늘 사용량 반환
 } // 함수 종료
 
+export function trySpendAmount(wallet: TokenWallet, cost: number, kind: "chat" | "image", now = new Date().toISOString()): SpendResult // 금액을 정해 토큰 차감(대화 등급·답변 길이 비용)
+{ // 함수 시작
+    if (wallet.balance < cost) // 잔액 부족
+    { // 조건 시작
+        return { ok: false, wallet, cost }; // 실패 반환
+    } // 조건 종료
+    const daily = getDailyUsage(wallet, new Date(now)); // 날짜가 바뀌었으면 0부터
+    return { ok: true, cost, wallet: { ...wallet, balance: wallet.balance - cost, totalUsed: wallet.totalUsed + cost, dailyChatUsed: daily.chat + (kind === "chat" ? cost : 0), dailyImageUsed: daily.image + (kind === "image" ? 1 : 0), updatedAt: now } }; // 차감 결과
+} // 함수 종료
+
 export function trySpend(wallet: TokenWallet, action: TokenAction, now = new Date().toISOString()): SpendResult // 토큰 차감
 { // 함수 시작
     const cost = costs[action]; // 비용 조회

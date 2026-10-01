@@ -1,0 +1,89 @@
+import { expect, test, type Page } from "@playwright/test"; // 종단 테스트 도구
+import { createInitialState } from "../../src/features/core/initial-state"; // 초기 상태 생성기
+import type { AppState } from "../../src/features/core/types"; // 앱 상태 타입
+
+const stateKey = "mateverse:v1:state"; // 로컬 저장 키
+const seedKey = "mateverse:e2e:room-seeded"; // 테스트 준비 키
+
+async function openRianChat(page: Page, mutate?: (state: AppState) => void): Promise<void> // 리안 대화 열기
+{ // 함수 시작
+    const state = createInitialState(); // 초기 상태
+    state.settings.leftPanelOpen = false; // 왼쪽 패널 닫기
+    state.settings.rightPanelOpen = false; // 오른쪽 패널 닫기
+    mutate?.(state); // 상태 변형
+    await page.addInitScript(({ key, guard, value }) => // 초기 저장
+    { // 스크립트 시작
+        if (window.localStorage.getItem(guard) === "true") // 중복 준비 판정
+        { // 조건 시작
+            return; // 덮어쓰기 방지
+        } // 조건 종료
+        window.localStorage.setItem(key, value); // 상태 저장
+        window.localStorage.setItem(guard, "true"); // 준비 기록
+    }, { key: stateKey, guard: seedKey, value: JSON.stringify(state) }); // 인자
+    const conversation = state.conversations.find((item) => item.id === "conversation-rian")!; // 리안 대화
+    await page.goto(`/chat/rian?conversation=${conversation.id}&version=${conversation.currentVersionId}`); // 이동
+    await expect(page.getByRole("heading", { level: 1, name: "새벽 도서관의 리안" })).toBeVisible(); // 화면 확인
+} // 함수 종료
+
+async function send(page: Page, text: string): Promise<void> // Enter로 보내기
+{ // 함수 시작
+    const input = page.getByRole("textbox", { name: "메시지" }); // 입력창
+    await input.fill(text); // 입력
+    await input.press("Enter"); // 전송
+    await expect(input).toBeEnabled({ timeout: 15_000 }); // 응답 완료
+} // 함수 종료
+
+test("INFO 상태창은 턴마다 고정 자리에서 갱신되고 새로고침 뒤에도 턴별로 넘겨 볼 수 있다", async ({ page }) => // 상태창 검증
+{ // 검증 시작
+    await openRianChat(page); // 열기
+    const panel = page.getByRole("region", { name: "상태창" }); // 상태창
+    await send(page, "오늘은 어떤 책을 정리해?"); // 1턴
+    await expect(panel.getByText(/턴 · 1\/1/)).toBeVisible(); // 첫 상태창
+    await send(page, "같이 정리하자"); // 2턴
+    await expect(panel.getByText(/턴 · 2\/2/)).toBeVisible(); // 갱신
+    await page.reload(); // 새로고침
+    await expect(panel.getByText(/턴 · 2\/2/)).toBeVisible(); // 저장 유지
+    await panel.getByRole("button", { name: "이전 턴 상태창" }).click(); // 이전 턴
+    await expect(panel.getByText(/턴 · 1\/2/)).toBeVisible(); // 이전 상태창
+    const box = await panel.boundingBox(); // 위치
+    const composer = await page.getByRole("textbox", { name: "메시지" }).boundingBox(); // 입력창 위치
+    expect(box !== null && composer !== null && box.y < composer.y).toBe(true); // 입력창 바로 위 고정
+}); // 검증 종료
+
+test("채팅 모델과 대화방 설정은 새로고침 뒤에도 유지되고 다크 모드가 바로 적용된다", async ({ page }) => // 설정 유지 검증
+{ // 검증 시작
+    await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
+    await openRianChat(page); // 열기
+    await page.getByRole("button", { name: /채팅 모델 베이직챗/ }).click(); // 등급 메뉴
+    await page.getByRole("menuitemradio", { name: /플러스챗/ }).click(); // 플러스
+    await page.getByRole("switch", { name: "채팅 다크 모드" }).check(); // 다크 모드
+    await expect(page.locator("main[data-chat-theme='dark']")).toBeVisible(); // 적용
+    await page.reload(); // 새로고침
+    await expect(page.getByRole("button", { name: "채팅 모델 플러스챗, 메시지당 3 토큰" })).toBeVisible(); // 등급 유지
+    await expect(page.locator("main[data-chat-theme='dark']")).toBeVisible(); // 다크 유지
+}); // 검증 종료
+
+for (const width of [390, 820, 1440]) // 화면 너비 순회
+{ // 순회 시작
+    test(`${width}px 채팅 화면은 새 설정·상태창·입력 보조가 있어도 가로로 넘치지 않고 외부 요청이 없다`, async ({ page }) => // 넘침 검증
+    { // 검증 시작
+        const external: string[] = []; // 외부 요청
+        page.on("request", (request) => // 요청 감시
+        { // 감시 시작
+            const url = new URL(request.url()); // 주소
+            if (url.protocol.startsWith("http") && url.hostname !== "127.0.0.1") // 외부 판정
+            { // 조건 시작
+                external.push(request.url()); // 기록
+            } // 조건 종료
+        }); // 감시 종료
+        await page.setViewportSize({ width, height: 900 }); // 화면 크기
+        await openRianChat(page); // 열기
+        await send(page, "상태창을 보여 줘"); // 1턴
+        await page.getByRole("button", { name: "추천답변" }).click(); // 추천 열기
+        await expect(page.getByRole("group", { name: "추천 답변" })).toBeVisible(); // 추천 표시
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); // 가로 넘침
+        expect(overflow).toBeLessThanOrEqual(0); // 넘침 없음
+        await expect(page.getByRole("button", { name: /알림함/ })).toBeInViewport(); // 알림함 노출
+        expect(external).toEqual([]); // 외부 요청 없음
+    }); // 검증 종료
+} // 순회 종료

@@ -61,6 +61,7 @@ export function ImageStudio() // 이미지 스튜디오
         const id = `image-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; // 이미지 식별자
         const image = createGeneratedImage({ prompt, style, aspect, referenceCharacterId: referenceId.length === 0 ? null : referenceId, contentRating: rating }, getServiceRegion(), now, id); // 이미지 생성(Mock)
         dispatch({ type: "add-image", image, wallet: spending.wallet }); // 저장과 차감
+        dispatch({ type: "add-notification", notification: { id: `notice-${id}`, kind: "image", title: "이미지가 완성됐어요", body: prompt.trim().slice(0, 60), href: "/images", read: false, createdAt: now } }); // 알림함에 완성 알림
         setLatestId(id); // 결과 표시
         setError(""); // 오류 지우기
         setNotice("이미지를 만들어 내 이미지에 저장했어요."); // 성공 안내

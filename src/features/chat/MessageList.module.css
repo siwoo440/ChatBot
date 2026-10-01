@@ -248,3 +248,71 @@
         flex-wrap: wrap; /* 모바일 줄바꿈 */
     } /* 전환기 종료 */
 } /* 미디어 종료 */
+
+.action /* 지문(*행동*) */
+{ /* 지문 시작 */
+    color: var(--mv-muted); /* 회색 글자 */
+    font-style: italic; /* 기울임 */
+} /* 지문 종료 */
+
+.item[data-role="user"] .action /* 사용자 지문 */
+{ /* 사용자 시작 */
+    color: rgb(255 255 255 / 82%); /* 흐린 흰 글자 */
+} /* 사용자 종료 */
+
+.sceneImage /* 대화 안 상황 이미지 */
+{ /* 이미지 시작 */
+    max-width: 320px; /* 너비 제한 */
+    margin: 10px 0 0; /* 위 여백 */
+    overflow: hidden; /* 모서리 자르기 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 14px; /* 모서리 */
+} /* 이미지 종료 */
+
+.sceneImage img /* 상황 이미지 그림 */
+{ /* 그림 시작 */
+    display: block; /* 블록 */
+    width: 100%; /* 너비 */
+    height: auto; /* 비율 유지 */
+} /* 그림 종료 */
+
+.sceneImage figcaption /* 상황 이미지 설명 */
+{ /* 설명 시작 */
+    padding: 6px 10px; /* 여백 */
+    color: var(--mv-muted); /* 회색 */
+    font-size: .76rem; /* 크기 */
+} /* 설명 종료 */
+
+:global([data-chat-theme="dark"]) .item /* 다크 말풍선 */
+{ /* 다크 시작 */
+    border-color: #2f2a3d; /* 테두리 */
+    background: #221e2e; /* 배경 */
+} /* 다크 종료 */
+
+:global([data-chat-theme="dark"]) .item[data-role="user"] /* 다크 사용자 말풍선 */
+{ /* 다크 시작 */
+    background: var(--genre); /* 장르 채움 */
+} /* 다크 종료 */
+
+:global([data-chat-theme="dark"]) .storyBody .narration /* 다크 내레이션 */
+{ /* 다크 시작 */
+    background: #1a1724; /* 배경 */
+    color: #d9d4e8; /* 글자 */
+} /* 다크 종료 */
+
+:global([data-chat-theme="dark"]) .actions button, /* 다크 동작 버튼 */
+:global([data-chat-theme="dark"]) .editForm button, /* 다크 편집 버튼 */
+:global([data-chat-theme="dark"]) .versionDelete, /* 다크 버전 삭제 */
+:global([data-chat-theme="dark"]) .editForm textarea /* 다크 수정 입력 */
+{ /* 다크 시작 */
+    border-color: #3a3550; /* 테두리 */
+    background: #1a1724; /* 배경 */
+    color: #c9c3da; /* 글자 */
+} /* 다크 종료 */
+
+:global([data-chat-theme="dark"]) .item[data-role="user"] .actions button /* 다크 사용자 버튼 */
+{ /* 다크 시작 */
+    border-color: rgb(255 255 255 / 30%); /* 반투명 테두리 */
+    background: rgb(255 255 255 / 16%); /* 반투명 배경 */
+    color: #ffffff; /* 흰 글자 */
+} /* 다크 종료 */
