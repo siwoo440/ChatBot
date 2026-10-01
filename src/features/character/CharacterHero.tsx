@@ -1,8 +1,11 @@
 "use client"; // 클라이언트 컴포넌트
 
+import type { Route } from "next"; // 경로 타입
 import Image from "next/image"; // 최적화 이미지
+import Link from "next/link"; // 내부 경로 링크
 import { useState } from "react"; // 리액트 상태
 import type { Character, CharacterDetailProfile, Conversation } from "@/features/core/types"; // 캐릭터 타입
+import { createExploreHref } from "@/features/explore/explore-model"; // 탐색 주소 생성
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 
 interface CharacterHeroProps // 히어로 속성
@@ -90,7 +93,7 @@ export function CharacterHero({ character, profile, bookmarked, liked, followed,
                     {profile.badges.map((badge) => <li key={badge}>{badge}</li>)} {/* 배지 항목 */}
                 </ul> {/* 배지 목록 종료 */}
                 <ul className={styles.tagList} aria-label="캐릭터 태그"> {/* 태그 목록 */}
-                    {character.tags.map((tag) => <li key={tag}>#{tag}</li>)} {/* 태그 항목 */}
+                    {character.tags.map((tag) => <li key={tag}><Link href={createExploreHref(tag) as Route}>#{tag}</Link></li>)} {/* 태그 탐색 링크 */}
                 </ul> {/* 태그 목록 종료 */}
                 <div className={styles.metricPanel}> {/* 지표 패널 */}
                     <div className={styles.metricHeader}><strong>이용 지표</strong><span>샘플 데이터</span></div> {/* 지표 머리말 */}

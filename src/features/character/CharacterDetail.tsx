@@ -16,6 +16,7 @@ import { createCharacterReport, createConversationFromPreset, createConversation
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import type { ReportReason } from "@/features/core/types"; // 신고 사유 타입
+import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
 
 export function CharacterDetail({ characterId }: { characterId: string }) // 캐릭터 상세
 { // 함수 시작
@@ -102,7 +103,7 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
     const followed = state.followedCreatorIds.includes(character.creatorId); // 팔로우 상태
     const pageStyle = { "--character-accent": profile.accentColor, "--character-image": `url("${character.coverImage}")` } as CSSProperties; // 캐릭터 테마
     return ( // 상세 반환
-        <main className={styles.page} style={pageStyle}> {/* 상세 본문 */}
+        <main className={styles.page} style={pageStyle} data-genre={getGenreKey(character.tags)}> {/* 상세 본문 */}
             <div className={styles.background} aria-hidden="true" /> {/* 흐림 배경 */}
             <div className={styles.content}> {/* 상세 내용 */}
                 <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} latestConversation={latestConversation} creating={creating} shareStatus={shareStatus} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => dispatch({ type: "toggle-character-like", characterId: character.id })} onFollow={() => dispatch({ type: "toggle-creator-follow", creatorId: character.creatorId })} onShare={shareCharacter} onMore={openReport} onContinue={continueConversation} onStart={startConversation} /> {/* 히어로 */}

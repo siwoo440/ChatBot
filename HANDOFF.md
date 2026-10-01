@@ -94,7 +94,15 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 
 - `localhost`로 띄운 개발 서버를 `127.0.0.1`로 재사용하면 Next.js 16이 다른 출처의 개발용 스크립트를 차단해 화면이 "로컬 대화를 불러오는 중"에서 멈춘다. E2E는 Playwright가 직접 띄운 서버로 실행한다. 같은 폴더에서 개발 서버 두 개를 동시에 띄우지 않는다.
 - 데스크톱 크기에서는 왼쪽 대화 패널이 기본으로 열려 본문 클릭을 가린다. 새 E2E는 제목이 보인 뒤(상태 복원 완료) `Escape`나 `열린 패널 닫기`로 패널을 닫고 진행한다.
-- 첫 실행 시 페이지 컴파일이 느려 `character-detail.spec.ts` 첫 테스트가 간헐적으로 시간 초과될 수 있다. 다시 실행하면 통과한다.
+- 개발 서버는 페이지를 처음 열 때 컴파일하므로, 컴퓨터가 바쁘면 "링크를 누른 뒤 5초 안에 주소가 바뀌지 않음" 형태의 시간 초과가 생길 수 있다. 이때는 프로덕션 빌드 서버로 실행하면 컴파일 지연 없이 정확히 검증된다.
+
+```powershell
+npm run build -- --webpack
+Start-Process node -ArgumentList "node_modules/next/dist/bin/next","start","-H","127.0.0.1","-p","3005"
+$env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=1
+```
+
+  (Playwright는 이미 떠 있는 3005번 서버를 재사용한다. 검사가 끝나면 서버 프로세스를 종료한다.)
 
 ### 최근 검증 결과 (2026-10-01, `5c141f5`)
 
@@ -136,8 +144,8 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 | 단계 | 대상 | 상태 |
 | --- | --- | --- |
 | 1 | 공통 틀(헤더·좌우 패널·모바일 하단 메뉴), 메인 화면, 탐색 페이지 | 완료 |
-| 2 | 캐릭터 상세 (`/characters/[id]`) | **다음 작업** |
-| 3 | 채팅 (`/chat/[characterId]`) | 예정 |
+| 2 | 캐릭터 상세 (`/characters/[id]`) | 완료 |
+| 3 | 채팅 (`/chat/[characterId]`) | **다음 작업** |
 | 4 | 보관함 (`/library`) | 예정 |
 | 5 | 캐릭터 만들기·편집 (`/characters/new`, `/characters/[id]/edit`) | 예정 |
 | 6 | 설정(`/settings`), 공통 안내 화면, 전역 기본색 전환 | 예정 |
@@ -150,7 +158,7 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 
 ### 전환 규칙
 
-- 아직 바꾸지 않은 페이지(상세·채팅·보관함·편집·설정)는 공통 틀의 어두운 바탕(`AppShell.module.css`의 `.shell`)과 `:root`의 밝은 글자색에 의존한다. **6단계 전까지 `.shell` 배경과 `:root` 기본 글자색을 바꾸지 않는다.**
+- 아직 바꾸지 않은 페이지(채팅·보관함·편집·설정)는 공통 틀의 어두운 바탕(`AppShell.module.css`의 `.shell`)과 `:root`의 밝은 글자색에 의존한다. **6단계 전까지 `.shell` 배경과 `:root` 기본 글자색을 바꾸지 않는다.**
 - 전환한 페이지는 자체 바탕색과 `color: var(--mv-ink)`, `color-scheme: light`를 지정한다.
 - 흰 글자를 올리는 채움색은 명도 대비 4.5:1 이상을 유지한다. 연한 배경 위 글자는 `--genre-strong`을 쓴다.
 - 한글 제목·설명에는 `word-break: keep-all`, 키보드 초점은 `outline: 3px solid var(--mv-focus)`를 쓴다.
@@ -158,12 +166,19 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 - 각 단계마다 390px·820px·1440px 화면, 가로 넘침, 키보드 조작을 확인하고 스크린샷을 사용자에게 보여 준 뒤 커밋한다.
 - 기존 테스트가 확인하는 링크 이름, 영역 이름, `data-tone`, 클래스명은 유지한다.
 
-### 2단계(캐릭터 상세) 착수 메모
+### 2단계(캐릭터 상세) 완료 내용
 
-- 주요 파일: `src/features/character/CharacterDetail.module.css`(약 1,470줄), `CharacterDetail.tsx`, `CharacterHero.tsx`, `CharacterStoryInfo.tsx`, `ConversationSetup.tsx`, `ProloguePreview.tsx`, `CharacterDiscoverySections.tsx`, `CharacterActionBar.tsx`, `CharacterReportDialog.tsx`
-- 상세 화면은 프로필별 `--character-accent`와 흐린 배경 이미지(`.background`)를 쓴다. 장르색(`data-genre`)과 강조색을 어떻게 합칠지 정한 뒤 밝은 바탕으로 바꾼다.
-- 상세 화면의 태그를 탐색 페이지(`createExploreHref(tag)`)로 연결하면 메인 화면과 동작이 맞는다.
-- 관련 테스트: `tests/integration/character-detail.test.tsx`, `tests/unit/character-detail-model.test.ts`, `tests/e2e/character-detail.spec.ts`
+- 글자·버튼·선택 상태는 대표 장르색(`main[data-genre]`), 캐릭터별 강조색(`--character-accent`)은 장식에만 쓴다. 강조색은 밝은 파스텔이라 흰 바탕 글자색으로 쓰면 대비가 부족하다.
+- 태그는 탐색 페이지 링크, 연관 캐릭터 카드에는 장르 표시를 붙였다.
+- 세부 내용은 개발 문서 38장 "2단계 적용 내용"을 따른다.
+
+### 3단계(채팅) 착수 메모
+
+- 주요 파일: `src/features/chat/ChatScreen.module.css`(약 220줄), `MessageList.module.css`(약 120줄), `ChatScreen.tsx`, `MessageList.tsx`, `MessageItem.tsx`, `ChatComposer.tsx`, `SceneViewer.tsx`, `LayoutSelector.tsx`
+- 채팅은 긴 글을 오래 읽는 화면이므로 본문 글자 대비와 줄 간격을 우선한다. 캐릭터 장르색은 말풍선 강조·버튼에만 쓰고, 사용자·캐릭터 말풍선을 색으로 구분한다.
+- 스트리밍 중(`aria-busy`), 실패·재시도, 메시지 수정·버전 전환(이전·다음), 삭제 확인 상태의 색을 모두 확인한다.
+- 레이아웃 선택(장면·이야기·조작 3열)과 모바일 배치를 유지한다.
+- 관련 테스트: `tests/integration/chat-flow.test.tsx`, `tests/components/layout-selector.test.tsx`, `tests/e2e/conversation-versioning.spec.ts`, `tests/e2e/character-detail.spec.ts`(대화 시작 흐름)
 
 ### 6단계(마지막) 할 일
 
@@ -175,7 +190,6 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 
 ## 7. 사용자 확인이 필요한 항목
 
-- 모바일 하단 메뉴 첫 칸은 `홈`으로 두었다. 헤더처럼 `메뉴`로 맞출지 확인이 필요하다.
 - Text-Play 페이지의 파일 해시(SHA-256)·코드 서명 표시는 사용자 요청으로 삭제했다. 실제 설치 파일을 공개하기 전에 다시 표시해야 한다(`release-config.ts`에 값은 남아 있음).
 - 제작자 데이터는 `메이트버스 랭킹 연구소` 한 명이 작품 93개를 갖고 나머지 7명은 1개씩이라, 탐색 페이지 제작자 카드의 썸네일이 대부분 한 칸이다.
 

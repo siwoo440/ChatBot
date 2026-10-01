@@ -5,6 +5,7 @@ import Link from "next/link"; // 내부 경로 링크
 import { useState } from "react"; // 리액트 상태
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import type { Character, CharacterDetailProfile, UserProfile } from "@/features/core/types"; // 도메인 타입
+import { getGenreKey, getGenreLabel } from "@/lib/theme/genre-theme"; // 장르 색 조회
 
 type RankingPeriod = "weekly" | "daily" | "all"; // 랭킹 기간
 
@@ -91,8 +92,8 @@ export function CharacterDiscoverySections({ profile, userProfile, characters, r
                 <ul className={styles.relatedRail} aria-label="연관 캐릭터"> {/* 연관 캐릭터 목록 */}
                     {relatedCharacters.slice(0, 8).map((character) => ( // 연관 순회
                         <li key={character.id}> {/* 연관 항목 */}
-                            <Link href={`/characters/${character.id}`}> {/* 상세 링크 */}
-                                <div><Image src={character.coverImage} alt={`${character.name} 대표 이미지`} fill sizes="(max-width: 520px) 58vw, 220px" /></div> {/* 연관 이미지 */}
+                            <Link href={`/characters/${character.id}`} data-genre={getGenreKey(character.tags)}> {/* 상세 링크 */}
+                                <div><Image src={character.coverImage} alt={`${character.name} 대표 이미지`} fill sizes="(max-width: 520px) 58vw, 220px" /><em>{getGenreLabel(character.tags)}</em></div> {/* 연관 이미지와 장르 */}
                                 <strong>{character.name}</strong> {/* 연관 이름 */}
                                 <small>{character.summary}</small> {/* 연관 소개 */}
                             </Link> {/* 상세 링크 종료 */}

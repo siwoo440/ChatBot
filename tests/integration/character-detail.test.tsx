@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react"; // 화면 테스트 도구
+import { fireEvent, screen, within } from "@testing-library/react"; // 화면 테스트 도구
 import userEvent from "@testing-library/user-event"; // 사용자 동작 도구
 import { beforeEach, describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
@@ -59,6 +59,17 @@ describe("캐릭터 상세 대화 시작", () => // 상세 묶음
         expect(screen.getByRole("button", { name: "퇴근길 카페의 하린 공유" })).toBeVisible(); // 공유 동작 확인
         expect(screen.getByRole("button", { name: "히어로 새 대화 시작" })).toBeVisible(); // 히어로 대화 동작 확인
         expect(screen.getByText("로컬 전용 · 서버 동기화 없음")).toBeVisible(); // 팔로우 범위 확인
+    }); // 검증 종료
+
+    it("태그를 탐색 페이지 태그 결과로 연결하고 대표 장르색을 적용한다", () => // 태그 연결 검증
+    { // 검증 시작
+        renderWithApp(<CharacterDetail characterId="harin" />); // 상세 화면 렌더
+        const tags = within(screen.getByRole("list", { name: "캐릭터 태그" })).getAllByRole("link"); // 태그 링크 조회
+        expect(tags.map((tag) => tag.textContent)).toEqual(["#일상", "#힐링", "#로맨스"]); // 태그 순서 확인
+        expect(tags[1]).toHaveAttribute("href", "/explore?tag=%ED%9E%90%EB%A7%81"); // 탐색 주소 확인
+        expect(screen.getByRole("main")).toHaveAttribute("data-genre", "healing"); // 대표 장르 확인
+        const related = within(screen.getByRole("list", { name: "연관 캐릭터" })).getAllByRole("link"); // 연관 카드 조회
+        expect(related.every((link) => link.hasAttribute("data-genre"))).toBe(true); // 연관 장르색 확인
     }); // 검증 종료
 
     it("성격과 세계관을 포함한 스토리 정보를 표시한다", () => // 스토리 정보 검증
