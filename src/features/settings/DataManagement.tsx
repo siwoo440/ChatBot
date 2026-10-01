@@ -3,7 +3,7 @@
 import { useEffect, useState, type ChangeEvent } from "react"; // 리액트 상태
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 다운로드
-import { ImportValidationError, LocalStorageGateway, type BackupSnapshot, type PreparedImport } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
+import { ImportValidationError, isStorageQuotaError, LocalStorageGateway, type BackupSnapshot, type PreparedImport } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 
 function readFile(file: File): Promise<string> // 파일 읽기 함수
@@ -21,6 +21,11 @@ function reasonLabel(reason: BackupSnapshot["reason"]): string // 백업 사유 
 { // 함수 시작
     const labels = { manual: "수동", import: "가져오기 전", reset: "초기화 전", restore: "복구 전", recovery: "자동 복구", "message-delete": "메시지 삭제 전", "version-delete": "버전 삭제 전" }; // 사유 목록
     return labels[reason]; // 사유 이름 반환
+} // 함수 종료
+
+function describeFailure(caught: unknown, fallback: string): string // 실패 원인 문구
+{ // 함수 시작
+    return isStorageQuotaError(caught) ? "브라우저 저장공간이 가득 차 작업을 완료하지 못했습니다. JSON으로 내보낸 뒤 오래된 대화나 백업을 정리해 주세요." : fallback; // 원인별 문구 반환
 } // 함수 종료
 
 function createGateway(): LocalStorageGateway // 저장소 생성 함수
@@ -85,9 +90,9 @@ export function DataManagement() // 데이터 관리 화면
             setStatus("데이터를 가져왔습니다."); // 성공 안내 반영
             refreshBackups(); // 백업 목록 갱신
         } // 시도 종료
-        catch // 가져오기 실패 처리
+        catch (caught: unknown) // 가져오기 실패 처리
         { // 실패 시작
-            setError("가져오기 전에 현재 데이터를 백업하지 못했습니다."); // 실패 안내 반영
+            setError(describeFailure(caught, "가져오기 전에 현재 데이터를 백업하지 못했습니다.")); // 실패 안내 반영
         } // 실패 종료
     }; // 함수 종료
     const createBackup = () => // 수동 백업 함수
@@ -99,9 +104,9 @@ export function DataManagement() // 데이터 관리 화면
             setStatus("로컬 백업을 만들었습니다."); // 성공 안내 반영
             setError(""); // 오류 해제
         } // 시도 종료
-        catch // 백업 실패 처리
+        catch (caught: unknown) // 백업 실패 처리
         { // 실패 시작
-            setError("로컬 백업을 만들지 못했습니다."); // 실패 안내 반영
+            setError(describeFailure(caught, "로컬 백업을 만들지 못했습니다.")); // 실패 안내 반영
         } // 실패 종료
     }; // 함수 종료
     const exportData = () => // 전체 내보내기 함수
@@ -110,15 +115,35 @@ export function DataManagement() // 데이터 관리 화면
         { // 조건 시작
             return; // 다운로드 취소
         } // 조건 종료
-        downloadJsonFile("mateverse-data.json", createGateway().exportJson()); // 전체 데이터 다운로드
+        try // 내보내기 시도
+        { // 시도 시작
+            downloadJsonFile("mateverse-data.json", createGateway().exportJson()); // 전체 데이터 다운로드
+            setStatus("JSON 파일 다운로드를 시작했습니다."); // 성공 안내 반영
+            setError(""); // 오류 해제
+        } // 시도 종료
+        catch // 내보내기 실패 처리
+        { // 실패 시작
+            setError("JSON 파일을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."); // 실패 안내 반영
+        } // 실패 종료
     }; // 함수 종료
     const exportBackups = () => // 복구 백업 내보내기 함수
     { // 함수 시작
-        const content = createGateway().exportBackupJson(); // 백업 내용 조회
-        if (content !== null) // 백업 존재 확인
-        { // 조건 시작
+        try // 백업 내보내기 시도
+        { // 시도 시작
+            const content = createGateway().exportBackupJson(); // 백업 내용 조회
+            if (content === null) // 백업 부재 확인
+            { // 조건 시작
+                setError("내보낼 복구 백업이 없습니다."); // 부재 안내 반영
+                return; // 처리 중단
+            } // 조건 종료
             downloadJsonFile("mateverse-recovery-backups.json", content); // 백업 파일 다운로드
-        } // 조건 종료
+            setStatus("복구 백업 파일 다운로드를 시작했습니다."); // 성공 안내 반영
+            setError(""); // 오류 해제
+        } // 시도 종료
+        catch // 백업 내보내기 실패 처리
+        { // 실패 시작
+            setError("복구 백업 파일을 만들지 못했습니다. 잠시 후 다시 시도해 주세요."); // 실패 안내 반영
+        } // 실패 종료
     }; // 함수 종료
     const resetData = () => // 초기화 함수
     { // 함수 시작
@@ -134,9 +159,9 @@ export function DataManagement() // 데이터 관리 화면
             setStatus("초기 상태로 되돌렸습니다."); // 성공 안내 반영
             setError(""); // 오류 해제
         } // 시도 종료
-        catch // 초기화 실패 처리
+        catch (caught: unknown) // 초기화 실패 처리
         { // 실패 시작
-            setError("현재 데이터 백업에 실패해 초기화를 중단했습니다."); // 실패 안내 반영
+            setError(describeFailure(caught, "현재 데이터 백업에 실패해 초기화를 중단했습니다.")); // 실패 안내 반영
         } // 실패 종료
     }; // 함수 종료
     const restore = (id: string) => // 백업 복구 함수
@@ -153,9 +178,9 @@ export function DataManagement() // 데이터 관리 화면
             setStatus("백업을 복구했습니다."); // 성공 안내 반영
             setError(""); // 오류 해제
         } // 시도 종료
-        catch // 복구 실패 처리
+        catch (caught: unknown) // 복구 실패 처리
         { // 실패 시작
-            setError("현재 데이터 백업에 실패해 복구를 중단했습니다."); // 실패 안내 반영
+            setError(caught instanceof ImportValidationError ? `선택한 백업을 복구할 수 없습니다. ${caught.message}` : describeFailure(caught, "현재 데이터 백업에 실패해 복구를 중단했습니다.")); // 원인별 안내 반영
         } // 실패 종료
     }; // 함수 종료
     return ( // 화면 반환

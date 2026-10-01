@@ -1,7 +1,9 @@
 "use client"; // 클라이언트 컴포넌트
 
 import type { Route } from "next"; // 경로 타입
+import Link from "next/link"; // 내부 경로 링크
 import { useEffect, useState } from "react"; // 리액트 도구
+import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
 import { useRouter } from "next/navigation"; // 경로 이동 도구
 import { ChatComposer } from "@/features/chat/ChatComposer"; // 채팅 입력
 import { ChatController, type ChatProgress, type EditMessageResult, type SendResult } from "@/features/chat/chat-controller"; // 채팅 제어기
@@ -29,7 +31,22 @@ interface ChatScreenProps // 채팅 화면 속성
     images?: ImageGenerationAdapter; // 이미지 어댑터
 } // 구조 종료
 
-export function ChatScreen({ characterId, initialConversationId, initialVersionId, llm, images }: ChatScreenProps) // 채팅 화면
+export function ChatScreen(props: ChatScreenProps) // 채팅 화면
+{ // 함수 시작
+    const { state } = useAppStore(); // 앱 상태
+    if (!state.characters.some((item) => item.id === props.characterId)) // 캐릭터 부재 판정
+    { // 조건 시작
+        return ( // 부재 화면 반환
+            <StatusScreen tone="not-found" label="CHARACTER NOT FOUND" title="대화할 캐릭터를 찾을 수 없습니다" description="주소가 잘못되었거나 이 브라우저에서 삭제된 캐릭터입니다. 탐색 화면에서 다른 캐릭터를 골라 주세요."> {/* 부재 안내 */}
+                <Link href="/">탐색으로 이동</Link> {/* 탐색 링크 */}
+                <Link href={"/library" as Route}>보관함 열기</Link> {/* 보관함 링크 */}
+            </StatusScreen> // 부재 안내 종료
+        ); // 반환 종료
+    } // 조건 종료
+    return <ChatConversationScreen {...props} />; // 대화 화면 반환
+} // 함수 종료
+
+function ChatConversationScreen({ characterId, initialConversationId, initialVersionId, llm, images }: ChatScreenProps) // 대화 화면
 { // 함수 시작
     const { state, dispatch, createBackup, commitState } = useAppStore(); // 앱 상태
     const router = useRouter(); // 경로 이동기
@@ -59,7 +76,12 @@ export function ChatScreen({ characterId, initialConversationId, initialVersionI
     const version = conversation === undefined ? null : getConversationVersion(snapshot, conversation.id); // 현재 버전 조회
     if (character === undefined || conversation === undefined || version === null) // 데이터 부재 판정
     { // 조건 시작
-        return <main><h1>대화를 찾을 수 없습니다.</h1></main>; // 오류 화면
+        return ( // 부재 화면 반환
+            <StatusScreen tone="not-found" label="CONVERSATION NOT FOUND" title="대화를 찾을 수 없습니다" description="삭제되었거나 더 이상 열 수 없는 대화입니다. 보관함에서 다른 대화를 이어가 주세요."> {/* 부재 안내 */}
+                <Link href={"/library" as Route}>보관함 열기</Link> {/* 보관함 링크 */}
+                <Link href="/">탐색으로 이동</Link> {/* 탐색 링크 */}
+            </StatusScreen> // 부재 안내 종료
+        ); // 반환 종료
     } // 조건 종료
     const width = typeof window === "undefined" ? 1440 : window.innerWidth; // 화면 너비
     const height = typeof window === "undefined" ? 900 : window.innerHeight; // 화면 높이

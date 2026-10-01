@@ -1,5 +1,7 @@
 "use client"; // 클라이언트 컴포넌트
 
+import type { Route } from "next"; // 경로 타입
+import Link from "next/link"; // 내부 경로 링크
 import { useEffect, useRef, useState, type ReactNode } from "react"; // 리액트 도구
 import { AppHeader } from "@/components/app-shell/AppHeader"; // 앱 헤더
 import { ConversationPanel } from "@/components/app-shell/ConversationPanel"; // 대화 패널
@@ -10,7 +12,7 @@ import styles from "@/components/app-shell/AppShell.module.css"; // 앱 셸 스�
 
 export function AppShell({ children }: { children: ReactNode }) // 앱 셸
 { // 함수 시작
-    const { state, dispatch, storageError } = useAppStore(); // 앱 상태
+    const { state, dispatch, storageError, storageNotice, dismissStorageNotice } = useAppStore(); // 앱 상태
     const [mobile, setMobile] = useState(false); // 모바일 상태
     const leftButtonRef = useRef<HTMLButtonElement>(null); // 왼쪽 버튼 참조
     const rightButtonRef = useRef<HTMLButtonElement>(null); // 오른쪽 버튼 참조
@@ -59,7 +61,18 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
     return ( // 셸 반환
         <div className={styles.shell} data-left-open={state.settings.leftPanelOpen} data-right-open={state.settings.rightPanelOpen} data-mobile={mobile}> {/* 셸 영역 */}
             <AppHeader leftOpen={state.settings.leftPanelOpen} rightOpen={state.settings.rightPanelOpen} onToggleLeft={toggleLeft} onToggleRight={toggleRight} onNavigate={closePanelsForNavigation} leftButtonRef={leftButtonRef} rightButtonRef={rightButtonRef} /> {/* 앱 헤더 */}
-            {storageError === null ? null : <p className={styles.storageError} role="alert">{storageError}</p>} {/* 저장 오류 */}
+            {storageError === null && storageNotice === null ? null : ( // 저장소 메시지 판정
+                <div className={styles.storageMessages}> {/* 저장소 메시지 묶음 */}
+                    {storageError === null ? null : <p className={styles.storageError} role="alert">{storageError}</p>} {/* 저장 오류 */}
+                    {storageNotice === null ? null : ( // 저장소 안내 판정
+                        <div className={styles.storageNotice} data-tone={storageNotice.tone} role="status"> {/* 저장소 안내 */}
+                            <p>{storageNotice.message}</p> {/* 안내 문구 */}
+                            {storageNotice.tone === "warning" ? <Link href={"/settings" as Route} onClick={closePanelsForNavigation}>데이터 관리 열기</Link> : null} {/* 데이터 관리 링크 */}
+                            <button type="button" onClick={dismissStorageNotice}>닫기</button> {/* 안내 닫기 */}
+                        </div> // 저장소 안내 종료
+                    )} {/* 안내 판정 종료 */}
+                </div> // 메시지 묶음 종료
+            )} {/* 메시지 판정 종료 */}
             <div className={styles.grid}> {/* 패널 그리드 */}
                 <ConversationPanel state={state} open={state.settings.leftPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 대화 패널 */}
                 <div className={styles.content}>{children}</div> {/* 중앙 콘텐츠 */}

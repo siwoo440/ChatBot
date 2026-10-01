@@ -951,12 +951,19 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 ---
 ### 30.10 오류 경계와 상태 안내
 
-페이지 오류 경계, 로딩 화면, 찾을 수 없음 화면, 저장공간 부족, Mock 실패 상태를 구현할 수 있다. 실제 외부 오류는 재현 Mock으로 UI를 먼저 검증한다.
+구현 상태: 완료
 
-- 주요 추가 위치: App Router의 `error.tsx`, `loading.tsx`, `not-found.tsx`
-- 주요 수정 위치: `ChatScreen`, `AppProvider`, `DataManagement`
-- 구현 내용: 오류 분류, 다시 시도, 안전한 화면 복구, 사용자 안내
-- 로컬 검증: 의도적으로 오류를 발생시켜 각 안내와 복구 동작 확인
+데이터가 브라우저 `localStorage`에만 있어 서버가 주소의 캐릭터 존재 여부를 미리 확인할 수 없으므로, 잘못된 주소·손상 데이터·저장공간 부족을 화면에서 직접 안내한다.
+
+- 공통 안내 화면: `src/components/feedback/StatusScreen.tsx`에서 찾을 수 없음(`not-found`), 오류(`error`), 권한 없음(`restricted`)을 같은 디자인과 접근성 속성으로 표시
+- 라우트 파일: `app/not-found.tsx`(앱 헤더를 유지한 404), `app/error.tsx`(`retry()` 다시 시도), `app/global-error.tsx`(최상위 레이아웃 실패 시 자체 문서와 전체 새로고침 링크)
+- `loading.tsx`는 추가하지 않는다. 서버에서 기다릴 데이터가 없고 `AppProvider`의 "로컬 대화를 불러오는 중" 상태가 같은 역할을 한다.
+- 없는 캐릭터: `ChatScreen`이 대화 준비 전에 캐릭터 존재를 확인해 오류를 던지지 않고 안내 화면을 표시한다. 상세·편집 화면도 같은 컴포넌트를 사용한다.
+- 저장소 안내: `LocalStorageGateway.load()`의 복구·변환 안내를 `AppProvider.storageNotice`로 전달하고 `AppShell` 상단에 표시한다. 복구 경고에는 데이터 관리 링크와 닫기 버튼을 둔다.
+- 읽기 실패: 처음 읽기에서 예외가 나면 기본 상태로 시작하고, 기존 데이터를 덮어쓰지 않도록 그 방문 동안 자동 저장·원자 저장·백업을 모두 차단한다.
+- 저장공간 부족: `isStorageQuotaError()`가 `QuotaExceededError`, `NS_ERROR_DOM_QUOTA_REACHED`, 코드 22·1014를 판정하고, 자동 저장·원자 저장·백업·데이터 관리 실패 문구에 정리 방법을 덧붙인다.
+- 데이터 관리: JSON·복구 백업 내보내기 실패 안내와 성공 안내를 추가하고, 백업 복구 실패를 데이터 검증 실패와 백업 실패로 구분한다.
+- 로컬 검증: `tests/integration/error-states.test.tsx` 13개, `tests/e2e/error-states.spec.ts` 3개
 - 현재 제약: 외부 공급자별 오류 코드는 실제 연동 시 매핑 필요
 
 ---

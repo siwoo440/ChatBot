@@ -4,22 +4,76 @@
     background: #090b10; /* 기본 배경 */
 } /* 셸 종료 */
 
-.storageError /* 저장 오류 */
-{ /* 오류 시작 */
+.storageMessages /* 저장소 메시지 묶음 */
+{ /* 묶음 시작 */
     position: fixed; /* 화면 고정 */
     z-index: 80; /* 상단 표시 */
     top: 76px; /* 상단 위치 */
     left: 50%; /* 가로 중앙 */
-    max-width: min(92vw, 560px); /* 최대 너비 */
+    display: grid; /* 세로 쌓기 */
+    gap: 8px; /* 메시지 간격 */
+    width: min(92vw, 560px); /* 묶음 너비 */
+    transform: translateX(-50%); /* 중앙 보정 */
+} /* 묶음 종료 */
+
+.storageError, /* 저장 오류 */
+.storageNotice /* 저장소 안내 */
+{ /* 메시지 시작 */
     margin: 0; /* 기본 여백 제거 */
     padding: 12px 18px; /* 내부 여백 */
     border: 1px solid #d66678; /* 오류 테두리 */
     border-radius: 12px; /* 둥근 모서리 */
     background: #5f202d; /* 오류 배경 */
     color: white; /* 밝은 글자 */
-    box-shadow: 0 16px 40px rgb(0 0 0 / 36%); /* 오류 그림자 */
-    transform: translateX(-50%); /* 중앙 보정 */
-} /* 오류 종료 */
+    box-shadow: 0 16px 40px rgb(0 0 0 / 36%); /* 메시지 그림자 */
+    line-height: 1.55; /* 문구 줄 높이 */
+    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
+} /* 메시지 종료 */
+
+.storageNotice /* 저장소 안내 */
+{ /* 안내 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 허용 */
+    gap: 8px 14px; /* 요소 간격 */
+    align-items: center; /* 세로 중앙 */
+    border-color: #4b5fa8; /* 정보 테두리 */
+    background: #1b2547; /* 정보 배경 */
+} /* 안내 종료 */
+
+.storageNotice[data-tone="warning"] /* 경고 안내 */
+{ /* 경고 시작 */
+    border-color: #c38a3c; /* 경고 테두리 */
+    background: #3b2814; /* 경고 배경 */
+} /* 경고 종료 */
+
+.storageNotice p /* 안내 문구 */
+{ /* 문구 시작 */
+    flex: 1 1 240px; /* 남은 너비 */
+    margin: 0; /* 기본 여백 제거 */
+} /* 문구 종료 */
+
+.storageNotice a, /* 안내 링크 */
+.storageNotice button /* 안내 버튼 */
+{ /* 동작 시작 */
+    min-height: 34px; /* 동작 높이 */
+    padding: 0 12px; /* 동작 여백 */
+    border: 1px solid rgb(255 255 255 / 28%); /* 동작 테두리 */
+    border-radius: 10px; /* 동작 모서리 */
+    background: rgb(255 255 255 / 8%); /* 동작 배경 */
+    color: inherit; /* 글자 상속 */
+    cursor: pointer; /* 선택 커서 */
+    font: inherit; /* 글꼴 상속 */
+    font-weight: 750; /* 동작 굵기 */
+    line-height: 32px; /* 세로 중앙 */
+    text-decoration: none; /* 밑줄 제거 */
+} /* 동작 종료 */
+
+.storageNotice a:focus-visible, /* 링크 초점 */
+.storageNotice button:focus-visible /* 버튼 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid #63e0e4; /* 초점 외곽선 */
+    outline-offset: 2px; /* 외곽선 간격 */
+} /* 초점 종료 */
 
 .shell :global(.app-header) /* 앱 헤더 */
 { /* 헤더 시작 */

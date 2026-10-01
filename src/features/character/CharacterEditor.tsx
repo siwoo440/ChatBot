@@ -4,6 +4,7 @@ import Link from "next/link"; // 내부 링크
 import Image from "next/image"; // 최적화 이미지
 import type { Route } from "next"; // 경로 타입
 import { useEffect, useMemo, useState } from "react"; // 리액트 도구
+import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
 import { CharacterPreview } from "@/features/character/CharacterPreview"; // 미리보기
 import { normalizeCharacterDraft, validateCharacterDraft, type CharacterValidationResult } from "@/features/character/character-validation"; // 초안 검증
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
@@ -103,11 +104,19 @@ export function CharacterEditor({ characterId }: { characterId?: string }) // �
     }, [dirty]); // 변경 상태 의존
     if (characterId !== undefined && existing === undefined) // 수정 대상 부재 판정
     { // 조건 시작
-        return <main className={styles.missing}><h1>수정할 캐릭터를 찾을 수 없습니다.</h1><Link href={"/library" as Route}>보관함으로 돌아가기</Link></main>; // 부재 화면
+        return ( // 부재 화면 반환
+            <StatusScreen tone="not-found" label="CHARACTER NOT FOUND" title="수정할 캐릭터를 찾을 수 없습니다" description="주소가 잘못되었거나 이 브라우저에서 삭제된 캐릭터입니다."> {/* 부재 안내 */}
+                <Link href={"/library" as Route}>보관함으로 돌아가기</Link> {/* 보관함 링크 */}
+            </StatusScreen> // 부재 안내 종료
+        ); // 반환 종료
     } // 조건 종료
     if (existing !== undefined && existing.creatorId !== state.profile.id) // 수정 권한 판정
     { // 조건 시작
-        return <main className={styles.missing}><h1>이 캐릭터를 수정할 권한이 없습니다.</h1><Link href={"/library" as Route}>보관함으로 돌아가기</Link></main>; // 권한 화면
+        return ( // 권한 화면 반환
+            <StatusScreen tone="restricted" label="NO PERMISSION" title="이 캐릭터를 수정할 권한이 없습니다." description="직접 만든 캐릭터만 수정할 수 있습니다. 상세 화면에서 대화를 시작하거나 보관할 수 있습니다."> {/* 권한 안내 */}
+                <Link href={"/library" as Route}>보관함으로 돌아가기</Link> {/* 보관함 링크 */}
+            </StatusScreen> // 권한 안내 종료
+        ); // 반환 종료
     } // 조건 종료
     const update = <K extends keyof CharacterDraft>(key: K, value: CharacterDraft[K]) => // 필드 변경
     { // 함수 시작

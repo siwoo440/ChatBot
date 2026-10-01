@@ -4,6 +4,7 @@ import Link from "next/link"; // 내부 경로 링크
 import type { Route } from "next"; // 경로 타입
 import { useRouter } from "next/navigation"; // 경로 이동 도구
 import { useRef, useState, type CSSProperties } from "react"; // 리액트 상태 도구
+import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
 import { CharacterActionBar } from "@/features/character/CharacterActionBar"; // 하단 대화 동작
 import { CharacterDiscoverySections } from "@/features/character/CharacterDiscoverySections"; // 탐색 보조 섹션
 import { CharacterHero } from "@/features/character/CharacterHero"; // 캐릭터 히어로
@@ -32,7 +33,12 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
     const reportTriggerRef = useRef<HTMLButtonElement | null>(null); // 신고 버튼 참조
     if (character === undefined || initialProfile === null) // 캐릭터 부재 판정
     { // 조건 시작
-        return <main className={styles.emptyState}><h1>캐릭터를 찾을 수 없습니다.</h1><Link href="/">탐색으로 돌아가기</Link></main>; // 오류 화면
+        return ( // 부재 화면 반환
+            <StatusScreen tone="not-found" label="CHARACTER NOT FOUND" title="캐릭터를 찾을 수 없습니다" description="주소가 잘못되었거나 이 브라우저에서 삭제된 캐릭터입니다."> {/* 부재 안내 */}
+                <Link href="/">탐색으로 돌아가기</Link> {/* 탐색 링크 */}
+                <Link href={"/library" as Route}>보관함 열기</Link> {/* 보관함 링크 */}
+            </StatusScreen> // 부재 안내 종료
+        ); // 반환 종료
     } // 조건 종료
     const profile = initialProfile; // 상세 프로필 확정
     const selectedPreset = profile.startPresets.find((preset) => preset.id === selectedPresetId) ?? profile.startPresets[0]; // 선택 프리셋 조회

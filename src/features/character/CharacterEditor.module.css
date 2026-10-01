@@ -264,14 +264,6 @@
     font-size: 12px; /* 작은 글자 */
 } /* 항목 종료 */
 
-.missing /* 부재 화면 */
-{ /* 부재 시작 */
-    max-width: 720px; /* 최대 너비 */
-    margin: 80px auto; /* 중앙 여백 */
-    padding: 32px; /* 내부 여백 */
-    text-align: center; /* 중앙 정렬 */
-} /* 부재 종료 */
-
 @keyframes preview-in /* 등장 애니메이션 */
 { /* 애니메이션 시작 */
     from { opacity: 0; transform: translateY(10px); } /* 시작 상태 */

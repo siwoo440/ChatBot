@@ -1248,23 +1248,6 @@
     background: #a43e50; /* 접수 배경 */
 } /* 규칙 종료 */
 
-.emptyState /* 빈 화면 */
-{ /* 규칙 시작 */
-    display: grid; /* 내용 배치 */
-    place-content: center; /* 가운데 정렬 */
-    gap: 14px; /* 요소 간격 */
-    min-height: 60vh; /* 화면 높이 */
-    padding: 32px; /* 화면 여백 */
-    text-align: center; /* 내용 정렬 */
-    color: #f5f7fb; /* 본문 색상 */
-    background: #070910; /* 화면 배경 */
-} /* 규칙 종료 */
-
-.emptyState a /* 빈 화면 링크 */
-{ /* 규칙 시작 */
-    color: #aab8ff; /* 링크 색상 */
-} /* 규칙 종료 */
-
 .followButton:hover, /* 팔로우 호버 */
 .quickActions button:hover, /* 빠른 동작 호버 */
 .expandButton:hover /* 확장 버튼 호버 */

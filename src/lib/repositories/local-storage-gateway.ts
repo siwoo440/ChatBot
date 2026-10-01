@@ -63,6 +63,19 @@ export class StorageWriteError extends Error // 저장 오류 클래스
     } // 생성자 종료
 } // 클래스 종료
 
+const quotaErrorNames = new Set(["QuotaExceededError", "NS_ERROR_DOM_QUOTA_REACHED"]); // 용량 초과 오류 이름
+
+export function isStorageQuotaError(error: unknown): boolean // 저장공간 부족 판정
+{ // 함수 시작
+    const cause = error instanceof StorageWriteError ? error.cause : error; // 원인 오류 추출
+    if (typeof cause !== "object" || cause === null) // 객체 오류 확인
+    { // 조건 시작
+        return false; // 판정 불가 반환
+    } // 조건 종료
+    const { name, code } = cause as { name?: unknown; code?: unknown }; // 오류 속성 조회
+    return (typeof name === "string" && quotaErrorNames.has(name)) || code === 22 || code === 1014; // 브라우저별 용량 초과 반환
+} // 함수 종료
+
 export class ImportValidationError extends Error // 가져오기 오류 클래스
 { // 클래스 시작
     public constructor(message: string, cause?: unknown) // 생성자
