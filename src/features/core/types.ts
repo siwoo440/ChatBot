@@ -17,9 +17,44 @@ export type ThinkingDepth = "off" | "basic" | "deep" | "deeper"; // 생각 깊�
 export type WritingStyle = "default" | "romance" | "hardboiled" | "comic" | "literary"; // 문체
 export type ChatFont = "default" | "nanum-myeongjo" | "gowun-batang" | "noto-serif"; // 채팅 글꼴
 export type ChatFontSize = "small" | "medium" | "large"; // 채팅 글자 크기
-export type ChatTheme = "light" | "dark"; // 채팅 테마
+export type ColorTheme = "light" | "dark"; // 사이트 색 테마(밝게·어둡게)
 export type ConversationFilter = "all" | "character" | "story"; // 왼쪽 창 대화 종류 탭
 export type NotificationKind = "notice" | "image" | "memory"; // 알림 종류
+export type StatMode = "rule" | "ai" | "both"; // 스탯 수치를 정하는 방법(규칙·AI 판단·둘 다)
+export type StatScope = "each" | "shared"; // 스탯 적용 대상(인물마다 따로·하나만)
+
+export interface StatRule // 스탯 낱말 규칙
+{ // 구조 시작
+    keyword: string; // 사용자 메시지에 들어 있으면
+    delta: number; // 이만큼 바뀜
+} // 구조 종료
+
+export interface StatDefinition // 제작자가 정한 스탯
+{ // 구조 시작
+    id: string; // 스탯 식별자
+    name: string; // 이름(예: 호감도)
+    icon: string; // 아이콘(예: ❤️)
+    initial: number; // 초기값
+    min: number; // 최솟값
+    max: number; // 최댓값
+    mode: StatMode; // 정하는 방법
+    perTurn: number; // 규칙: 매 턴 변화
+    rules: StatRule[]; // 규칙: 낱말 규칙
+    aiMaxChange: number; // AI: 한 턴 최대 변화
+    scope: StatScope; // 적용 대상
+} // 구조 종료
+
+export interface StatValue // 한 턴의 스탯 값
+{ // 구조 시작
+    statId: string; // 스탯 식별자
+    name: string; // 이름(그 턴 기준)
+    icon: string; // 아이콘
+    target: string | null; // 인물 이름(하나만 적용이면 null)
+    value: number; // 값
+    delta: number; // 직전 턴 대비 변화
+    min: number; // 최솟값
+    max: number; // 최댓값
+} // 구조 종료
 
 export interface TierOption // 등급별 답변 설정
 { // 구조 시작
@@ -44,9 +79,9 @@ export interface StatusTemplate // 상태창 형식
     location: boolean; // 장소
     time: boolean; // 작품 속 시간
     tip: boolean; // 진행 팁
-    affection: boolean; // 호감도
     thought: boolean; // 속마음
     customLabels: string[]; // 직접 정한 항목(최대 2개)
+    stats: StatDefinition[]; // 제작자가 정한 스탯(최대 6개)
 } // 구조 종료
 
 export interface StatusSnapshot // 한 턴의 상태창 값
@@ -55,7 +90,7 @@ export interface StatusSnapshot // 한 턴의 상태창 값
     location: string | null; // 장소
     time: string | null; // 작품 속 시간
     tip: string | null; // 진행 팁
-    affection: Array<{ name: string; value: number; delta: number }>; // 인물별 호감도와 변화
+    stats: StatValue[]; // 스탯 값과 변화
     thoughts: Array<{ name: string; text: string }>; // 인물별 속마음
     custom: Array<{ label: string; value: string }>; // 직접 정한 항목 값
 } // 구조 종료
@@ -352,9 +387,10 @@ export interface AppSettings // 앱 설정 구조
     conversationFilter: ConversationFilter; // 왼쪽 대화방 종류 탭
     chatFont: ChatFont; // 채팅 글꼴
     chatFontSize: ChatFontSize; // 채팅 글자 크기
-    chatTheme: ChatTheme; // 채팅 테마
+    theme: ColorTheme; // 사이트 색 테마(헤더 다크 모드 스위치)
     showSceneImages: boolean; // 대화 속 상황 이미지 보기
     statusPanelOpen: boolean; // 고정 상태창 펼침
+    chatPanelOpen: boolean; // 채팅방 설정 패널 펼침(넓은 화면)
 } // 구조 종료
 
 export type ImageStyle = "anime" | "illustration" | "watercolor" | "cinematic"; // 이미지 그림체
@@ -377,7 +413,7 @@ export interface GeneratedImage // 이미지 스튜디오 생성 이미지
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 12; // 스키마 버전
+    schemaVersion: 13; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록

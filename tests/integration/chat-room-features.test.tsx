@@ -156,19 +156,33 @@ describe("채팅방 설정과 고정 상태창", () => // 기능 묶음
         await waitFor(() => expect(screen.getByLabelText("상태 확인")).toHaveTextContent(/goal,relation,short/)); // 저장
     }); // 검증 종료
 
-    it("채팅 다크 모드와 글꼴 크기는 채팅 화면에 바로 반영된다", async () => // 화면 설정 검증
+    it("글꼴 크기는 채팅 화면에 바로 반영된다", async () => // 화면 설정 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구
         renderChat(); // 렌더
         const main = screen.getByRole("main"); // 채팅 본문
-        expect(main).toHaveAttribute("data-chat-theme", "light"); // 기본 밝게
-        await user.click(screen.getByRole("switch", { name: "채팅 다크 모드" })); // 다크 모드
-        expect(main).toHaveAttribute("data-chat-theme", "dark"); // 어둡게
         await user.click(screen.getByRole("button", { name: /^글꼴/ })); // 글꼴 열기
         const dialog = screen.getByRole("dialog", { name: "글꼴" }); // 대화상자
         await user.click(within(dialog).getByRole("radio", { name: /크게/ })); // 큰 글자
         await user.click(within(dialog).getByRole("button", { name: /확인|저장/ })); // 저장
         expect(main.style.getPropertyValue("--chat-font-size")).not.toBe("1rem"); // 크기 반영
+    }); // 검증 종료
+
+    it("INFO는 첫 응답 전에 제작자 스탯 초기값을 보여 주고, 낱말 규칙과 AI 판단으로 매 턴 바뀐다", async () => // 스탯 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구
+        renderChat(); // 렌더(기본 호감도: 초기값 0, ‘선물’ +5, AI 최대 ±5)
+        const panel = screen.getByRole("region", { name: "상태창" }); // 상태창
+        expect(within(panel).getByLabelText("시작 스탯")).toHaveTextContent("리안 호감도 0/100"); // 초기값
+        await send(user, "선물 가져왔어, 고마워"); // 선물 +5, 고마워 +2, AI 판단 +
+        const first = Number(within(panel).getByText(/\/100/).textContent?.split("/")[0]); // 1턴 호감도
+        expect(first).toBeGreaterThanOrEqual(7); // 규칙 7 이상
+        expect(first).toBeLessThanOrEqual(12); // AI는 최대 +5
+        await send(user, "짜증나, 꺼져"); // 거친 말
+        const second = Number(within(panel).getByText(/\/100/).textContent?.split("/")[0]); // 2턴 호감도
+        expect(second).toBeLessThan(first); // 내려감
+        await user.click(within(panel).getByRole("button", { name: "이전 턴 상태창" })); // 이전 턴
+        expect(within(panel).getByText(/\/100/)).toHaveTextContent(`${first}/100`); // 그 턴의 값
     }); // 검증 종료
 
     it("Ctrl+/로 단축키 안내를 열고 Esc로 닫으면 초점이 돌아온다", async () => // 단축키 검증

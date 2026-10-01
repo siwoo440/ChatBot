@@ -7,7 +7,7 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
 { // 함수 시작
     return ( // 초기 상태 반환
     { // 상태 시작
-        schemaVersion: 12, // 스키마 버전
+        schemaVersion: 13, // 스키마 버전
         providerMode: "mock", // Mock 공급자
         profile: structuredClone(mockProfile), // 사용자 복사본
         characters: structuredClone(mockCharacters), // 캐릭터 복사본
@@ -43,9 +43,10 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
             conversationFilter: "all", // 모든 대화 종류
             chatFont: "default", // 기본 글꼴
             chatFontSize: "medium", // 보통 글자 크기
-            chatTheme: "light", // 밝은 채팅
+            theme: "light", // 밝은 화면(헤더 다크 모드 스위치)
             showSceneImages: true, // 상황 이미지 보기
             statusPanelOpen: true, // 상태창 펼침
+            chatPanelOpen: true, // 채팅방 설정 펼침(넓은 화면)
         }, // 설정 종료
         bookmarkedCharacterIds: [], // 보관 캐릭터
         memories: [], // 장기 기억 목록

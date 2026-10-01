@@ -3,11 +3,12 @@
 import { useState } from "react"; // 리액트 상태
 import type { WorkExtras } from "@/features/core/defaults"; // 작품 추가 필드
 import type { StatusTemplate } from "@/features/core/types"; // 상태창 형식
+import { StatEditor } from "@/features/character/StatEditor"; // 스탯 편집
 import { createWorkUpdate, CUSTOM_LABEL_LIMIT, PLAY_GUIDE_LIMIT, UPDATE_NOTE_LIMIT, type WorkExtrasErrors } from "@/features/character/work-extras"; // 추가 필드 규칙
 import { getDateKey } from "@/lib/time/date-key"; // 날짜 키
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
 
-const statusItems: Array<{ key: keyof Omit<StatusTemplate, "enabled" | "customLabels">; label: string }> = [{ key: "location", label: "장소" }, { key: "time", label: "작품 속 시간" }, { key: "tip", label: "진행 팁" }, { key: "affection", label: "호감도" }, { key: "thought", label: "속마음" }]; // 상태창 항목
+const statusItems: Array<{ key: "location" | "time" | "tip" | "thought"; label: string }> = [{ key: "location", label: "장소" }, { key: "time", label: "작품 속 시간" }, { key: "tip", label: "진행 팁" }, { key: "thought", label: "속마음" }]; // 상태창 항목
 
 export function WorkExtrasFields({ value, errors, onChange }: { value: WorkExtras; errors: WorkExtrasErrors; onChange(patch: Partial<WorkExtras>): void }) // 플레이 가이드·상태창·업데이트 기록 입력
 { // 함수 시작
@@ -35,6 +36,10 @@ export function WorkExtrasFields({ value, errors, onChange }: { value: WorkExtra
                 <label className={styles.switchRow}><input type="checkbox" checked={template.enabled} onChange={(event) => setTemplate({ enabled: event.target.checked })} />매 턴 상태창 보여 주기</label> {/* 사용 여부 */}
                 <div className={styles.checkGrid}>{statusItems.map((item) => <label key={item.key}><input type="checkbox" checked={template[item.key]} disabled={!template.enabled} onChange={(event) => setTemplate({ [item.key]: event.target.checked })} />{item.label}</label>)}</div> {/* 항목 선택 */}
                 <div className={styles.inlineFields}>{labels.map((label, index) => <label key={index}>직접 항목 {index + 1}<input value={label} maxLength={CUSTOM_LABEL_LIMIT + 1} disabled={!template.enabled} placeholder={index === 0 ? "예: 단서" : "예: 체력"} onChange={(event) => { const next = [...labels]; next[index] = event.target.value; setTemplate({ customLabels: next }); }} /></label>)}</div> {/* 직접 항목 */}
+                <fieldset className={styles.optionGroup}> {/* 스탯 */}
+                    <legend>스탯</legend> {/* 제목 */}
+                    <StatEditor stats={template.stats} disabled={!template.enabled} onChange={(stats) => setTemplate({ stats })} /> {/* 스탯 편집 */}
+                </fieldset> {/* 스탯 종료 */}
             </fieldset> {/* 상태창 종료 */}
             {errors.statusTemplate === undefined ? null : <span role="alert" className={styles.error}>{errors.statusTemplate}</span>} {/* 상태창 오류 */}
             <fieldset className={styles.optionGroup}> {/* 업데이트 기록 */}

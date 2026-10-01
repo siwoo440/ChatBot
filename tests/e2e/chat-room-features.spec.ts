@@ -50,17 +50,40 @@ test("INFO 상태창은 턴마다 고정 자리에서 갱신되고 새로고침 
     expect(box !== null && composer !== null && box.y < composer.y).toBe(true); // 입력창 바로 위 고정
 }); // 검증 종료
 
-test("채팅 모델과 대화방 설정은 새로고침 뒤에도 유지되고 다크 모드가 바로 적용된다", async ({ page }) => // 설정 유지 검증
+test("채팅 모델과 채팅방 설정 접기는 새로고침 뒤에도 유지되고, 헤더 다크 모드는 사이트 전체에 적용된다", async ({ page }) => // 설정 유지 검증
 { // 검증 시작
     await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
     await openRianChat(page); // 열기
     await page.getByRole("button", { name: /채팅 모델 베이직챗/ }).click(); // 등급 메뉴
     await page.getByRole("menuitemradio", { name: /플러스챗/ }).click(); // 플러스
-    await page.getByRole("switch", { name: "채팅 다크 모드" }).check(); // 다크 모드
-    await expect(page.locator("main[data-chat-theme='dark']")).toBeVisible(); // 적용
+    await page.getByRole("button", { name: "채팅방 설정 닫기" }).click(); // 채팅방 설정 접기
+    await expect(page.locator("#chat-settings-panel")).toBeHidden(); // 접힘
+    await page.getByRole("switch", { name: "다크 모드" }).click(); // 헤더 다크 모드
+    await expect(page.locator("html[data-theme='dark']")).toHaveCount(1); // 사이트 루트 어두움
     await page.reload(); // 새로고침
     await expect(page.getByRole("button", { name: "채팅 모델 플러스챗, 메시지당 3 토큰" })).toBeVisible(); // 등급 유지
-    await expect(page.locator("main[data-chat-theme='dark']")).toBeVisible(); // 다크 유지
+    await expect(page.getByRole("button", { name: "채팅방 설정 열기와 닫기" })).toHaveAttribute("aria-expanded", "false"); // 접힘 유지
+    await expect(page.locator("html[data-theme='dark']")).toHaveCount(1); // 다크 유지
+    await page.goto("/library"); // 다른 페이지
+    await expect(page.locator("html[data-theme='dark']")).toHaveCount(1); // 다른 페이지도 어두움
+    const canvas = await page.evaluate(() => getComputedStyle(document.body).backgroundColor); // 바탕색
+    expect(canvas).not.toBe("rgb(251, 249, 255)"); // 밝은 바탕이 아님
+}); // 검증 종료
+
+test("390px에서 채팅방 설정은 오른쪽 서랍으로 열리고 Esc로 닫힌다", async ({ page }) => // 모바일 서랍
+{ // 검증 시작
+    await page.setViewportSize({ width: 390, height: 844 }); // 모바일
+    await openRianChat(page); // 열기
+    const toggle = page.getByRole("button", { name: "채팅방 설정 열기와 닫기" }); // 열기 버튼
+    await expect(toggle).toHaveAttribute("aria-expanded", "false"); // 처음엔 닫힘
+    await toggle.click(); // 열기
+    const close = page.getByRole("button", { name: "채팅방 설정 닫기" }); // 닫기
+    await expect(close).toBeFocused(); // 닫기 초점
+    const box = await page.locator("#chat-settings-panel").boundingBox(); // 서랍 위치
+    expect(box !== null && box.y >= 60 && box.y <= 70 && box.height <= 844 - 60).toBe(true); // 헤더 아래 고정
+    await page.keyboard.press("Escape"); // 닫기
+    await expect(toggle).toHaveAttribute("aria-expanded", "false"); // 닫힘
+    await expect(toggle).toBeFocused(); // 초점 복귀
 }); // 검증 종료
 
 for (const width of [390, 820, 1440]) // 화면 너비 순회

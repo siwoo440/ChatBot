@@ -1,3 +1,4 @@
+import { normalizeStats, validateStats } from "@/features/chat/stat-model"; // 스탯 정리·검증
 import type { WorkExtras } from "@/features/core/defaults"; // 작품 추가 필드
 import type { WorkUpdate } from "@/features/core/types"; // 업데이트 기록
 
@@ -10,7 +11,7 @@ export type WorkExtrasErrors = Partial<Record<keyof WorkExtras, string>>; // 추
 
 export function normalizeWorkExtras<T extends WorkExtras>(draft: T): T // 추가 필드 정리
 { // 함수 시작
-    return { ...draft, playGuide: draft.playGuide.trim(), statusTemplate: { ...draft.statusTemplate, customLabels: draft.statusTemplate.customLabels.map((label) => label.trim()).filter(Boolean).slice(0, 2) }, updates: draft.updates.map((update) => ({ ...update, version: update.version.trim(), note: update.note.trim() })) }; // 정리 반환
+    return { ...draft, playGuide: draft.playGuide.trim(), statusTemplate: { ...draft.statusTemplate, customLabels: draft.statusTemplate.customLabels.map((label) => label.trim()).filter(Boolean).slice(0, 2), stats: normalizeStats(draft.statusTemplate.stats) }, updates: draft.updates.map((update) => ({ ...update, version: update.version.trim(), note: update.note.trim() })) }; // 정리 반환
 } // 함수 종료
 
 export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추가 필드 검증
@@ -23,6 +24,11 @@ export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추�
     if (draft.statusTemplate.customLabels.some((label) => label.trim().length > CUSTOM_LABEL_LIMIT)) // 직접 항목 길이 판정
     { // 조건 시작
         errors.statusTemplate = `상태창 직접 항목 이름은 ${CUSTOM_LABEL_LIMIT}자 이하여야 합니다.`; // 항목 오류
+    } // 조건 종료
+    const statError = validateStats(draft.statusTemplate.stats); // 스탯 검증
+    if (statError !== null && errors.statusTemplate === undefined) // 스탯 오류
+    { // 조건 시작
+        errors.statusTemplate = statError; // 스탯 오류 문구
     } // 조건 종료
     if (draft.updates.length > UPDATE_LIMIT) // 기록 수 판정
     { // 조건 시작

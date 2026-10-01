@@ -1,10 +1,10 @@
 .statusPanel /* 고정 상태창 */
 { /* 상태창 시작 */
     margin: 0 0 10px; /* 아래 여백 */
-    border: 1px solid color-mix(in srgb, var(--genre) 28%, white); /* 장르 테두리 */
+    border: 1px solid color-mix(in srgb, var(--genre) 28%, var(--mv-surface)); /* 장르 테두리 */
     border-radius: 16px; /* 모서리 */
-    background: color-mix(in srgb, var(--genre-soft) 55%, white); /* 연한 장르 배경 */
-    box-shadow: 0 8px 20px rgb(31 26 46 / 6%); /* 그림자 */
+    background: color-mix(in srgb, var(--genre-soft) 55%, var(--mv-surface)); /* 연한 장르 배경 */
+    box-shadow: 0 8px 20px light-dark(rgb(31 26 46 / 6%), rgb(0 0 0 / 13.2%)); /* 그림자 */
 } /* 상태창 종료 */
 
 .statusHead /* 머리 줄 */
@@ -101,7 +101,7 @@
 
 .statusTip /* 팁 */
 { /* 팁 시작 */
-    color: #92400e; /* 갈색 글자 */
+    color: light-dark(#92400e, #f4b188); /* 갈색 글자 */
 } /* 팁 종료 */
 
 .statusPerson /* 인물 줄 */
@@ -117,11 +117,31 @@
     color: var(--genre-strong); /* 장르 글자 */
 } /* 이름 종료 */
 
-.statusHeart /* 호감도 */
-{ /* 호감도 시작 */
-    color: #be185d; /* 분홍 글자 */
+.statChip /* 스탯 한 칸 */
+{ /* 스탯 시작 */
+    display: inline-flex; /* 가로 */
+    align-items: baseline; /* 기준선 */
+    gap: 3px; /* 간격 */
+    padding: 1px 8px; /* 여백 */
+    border-radius: 999px; /* 알약 */
+    background: var(--mv-surface); /* 배경 */
+    font-size: .82rem; /* 크기 */
+    white-space: nowrap; /* 한 줄 */
+} /* 스탯 종료 */
+
+.statChip b /* 스탯 값 */
+{ /* 값 시작 */
+    color: light-dark(#be185d, #ee7bab); /* 분홍 글자 */
     font-weight: 800; /* 굵기 */
-} /* 호감도 종료 */
+} /* 값 종료 */
+
+.statusStats /* 시작 스탯 */
+{ /* 시작 스탯 시작 */
+    display: flex; /* 가로 */
+    flex-wrap: wrap; /* 줄바꿈 */
+    gap: 4px; /* 간격 */
+    margin-top: 6px !important; /* 위 여백 */
+} /* 시작 스탯 종료 */
 
 .statusDelta /* 변화량 */
 { /* 변화 시작 */
@@ -131,17 +151,17 @@
 
 .statusDelta[data-sign="up"] /* 올라감 */
 { /* 상승 시작 */
-    color: #15803d; /* 초록 */
+    color: light-dark(#15803d, #93edb5); /* 초록 */
 } /* 상승 종료 */
 
 .statusDelta[data-sign="down"] /* 내려감 */
 { /* 하락 시작 */
-    color: #be123c; /* 빨강 */
+    color: light-dark(#be123c, #f27997); /* 빨강 */
 } /* 하락 종료 */
 
 .statusPerson q /* 속마음 */
 { /* 속마음 시작 */
-    color: #15803d; /* 초록 글자 */
+    color: light-dark(#15803d, #93edb5); /* 초록 글자 */
     font-style: italic; /* 기울임 */
 } /* 속마음 종료 */
 
@@ -155,6 +175,11 @@
     font-size: .76rem; /* 크기 */
     font-weight: 800; /* 굵기 */
 } /* 이름 종료 */
+
+.statusEmpty p /* 빈 상태창 문단 */
+{ /* 문단 시작 */
+    margin: 0; /* 여백 제거 */
+} /* 문단 종료 */
 
 .statusEmpty /* 빈 상태창 */
 { /* 빈 시작 */
@@ -195,7 +220,7 @@
     padding: 0; /* 여백 제거 */
     border: 2px solid var(--mv-line); /* 테두리 */
     border-radius: 10px; /* 모서리 */
-    background: #f4f2f9; /* 배경 */
+    background: light-dark(#f4f2f9, #221e2d); /* 배경 */
     cursor: pointer; /* 커서 */
 } /* 이미지 종료 */
 
@@ -290,7 +315,7 @@
     height: 22px; /* 높이 */
     margin: 0; /* 여백 제거 */
     border-radius: 999px; /* 알약 */
-    background: #d6d1e0; /* 꺼짐 배경 */
+    background: light-dark(#d6d1e0, #322e39); /* 꺼짐 배경 */
     cursor: pointer; /* 커서 */
     transition: background 150ms ease; /* 전환 */
 } /* 스위치 종료 */
@@ -303,7 +328,7 @@
     width: 16px; /* 너비 */
     height: 16px; /* 높이 */
     border-radius: 50%; /* 원 */
-    background: #ffffff; /* 흰색 */
+    background: #ffffff; /* 흰색(다크에서도) */
     content: ""; /* 생성 */
     transition: transform 150ms ease; /* 전환 */
 } /* 손잡이 종료 */
@@ -345,7 +370,7 @@
     gap: 6px; /* 간격 */
     min-height: 30px; /* 높이 */
     padding: 0 12px; /* 여백 */
-    border: 1px solid color-mix(in srgb, var(--genre) 35%, white); /* 테두리 */
+    border: 1px solid color-mix(in srgb, var(--genre) 35%, var(--mv-surface)); /* 테두리 */
     border-radius: 999px; /* 알약 */
     background: var(--mv-surface); /* 배경 */
     color: var(--genre-strong); /* 글자 */
@@ -385,7 +410,7 @@
     border: 1px solid var(--mv-line); /* 테두리 */
     border-radius: 14px; /* 모서리 */
     background: var(--mv-surface); /* 배경 */
-    box-shadow: 0 18px 40px rgb(31 26 46 / 18%); /* 그림자 */
+    box-shadow: 0 18px 40px light-dark(rgb(31 26 46 / 18%), rgb(0 0 0 / 39.6%)); /* 그림자 */
 } /* 목록 종료 */
 
 .tierMenu button /* 등급 항목 */
@@ -513,7 +538,7 @@
 .warnText /* 경고 */
 { /* 경고 시작 */
     margin: 0; /* 여백 제거 */
-    color: #be123c; /* 빨강 */
+    color: light-dark(#be123c, #f27997); /* 빨강 */
     font-size: .78rem; /* 크기 */
     font-weight: 700; /* 굵기 */
 } /* 경고 종료 */
@@ -629,9 +654,9 @@
 { /* 입력 시작 */
     width: 100%; /* 너비 */
     padding: 10px 12px; /* 여백 */
-    border: 1px solid #ddd6e8; /* 테두리 */
+    border: 1px solid light-dark(#ddd6e8, #433c4d); /* 테두리 */
     border-radius: 12px; /* 모서리 */
-    background: #fdfcff; /* 배경 */
+    background: light-dark(#fdfcff, #110d19); /* 배경 */
     color: var(--mv-ink); /* 글자 */
     line-height: 1.55; /* 행간 */
     resize: vertical; /* 세로 조절 */
@@ -674,10 +699,10 @@
     justify-self: end; /* 오른쪽 */
     min-height: 32px; /* 높이 */
     padding: 0 10px; /* 여백 */
-    border: 1px solid #fecdd3; /* 테두리 */
+    border: 1px solid light-dark(#fecdd3, #5d282e); /* 테두리 */
     border-radius: 8px; /* 모서리 */
-    background: #fff1f2; /* 배경 */
-    color: #be123c; /* 빨강 */
+    background: light-dark(#fff1f2, #361215); /* 배경 */
+    color: light-dark(#be123c, #f27997); /* 빨강 */
     font-weight: 700; /* 굵기 */
     cursor: pointer; /* 커서 */
 } /* 위험 종료 */
@@ -706,7 +731,7 @@
 .radioCards label[data-selected="true"] /* 고른 카드 */
 { /* 고름 시작 */
     border-color: var(--genre, #6d28d9); /* 장르 테두리 */
-    background: var(--genre-soft, #f3edff); /* 장르 배경 */
+    background: var(--genre-soft, light-dark(#f3edff, #1f1338)); /* 장르 배경 */
 } /* 고름 종료 */
 
 .radioCards input /* 라디오 */
@@ -732,7 +757,7 @@
     gap: 6px; /* 간격 */
     padding: 14px 16px; /* 여백 */
     border-radius: 14px; /* 모서리 */
-    background: #f4f2f9; /* 배경 */
+    background: light-dark(#f4f2f9, #221e2d); /* 배경 */
     line-height: 1.7; /* 행간 */
 } /* 미리보기 종료 */
 
@@ -783,7 +808,7 @@
 
 .counter[data-over="true"] /* 초과 */
 { /* 초과 시작 */
-    color: #be123c; /* 빨강 */
+    color: light-dark(#be123c, #f27997); /* 빨강 */
     font-weight: 800; /* 굵기 */
 } /* 초과 종료 */
 
@@ -808,7 +833,7 @@
 .personaList li[data-current="true"] /* 현재 프로필 */
 { /* 현재 시작 */
     border-color: var(--genre, #6d28d9); /* 장르 테두리 */
-    background: var(--genre-soft, #f3edff); /* 장르 배경 */
+    background: var(--genre-soft, light-dark(#f3edff, #1f1338)); /* 장르 배경 */
 } /* 현재 종료 */
 
 .personaPick /* 프로필 선택 */
@@ -865,7 +890,7 @@
     border: 1px solid var(--mv-line); /* 테두리 */
     border-radius: 12px; /* 모서리 */
     background: var(--mv-surface); /* 배경 */
-    box-shadow: 0 12px 28px rgb(31 26 46 / 16%); /* 그림자 */
+    box-shadow: 0 12px 28px light-dark(rgb(31 26 46 / 16%), rgb(0 0 0 / 35.2%)); /* 그림자 */
 } /* 메뉴 종료 */
 
 .inlineMenu button /* 메뉴 항목 */
@@ -899,7 +924,7 @@
     overflow-y: auto; /* 스크롤 */
     padding: 14px 16px; /* 여백 */
     border-radius: 14px; /* 모서리 */
-    background: #f4f2f9; /* 배경 */
+    background: light-dark(#f4f2f9, #221e2d); /* 배경 */
     line-height: 1.75; /* 행간 */
     white-space: pre-wrap; /* 줄바꿈 유지 */
     word-break: keep-all; /* 한글 줄바꿈 */
@@ -937,7 +962,7 @@
 .segmented label[data-selected="true"] /* 고른 크기 */
 { /* 고름 시작 */
     border-color: var(--genre, #6d28d9); /* 장르 테두리 */
-    background: var(--genre-soft, #f3edff); /* 장르 배경 */
+    background: var(--genre-soft, light-dark(#f3edff, #1f1338)); /* 장르 배경 */
 } /* 고름 종료 */
 
 .shortcutList /* 단축키 목록 */
@@ -969,7 +994,7 @@
     border: 1px solid var(--mv-line); /* 테두리 */
     border-bottom-width: 2px; /* 키 모양 */
     border-radius: 6px; /* 모서리 */
-    background: #faf9fc; /* 배경 */
+    background: light-dark(#faf9fc, #110d19); /* 배경 */
     font-family: inherit; /* 글꼴 */
     font-size: .82rem; /* 크기 */
     font-weight: 700; /* 굵기 */
@@ -989,7 +1014,7 @@
     padding: 10px 12px; /* 여백 */
     border-left: 3px solid var(--genre, #6d28d9); /* 장르 띠 */
     border-radius: 0 12px 12px 0; /* 모서리 */
-    background: #f8f6fc; /* 배경 */
+    background: light-dark(#f8f6fc, #110d19); /* 배경 */
 } /* 업데이트 종료 */
 
 .updateTimeline div /* 버전·날짜 */
@@ -1010,44 +1035,6 @@
     line-height: 1.6; /* 행간 */
     word-break: keep-all; /* 한글 줄바꿈 */
 } /* 내용 종료 */
-
-:global([data-chat-theme="dark"]) .statusPanel /* 다크 상태창 */
-{ /* 다크 시작 */
-    border-color: #3a3550; /* 테두리 */
-    background: #1d1a29; /* 배경 */
-} /* 다크 종료 */
-
-:global([data-chat-theme="dark"]) .statusTip /* 다크 팁 */
-{ /* 다크 시작 */
-    color: #fbbf24; /* 노랑 */
-} /* 다크 종료 */
-
-:global([data-chat-theme="dark"]) .statusPerson q /* 다크 속마음 */
-{ /* 다크 시작 */
-    color: #4ade80; /* 초록 */
-} /* 다크 종료 */
-
-:global([data-chat-theme="dark"]) .statusPerson strong, /* 다크 이름 */
-:global([data-chat-theme="dark"]) .statusToggle /* 다크 접기 */
-{ /* 다크 시작 */
-    color: #e9d5ff; /* 연보라 */
-} /* 다크 종료 */
-
-:global([data-chat-theme="dark"]) .preview, /* 다크 미리보기 */
-:global([data-chat-theme="dark"]) .guideText, /* 다크 가이드 */
-:global([data-chat-theme="dark"]) .updateTimeline li /* 다크 업데이트 */
-{ /* 다크 시작 */
-    background: #24202f; /* 배경 */
-} /* 다크 종료 */
-
-:global([data-chat-theme="dark"]) .memoryList textarea, /* 다크 입력 */
-:global([data-chat-theme="dark"]) .memoryAdd textarea, /* 다크 입력 */
-:global([data-chat-theme="dark"]) .fieldLabel textarea, /* 다크 입력 */
-:global([data-chat-theme="dark"]) .fieldLabel input /* 다크 입력 */
-{ /* 다크 시작 */
-    border-color: #3a3550; /* 테두리 */
-    background: #14121b; /* 배경 */
-} /* 다크 종료 */
 
 @media (max-width: 520px) /* 좁은 화면 */
 { /* 미디어 시작 */

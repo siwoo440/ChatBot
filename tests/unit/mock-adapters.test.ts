@@ -32,7 +32,7 @@ describe("Mock 어댑터", () => // 어댑터 묶음
 
     it("대화방 설정의 문체·답변 길이·사칭 방지·대화 프로필을 Mock 응답에 반영하고 기본 설정이면 그대로 둔다", () => // 설정 반영 검증
     { // 검증 시작
-        const options = { tier: "basic" as const, length: 1 as const, thinking: "off" as const, writingStyle: "default" as const, preventImpersonation: true, persona: null, userNote: "", memories: [], playGuide: "" }; // 기본 설정
+        const options = { tier: "basic" as const, length: 1 as const, thinking: "off" as const, writingStyle: "default" as const, preventImpersonation: true, persona: null, userNote: "", memories: [], playGuide: "", stats: [] }; // 기본 설정
         expect(decorateReply("안녕.", options, 1, false)).toBe("안녕."); // 기본은 그대로
         expect(decorateReply("안녕.", { ...options, writingStyle: "romance" }, 1, false)).toBe("*시선이 잠시 네게 머문다.* 안녕."); // 문체
         expect(decorateReply("안녕.", { ...options, length: 3 }, 1, false).split(" ").length).toBeGreaterThan(5); // 긴 답변

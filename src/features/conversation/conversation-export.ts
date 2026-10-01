@@ -2,6 +2,7 @@ import { CHAT_VERSION_LIMIT, isConversationVersionGraphValid } from "@/features/
 import { createDefaultConversationSettings } from "@/features/core/defaults"; // 대화방 기본 설정
 import type { AppState, Conversation, ConversationVersion, Message } from "@/features/core/types"; // 대화 타입
 import { isAppState } from "@/lib/repositories/local-storage-gateway"; // 앱 상태 검증
+import { upgradeStatusSnapshot } from "@/features/chat/stat-model"; // 상태창 형식 변환
 
 const relationshipStages = ["첫 만남", "아는 사이", "가까운 사이", "특별한 사이"] as const; // 관계 단계 목록
 
@@ -213,7 +214,8 @@ function normalizeConversationMode(conversation: Conversation, state: AppState):
 export function mergeConversationExport(state: AppState, rawImport: ConversationExport): AppState // 대화 파일 병합
 { // 함수 시작
     validateConversationExport(rawImport); // 병합 전 검증
-    const imported = { ...rawImport, conversation: normalizeConversationMode(rawImport.conversation, state) }; // 대화 종류 정리
+    const messagesWithStats = rawImport.messages.map((message) => message.status === undefined || message.status === null ? message : { ...message, status: upgradeStatusSnapshot(message.status as unknown as Record<string, unknown>) }); // 이전 파일의 호감도 상태창을 스탯 형식으로
+    const imported = { ...rawImport, conversation: normalizeConversationMode(rawImport.conversation, state), messages: messagesWithStats }; // 대화 종류 정리
     if (imported.conversation.mode === "story" && !state.stories.some((story) => story.id === imported.conversation.storyId)) // 스토리 부재 판정
     { // 조건 시작
         throw new Error("이 대화의 스토리가 이 브라우저에 없어 가져올 수 없습니다."); // 스토리 부재 오류

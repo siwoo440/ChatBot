@@ -1,8 +1,9 @@
 "use client"; // 클라이언트 컴포넌트
 
 import { useEffect, useState } from "react"; // 리액트 도구
-import { formatStatusText } from "@/features/chat/status-model"; // 복사 문구
-import type { Message, StatusSnapshot } from "@/features/core/types"; // 도메인 타입
+import { formatStatDelta, formatStatValue } from "@/features/chat/stat-model"; // 스탯 표시
+import { formatStatusText, getStatusRows } from "@/features/chat/status-model"; // 복사 문구·인물 줄
+import type { Message, StatusSnapshot, StatValue } from "@/features/core/types"; // 도메인 타입
 import styles from "@/features/chat/ChatPanels.module.css"; // 채팅 보조 영역 스타일
 
 interface StatusPanelProps // 고정 상태창 속성
@@ -10,9 +11,15 @@ interface StatusPanelProps // 고정 상태창 속성
     messages: Message[]; // 현재 대화 버전 메시지
     open: boolean; // 펼침
     onToggle(): void; // 접기·펼치기
+    initialStats?: StatValue[]; // 첫 응답 전에 보여 줄 스탯 초기값
 } // 구조 종료
 
-export function StatusPanel({ messages, open, onToggle }: StatusPanelProps) // 턴마다 갱신되는 고정 INFO 창(이전 턴 넘겨 보기)
+function StatChip({ item }: { item: StatValue }) // 스탯 한 칸
+{ // 함수 시작
+    return <span className={styles.statChip} data-stat={item.statId}>{item.icon.length === 0 ? null : <span aria-hidden="true">{item.icon} </span>}{item.name} <b>{formatStatValue(item)}</b>{item.delta === 0 ? null : <span className={styles.statusDelta} data-sign={item.delta > 0 ? "up" : "down"}>({formatStatDelta(item.delta)})</span>}</span>; // 이름·값·변화
+} // 함수 종료
+
+export function StatusPanel({ messages, open, onToggle, initialStats = [] }: StatusPanelProps) // 턴마다 갱신되는 고정 INFO 창(이전 턴 넘겨 보기)
 { // 함수 시작
     const statuses = messages.flatMap((message) => message.role === "assistant" && message.status !== undefined && message.status !== null ? [message.status] : []); // 턴별 상태창
     const [selected, setSelected] = useState<number | null>(null); // 고른 위치(null이면 최신)
@@ -83,16 +90,12 @@ export function StatusPanel({ messages, open, onToggle }: StatusPanelProps) // �
                     </div> // 이동 종료
                 )} {/* 이동 판정 종료 */}
             </header> {/* 머리 줄 종료 */}
-            {!open ? null : status === undefined ? <p className={styles.statusEmpty}>첫 응답부터 매 턴 상태창이 여기 고정돼 갱신돼요.</p> : ( // 내용 판정
+            {!open ? null : status === undefined ? <div className={styles.statusEmpty}><p>첫 응답부터 매 턴 상태창이 여기 고정돼 갱신돼요.</p>{initialStats.length === 0 ? null : <p className={styles.statusStats} aria-label="시작 스탯">{initialStats.map((item) => <StatChip key={`${item.statId}-${item.target ?? ""}`} item={{ ...item, name: item.target === null ? item.name : `${item.target} ${item.name}` }} />)}</p>}</div> : ( // 내용 판정
                 <div className={styles.statusBody} data-latest={index === statuses.length - 1 ? "true" : undefined}> {/* 내용 */}
                     {status.location === null && status.time === null ? null : <p className={styles.statusLine}>{status.location === null ? null : <span>📍 {status.location}</span>}{status.time === null ? null : <span>⏳ {status.time}</span>}</p>} {/* 장소·시간 */}
                     {status.tip === null ? null : <p className={styles.statusTip}>💡 팁: {status.tip}</p>} {/* 팁 */}
-                    {status.affection.map((item) => // 호감도 순회
-                    { // 순회 시작
-                        const thought = status.thoughts.find((entry) => entry.name === item.name); // 같은 인물 속마음
-                        return <p key={item.name} className={styles.statusPerson}><strong>{item.name}</strong><span className={styles.statusHeart}>❤️ {item.value}/100</span><span className={styles.statusDelta} data-sign={item.delta > 0 ? "up" : item.delta < 0 ? "down" : "same"}>({item.delta > 0 ? "+" : ""}{item.delta})</span>{thought === undefined ? null : <q>{thought.text}</q>}</p>; // 인물 줄
-                    })} {/* 호감도 종료 */}
-                    {status.thoughts.filter((entry) => !status.affection.some((item) => item.name === entry.name)).map((entry) => <p key={entry.name} className={styles.statusPerson}><strong>{entry.name}</strong><q>{entry.text}</q></p>)} {/* 호감도 없는 속마음 */}
+                    {getStatusRows(status).map((row) => <p key={row.name} className={styles.statusPerson}><strong>{row.name}</strong>{row.stats.map((item) => <StatChip key={item.statId} item={item} />)}{row.thought === null ? null : <q>{row.thought}</q>}</p>)} {/* 인물별 스탯·속마음 */}
+                    {status.stats.some((item) => item.target === null) ? <p className={styles.statusPerson}><strong>공통</strong>{status.stats.filter((item) => item.target === null).map((item) => <StatChip key={item.statId} item={item} />)}</p> : null} {/* 공통 스탯 */}
                     {status.custom.map((item) => <p key={item.label} className={styles.statusCustom}><span>{item.label}</span>{item.value}</p>)} {/* 직접 항목 */}
                 </div> // 내용 종료
             )} {/* 내용 판정 종료 */}

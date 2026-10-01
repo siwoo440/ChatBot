@@ -1,3 +1,4 @@
+import { judgeStatsMock, type StatChange, type StatJudgeInput } from "@/features/chat/stat-model"; // Mock 스탯 판단
 import type { WritingStyle } from "@/features/core/types"; // 문체 타입
 import type { ChatReplyOptions, LLMAdapter, LLMInput, SummaryInput } from "@/lib/adapters/llm-adapter"; // 대화 계약
 import { composeStoryReply } from "@/lib/story/mock-story-writer"; // Mock 스토리 응답
@@ -112,5 +113,10 @@ export class MockLLMAdapter implements LLMAdapter // Mock 대화 어댑터
     { // 함수 시작
         const recent = input.messages.slice(-3).map((message) => message.content).join(" "); // 최근 내용
         return `${input.conversation.title}: ${recent}`.slice(0, 160); // 요약 반환
+    } // 함수 종료
+
+    public async judgeStats(input: StatJudgeInput): Promise<StatChange[]> // 스탯 변화 판단(Mock: 대화 분위기와 스탯 이름으로 결정)
+    { // 함수 시작
+        return Promise.resolve(judgeStatsMock(input)); // 판단 반환
     } // 함수 종료
 } // 클래스 종료

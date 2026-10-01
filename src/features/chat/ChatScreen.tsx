@@ -3,7 +3,7 @@
 import type { Route } from "next"; // 경로 타입
 import Image from "next/image"; // 최적화 이미지
 import Link from "next/link"; // 내부 경로 링크
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react"; // 리액트 도구
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react"; // 리액트 도구
 import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
 import { isCharacterLocked } from "@/features/adult/adult-access"; // 19세 잠금 판정
 import { AdultContentGate } from "@/features/adult/AdultContentGate"; // 19세 잠금 화면
@@ -14,10 +14,11 @@ import { getChatFontFamily, getChatFontSize, loadChatFont } from "@/features/cha
 import { ChatSettingsPanel, type ChatDialogId } from "@/features/chat/ChatSettingsPanel"; // 채팅방 설정 패널
 import { buildAutoMemories } from "@/features/chat/memory-model"; // 자동 요약 메모리
 import { StatusPanel } from "@/features/chat/StatusPanel"; // 고정 상태창
+import { AFFECTION_STAT_ID, currentStatValues } from "@/features/chat/stat-model"; // 스탯 초기값
+import { getStatusPeople } from "@/features/chat/status-model"; // 상태창 인물
 import { createSuggestedReplies } from "@/features/chat/suggestion-model"; // 추천 답변
 import { TierSelector } from "@/features/chat/TierSelector"; // 모델 등급 선택
 import { ChatController, type ChatProgress, type EditMessageResult, type SendResult } from "@/features/chat/chat-controller"; // 채팅 제어기
-import { LayoutSelector } from "@/features/chat/LayoutSelector"; // 레이아웃 선택기
 import { MessageList } from "@/features/chat/MessageList"; // 메시지 목록
 import { SceneViewer } from "@/features/chat/SceneViewer"; // 장면 보기
 import { ensureConversationForCharacter, getCharacterDetailProfile, resolveConversationRoute } from "@/features/character/character-detail-model"; // 대화 준비·상세 프로필
@@ -109,6 +110,38 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const [panelRequest, setPanelRequest] = useState<{ dialog: ChatDialogId; seq: number } | null>(null); // 설정 대화상자 열기 요청
     const openDialog = useCallback((dialog: ChatDialogId) => setPanelRequest((current) => ({ dialog, seq: (current?.seq ?? 0) + 1 })), []); // 대화상자 열기
     const toggleStatusPanel = useCallback(() => dispatch({ type: "update-settings", settings: { statusPanelOpen: !latestGlobalState.current.settings.statusPanelOpen } }), [dispatch]); // 상태창 접기
+    const narrow = useNarrowScreen(); // 모바일 너비
+    const [overlayOpen, setOverlayOpen] = useState(false); // 좁은 화면의 채팅방 설정 서랍(처음엔 닫힘)
+    const panelToggleRef = useRef<HTMLButtonElement>(null); // 설정 열기 버튼
+    const panelCloseRef = useRef<HTMLButtonElement>(null); // 설정 닫기 버튼
+    const shellPanelOpen = state.settings.leftPanelOpen || state.settings.rightPanelOpen; // 왼쪽·오른쪽 패널 열림
+    const [previousShellPanelOpen, setPreviousShellPanelOpen] = useState(shellPanelOpen); // 직전 패널 열림
+    if (shellPanelOpen !== previousShellPanelOpen) // 패널 열림이 바뀜
+    { // 조건 시작
+        setPreviousShellPanelOpen(shellPanelOpen); // 기록
+        if (shellPanelOpen) // 다른 패널이 열림
+        { // 조건 시작
+            setOverlayOpen(false); // 서랍은 닫기(겹침 방지)
+        } // 조건 종료
+    } // 조건 종료
+    useEffect(() => // 서랍을 열면 닫기 버튼에 초점, Esc로 닫기
+    { // 효과 시작
+        if (!overlayOpen) // 닫힘
+        { // 조건 시작
+            return; // 처리 없음
+        } // 조건 종료
+        panelCloseRef.current?.focus(); // 닫기 버튼 초점
+        const handleKey = (event: KeyboardEvent) => // 키 처리
+        { // 처리 시작
+            if (event.key === "Escape" && !event.defaultPrevented) // 대화상자·메뉴가 처리하지 않은 Esc
+            { // 조건 시작
+                setOverlayOpen(false); // 닫기
+                panelToggleRef.current?.focus(); // 열기 버튼으로
+            } // 조건 종료
+        }; // 처리 종료
+        document.addEventListener("keydown", handleKey); // 구독
+        return () => document.removeEventListener("keydown", handleKey); // 해제
+    }, [overlayOpen]); // 열림 의존
     const [snapshot, setSnapshot] = useState(prepared.state); // 화면 상태
     const [busy, setBusy] = useState(false); // 응답 상태
     const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null); // 스트리밍 메시지
@@ -137,6 +170,27 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const width = typeof window === "undefined" ? 1440 : window.innerWidth; // 화면 너비
     const height = typeof window === "undefined" ? 900 : window.innerHeight; // 화면 높이
     const layout = state.settings.layoutId ?? recommendLayout({ width, height, platformMode: state.settings.platformMode, layoutId: null }); // 현재 레이아웃
+    const overlay = narrow || layout.startsWith("M"); // 모바일 배치는 서랍, 그 밖에는 접히는 열
+    const panelOpen = overlay ? overlayOpen : state.settings.chatPanelOpen; // 채팅방 설정 열림
+    const setPanelOpen = (open: boolean) => // 채팅방 설정 열고 닫기
+    { // 함수 시작
+        if (overlay) // 서랍 판정
+        { // 조건 시작
+            setOverlayOpen(open); // 서랍 열림
+            if (open && shellPanelOpen) // 다른 패널 열림
+            { // 조건 시작
+                dispatch({ type: "close-panels" }); // 겹치지 않게 닫기
+            } // 조건 종료
+        } // 조건 종료
+        else // 넓은 화면
+        { // 분기 시작
+            dispatch({ type: "update-settings", settings: { chatPanelOpen: open } }); // 펼침 저장
+        } // 분기 종료
+        if (!open) // 닫음
+        { // 조건 시작
+            window.requestAnimationFrame(() => panelToggleRef.current?.focus()); // 열기 버튼으로 초점
+        } // 조건 종료
+    }; // 함수 종료
     const createMergeAction = (nextState: AppState) => ({ type: "merge-chat-state" as const, conversationId: prepared.conversation.id, state: nextState, allowCreate: allowCreate.current }); // 채팅 상태 병합 동작 생성
     const publish = (nextState: AppState) => // 전역 상태 반영
     { // 함수 시작
@@ -190,7 +244,8 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
         } // 조건 종료
         const summary = await adapter.summarizeConversation({ conversation: chat, version: chatVersion, messages: messages.slice(-10) }); // 요약
         const status = messages.filter((message) => message.role === "assistant" && message.status !== undefined && message.status !== null).at(-1)?.status; // 최근 상태창
-        const people = chat.mode === "story" ? chat.storyCast.map((member) => ({ name: member.displayName, level: status?.affection.find((item) => item.name === member.displayName)?.value ?? chatVersion.relationshipLevel, stage: chatVersion.relationshipStage, emotion: chatVersion.emotion })) : [{ name: deriveDisplayName(lead.name), level: chatVersion.relationshipLevel, stage: chatVersion.relationshipStage, emotion: chatVersion.emotion }]; // 관계도 인물
+        const levelOf = (name: string) => status?.stats.find((item) => item.target === name && (item.statId === AFFECTION_STAT_ID || item.name === "호감도"))?.value ?? chatVersion.relationshipLevel; // 호감도 스탯(없으면 관계 수치)
+        const people = getStatusPeople(chat, deriveDisplayName(lead.name)).map((name) => ({ name, level: levelOf(name), stage: chatVersion.relationshipStage, emotion: chatVersion.emotion })); // 관계도 인물
         const memories = buildAutoMemories({ conversationId: chat.id, characterId: lead.id, turn, userMessageId: lastUser.id, summary, people, existing: latestGlobalState.current.memories.filter((memory) => memory.conversationId === chat.id), now: new Date().toISOString() }); // 자동 기억
         if (memories.length > 0) // 새 기억 판정
         { // 조건 시작
@@ -395,23 +450,25 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const workRating = story?.contentRating ?? character.contentRating; // 작품 등급(스토리면 스토리 등급)
     const sceneImages = state.images.filter((image) => canUseImageForRating(image.contentRating, workRating) && (image.contentRating !== "mature" || canViewMatureContent(state, new Date()))).slice(0, 6); // 장면으로 쓸 수 있는 내 이미지
     return ( // 채팅 반환
-        <main className={styles.chat} data-layout={layout} data-mode={conversation.mode} data-genre={getGenreKey(story?.tags ?? character.tags)} data-surface="light" data-chat-theme={state.settings.chatTheme} style={{ "--chat-font": getChatFontFamily(state.settings.chatFont), "--chat-font-size": getChatFontSize(state.settings.chatFontSize) } as CSSProperties}> {/* 채팅 본문 */}
+        <main className={styles.chat} data-layout={layout} data-panel={overlay ? undefined : panelOpen ? "open" : "closed"} data-overlay={overlay ? "true" : undefined} data-mode={conversation.mode} data-genre={getGenreKey(story?.tags ?? character.tags)} data-surface="light" style={{ "--chat-font": getChatFontFamily(state.settings.chatFont), "--chat-font-size": getChatFontSize(state.settings.chatFontSize) } as CSSProperties}> {/* 채팅 본문 */}
             <ChatShortcuts onRegenerate={canRegenerate ? () => void regenerate() : undefined} onShortcuts={() => openDialog("shortcuts")} font={state.settings.chatFont} /> {/* 화면 단축키·글꼴 불러오기 */}
             <section className={styles.scene}> {/* 장면 영역 */}
                 <SceneViewer src={version.currentScene} name={title} /> {/* 현재 장면 */}
                 <button type="button" className={styles.sceneButton} onClick={generateScene}>장면 이미지 생성 · 20</button> {/* 이미지 버튼 */}
             </section> {/* 장면 종료 */}
             <section className={styles.story}> {/* 대화 영역 */}
-                <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? `스토리 모드 · 등장인물 ${conversation.storyCast.length}명` : version.relationshipStage}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? "AI 스토리" : "AI 캐릭터"}>AI</span></h1></div><div className={styles.meta}><TierSelector settings={settings} onSelect={(tier) => updateSettings({ tier })} onSaveOptions={(tierOptions) => updateSettings({ tierOptions })} /><span>{version.emotion}</span><strong>{snapshot.wallet.balance} 토큰</strong></div></header> {/* 대화 상태 */}
+                <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? `스토리 모드 · 등장인물 ${conversation.storyCast.length}명` : version.relationshipStage}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? "AI 스토리" : "AI 캐릭터"}>AI</span></h1></div><div className={styles.meta}><TierSelector settings={settings} onSelect={(tier) => updateSettings({ tier })} onSaveOptions={(tierOptions) => updateSettings({ tierOptions })} /><span>{version.emotion}</span><strong>{snapshot.wallet.balance} 토큰</strong><button ref={panelToggleRef} type="button" className={styles.panelToggle} aria-label="채팅방 설정 열기와 닫기" aria-expanded={panelOpen} aria-controls="chat-settings-panel" onClick={() => setPanelOpen(!panelOpen)}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>설정</button></div></header> {/* 대화 상태 */}
                 <p className={styles.aiNotice} role="note" aria-label="AI 이용 안내">{storyMode ? "AI가 만든 허구의 대화입니다. 등장인물은 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요." : "AI가 만든 허구의 대화입니다. 캐릭터는 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요."}</p> {/* AI 이용 안내 */}
                 {work.playGuide.trim().length === 0 ? null : <PlayGuideCard text={work.playGuide} onOpen={() => openDialog("guide")} />} {/* 플레이 가이드 */}
                 <MessageList messages={versionMessages} showSceneImages={state.settings.showSceneImages} streamingMessageId={streamingMessageId} busy={busy} allowRegenerate={!busy && !retryAvailable} onRegenerate={regenerate} getVersionGroup={(message) => getMessageVersionGroup(snapshot, version.id, message.id)} onEdit={editMessage} onDelete={deleteMessage} onSelectVersion={selectVersion} onDeleteVersion={deleteVersion} storyCast={castEntries} /> {/* 메시지 목록 */}
                 <p role="status" className={styles.notice}>{notice}</p> {/* 상태 안내 */}
                 {retryAvailable ? <div className={styles.requestActions}><button type="button" onClick={regenerate}>다시 시도</button></div> : null} {/* 재시도 영역 */}
-                {statusEnabled ? <StatusPanel messages={versionMessages} open={state.settings.statusPanelOpen} onToggle={toggleStatusPanel} /> : null} {/* 고정 상태창 */}
+                {statusEnabled ? <StatusPanel messages={versionMessages} open={state.settings.statusPanelOpen} onToggle={toggleStatusPanel} initialStats={currentStatValues(work.statusTemplate, getStatusPeople(conversation, deriveDisplayName(character.name)), null)} /> : null} {/* 고정 상태창(첫 응답 전에는 스탯 초기값) */}
                 <ChatComposer busy={busy} onSend={send} onCancel={cancel} storyCast={storyMode ? conversation.storyCast : undefined} onContinue={storyMode ? continueStory : undefined} getSuggestions={getSuggestions} commands={commands} /> {/* 메시지 입력 */}
             </section> {/* 대화 종료 */}
-            <aside className={styles.controls}> {/* 화면 설정 */}
+            {overlay && panelOpen ? <button type="button" className={styles.panelScrim} aria-hidden="true" tabIndex={-1} onClick={() => setPanelOpen(false)} /> : null} {/* 서랍 배경(누르면 닫기) */}
+            <aside id="chat-settings-panel" className={styles.controls} aria-label="채팅방 설정" hidden={!overlay && !panelOpen} aria-hidden={overlay && !panelOpen ? true : undefined}> {/* 채팅방 설정(열고 닫기) */}
+                <div className={styles.controlsHead}><h2>채팅방 설정</h2><button ref={panelCloseRef} type="button" aria-label="채팅방 설정 닫기" onClick={() => setPanelOpen(false)}>×</button></div> {/* 머리말 */}
                 {castEntries === undefined ? null : ( // 등장인물 패널 판정
                     <section className={styles.castPanel} aria-labelledby="story-cast-title"> {/* 등장인물 패널 */}
                         <h2 id="story-cast-title">등장인물</h2> {/* 패널 제목 */}
@@ -426,9 +483,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                         {story === undefined || story.userRole.length === 0 ? null : <p className={styles.userRole}><span>내 역할</span>{story.userRole}</p>} {/* 내 역할 */}
                     </section> // 등장인물 패널 종료
                 )} {/* 등장인물 패널 판정 종료 */}
-                <ChatSettingsPanel conversationId={conversation.id} characterId={characterId} settings={settings} onUpdateSettings={updateSettings} playGuide={work.playGuide} updates={updates} presetName={presetName} sceneImages={conversationImages} currentScene={version.currentScene} busy={busy} onApplyScene={(src) => { const result = controller.applySceneImage(src); sync(); setNotice(result.ok ? "상황 이미지로 장면을 바꿨습니다." : "응답 중에는 장면을 바꿀 수 없습니다."); }} sampleName={storyMode ? conversation.storyCast[0]?.displayName ?? title : deriveDisplayName(character.name)} balance={snapshot.wallet.balance} request={panelRequest} ensureSaved={ensureSaved} /> {/* 채팅방 설정 */}
-                <h2>화면 배치</h2> {/* 설정 제목 */}
-                <LayoutSelector width={width} height={height} /> {/* 레이아웃 선택 */}
+                <ChatSettingsPanel conversationId={conversation.id} characterId={characterId} settings={settings} onUpdateSettings={updateSettings} playGuide={work.playGuide} updates={updates} presetName={presetName} sceneImages={conversationImages} currentScene={version.currentScene} busy={busy} onApplyScene={(src) => { const result = controller.applySceneImage(src); sync(); setNotice(result.ok ? "상황 이미지로 장면을 바꿨습니다." : "응답 중에는 장면을 바꿀 수 없습니다."); }} sampleName={storyMode ? conversation.storyCast[0]?.displayName ?? title : deriveDisplayName(character.name)} request={panelRequest} ensureSaved={ensureSaved} /> {/* 채팅방 설정 */}
                 <section className={styles.myImages} aria-label="내 이미지로 장면 바꾸기"> {/* 내 이미지 장면 */}
                     <h2>내 이미지</h2> {/* 제목 */}
                     {sceneImages.length === 0 ? <p>이미지 스튜디오에서 만든 이미지를 장면으로 쓸 수 있어요.</p> : <div>{sceneImages.map((image) => <button key={image.id} type="button" aria-label={`${image.prompt} 장면으로`} title={image.prompt} disabled={busy} data-current={version.currentScene === image.src ? "true" : undefined} onClick={() => applyImage(image)}><Image src={image.src} alt="" width={96} height={72} unoptimized /></button>)}</div>} {/* 이미지 목록 */}
@@ -477,4 +532,15 @@ function ChatShortcuts({ onRegenerate, onShortcuts, font }: { onRegenerate?: () 
         return () => window.removeEventListener("keydown", handleKey); // 해제
     }, [onRegenerate, onShortcuts]); // 의존
     return null; // 화면 표시 없음
+} // 함수 종료
+
+function subscribeResize(callback: () => void): () => void // 창 크기 변화 구독
+{ // 함수 시작
+    window.addEventListener("resize", callback); // 구독
+    return () => window.removeEventListener("resize", callback); // 해제
+} // 함수 종료
+
+function useNarrowScreen(): boolean // 모바일 너비(760px 이하) 판정
+{ // 함수 시작
+    return useSyncExternalStore(subscribeResize, () => window.innerWidth <= 760, () => false); // 서버는 넓은 화면 기준
 } // 함수 종료

@@ -27,7 +27,6 @@ interface ChatSettingsPanelProps // 채팅방 설정 패널 속성
     busy: boolean; // 응답 중
     onApplyScene(src: string): void; // 상황 이미지를 장면으로
     sampleName: string; // 문체 미리보기 이름
-    balance: number; // 토큰 잔액
     request: { dialog: ChatDialogId; seq: number } | null; // 명령어·단축키로 들어온 대화상자 열기 요청
     ensureSaved(): void; // 아직 저장 전인 새 대화를 먼저 저장
 } // 구조 종료
@@ -57,7 +56,7 @@ export function ChatSettingsPanel(props: ChatSettingsPanelProps) // 채팅방 �
                     {props.sceneImages.map((src, index) => <button key={`${src.slice(-24)}-${index}`} type="button" aria-label={`상황 이미지 ${index + 1} 장면으로`} disabled={props.busy} data-current={props.currentScene === src ? "true" : undefined} onClick={() => props.onApplyScene(src)}><Image src={src} alt="" width={120} height={90} unoptimized={src.startsWith("data:")} /></button>)} {/* 이미지 */}
                 </div> // 모음 종료
             )} {/* 이미지 판정 종료 */}
-            <h3>채팅방 설정</h3> {/* 묶음 제목 */}
+            <h3>대화 설정</h3> {/* 묶음 제목 */}
             <ul className={styles.menu}> {/* 메뉴 */}
                 {menuItem("guide", "플레이 가이드")} {/* 플레이 가이드 */}
                 {menuItem("persona", "대화 프로필", persona?.name)} {/* 대화 프로필 */}
@@ -75,14 +74,11 @@ export function ChatSettingsPanel(props: ChatSettingsPanelProps) // 채팅방 �
             <ul className={styles.menu}> {/* 메뉴 */}
                 {menuItem("font", "글꼴", chatFontOptions.find((item) => item.id === state.settings.chatFont)?.label)} {/* 글꼴 */}
                 {toggleItem("상황 이미지 보기", state.settings.showSceneImages, (value) => dispatch({ type: "update-settings", settings: { showSceneImages: value } }))} {/* 상황 이미지 */}
-                {toggleItem("채팅 다크 모드", state.settings.chatTheme === "dark", (value) => dispatch({ type: "update-settings", settings: { chatTheme: value ? "dark" : "light" } }))} {/* 다크 모드 */}
             </ul> {/* 메뉴 종료 */}
             <h3>업데이트 정보</h3> {/* 묶음 제목 */}
             <ul className={styles.menu}>{menuItem("updates", latestUpdate?.version ?? "V1", latestUpdate?.date)}</ul> {/* 업데이트 */}
             <h3>시작 설정</h3> {/* 묶음 제목 */}
-            <p className={styles.plainValue}>{props.presetName}</p> {/* 시작 설정 */}
-            <h3>나의 토큰</h3> {/* 묶음 제목 */}
-            <p className={styles.plainValue}><span aria-hidden="true">🪙</span> {props.balance.toLocaleString("ko-KR")}</p> {/* 잔액 */}
+            <p className={styles.plainValue}>{props.presetName}</p> {/* 시작 설정(나의 토큰은 오른쪽 패널 보유 토큰과 같아 뺌) */}
             {dialog === "guide" ? <PlayGuideDialog text={props.playGuide} onClose={close} /> : null} {/* 플레이 가이드 */}
             {dialog === "persona" ? <PersonaDialog personas={state.personas} currentId={persona?.id ?? ""} onSelect={(personaId) => props.onUpdateSettings({ personaId: personaId === state.personas[0]?.id ? null : personaId })} onUpsert={(item) => dispatch({ type: "upsert-persona", persona: item })} onDelete={(personaId) => dispatch({ type: "delete-persona", personaId })} onClose={close} /> : null} {/* 대화 프로필 */}
             {dialog === "note" ? <UserNoteDialog note={settings.userNote} extended={settings.userNoteExtended} onSave={(note, extended) => props.onUpdateSettings({ userNote: note, userNoteExtended: extended })} onClose={close} /> : null} {/* 유저 노트 */}

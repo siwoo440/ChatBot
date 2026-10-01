@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react"; // 리액�
 import { AppHeader } from "@/components/app-shell/AppHeader"; // 앱 헤더
 import { ConversationPanel } from "@/components/app-shell/ConversationPanel"; // 대화 패널
 import { MobileBottomNavigation } from "@/components/app-shell/MobileBottomNavigation"; // 모바일 메뉴
+import { THEME_STORAGE_KEY } from "@/components/app-shell/ThemeToggle"; // 테마 저장 키
 import { UserPanel } from "@/components/app-shell/UserPanel"; // 사용자 패널
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import { formatUsageDuration } from "@/features/safety/usage-time"; // 이용 시간 표시
@@ -20,6 +21,19 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
     const rightButtonRef = useRef<HTMLButtonElement>(null); // 오른쪽 버튼 참조
     const lastButton = useRef<"left" | "right">("left"); // 최근 버튼
     const usageReminder = useUsageReminder(); // 이용 시간 알림
+    const theme = state.settings.theme; // 사이트 테마
+    useEffect(() => // 테마 적용(문서 루트)·다음 방문 첫 화면용 저장
+    { // 효과 시작
+        document.documentElement.dataset.theme = theme; // 루트 표시
+        try // 저장 시도
+        { // 시도 시작
+            window.localStorage.setItem(THEME_STORAGE_KEY, theme); // 테마 저장
+        } // 시도 종료
+        catch // 저장 실패(사생활 모드 등)
+        { // 실패 시작
+            // 화면 적용만 유지
+        } // 실패 종료
+    }, [theme]); // 테마 의존
     useEffect(() => // 화면 크기 효과
     { // 효과 시작
         const update = () => setMobile(window.innerWidth <= 760); // 크기 갱신

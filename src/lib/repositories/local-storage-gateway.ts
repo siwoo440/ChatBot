@@ -1,7 +1,8 @@
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
 import { isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 그래프 검증
-import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, GeneratedImage, Message, Story, StoryCastMember, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
+import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, GeneratedImage, Message, StatusTemplate, Story, StoryCastMember, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { createDefaultConversationSettings, createDefaultPersona, createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본값
+import { STAT_LIMIT, toVersionTwelveTemplate, upgradeStatusSnapshot, upgradeStatusTemplate } from "@/features/chat/stat-model"; // 스탯 변환
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { STORY_CAST_LIMIT } from "@/features/story/story-model"; // 등장인물 최대 수
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
@@ -27,7 +28,9 @@ const thinkingDepths = ["off", "basic", "deep", "deeper"] as const; // 생각 �
 const writingStyles = ["default", "romance", "hardboiled", "comic", "literary"] as const; // 문체
 const chatFonts = ["default", "nanum-myeongjo", "gowun-batang", "noto-serif"] as const; // 채팅 글꼴
 const chatFontSizes = ["small", "medium", "large"] as const; // 채팅 글자 크기
-const chatThemes = ["light", "dark"] as const; // 채팅 테마
+const colorThemes = ["light", "dark"] as const; // 색 테마(버전 12는 채팅 테마)
+const statModes = ["rule", "ai", "both"] as const; // 스탯 정하는 방법
+const statScopes = ["each", "shared"] as const; // 스탯 적용 대상
 const conversationFilters = ["all", "character", "story"] as const; // 대화 종류 탭
 const notificationKinds = ["notice", "image", "memory"] as const; // 알림 종류
 const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam", "other"] as const; // 신고 사유 목록
@@ -419,9 +422,33 @@ function isGeneratedImage(value: unknown): value is GeneratedImage // 생성 이
         && isString(value.createdAt); // 생성 시각 확인
 } // 함수 종료
 
-function isStatusTemplate(value: unknown): boolean // 상태창 형식 판정 함수
+function isStatDefinition(value: unknown): boolean // 스탯 정의 판정 함수
 { // 함수 시작
-    return isRecord(value) && isBoolean(value.enabled) && isBoolean(value.location) && isBoolean(value.time) && isBoolean(value.tip) && isBoolean(value.affection) && isBoolean(value.thought) && isStringArray(value.customLabels) && value.customLabels.length <= 2; // 항목 확인
+    return isRecord(value) // 객체 확인
+        && isString(value.id) && value.id.length > 0 && isString(value.name) && isString(value.icon) // 식별자·이름·아이콘
+        && [value.initial, value.min, value.max, value.perTurn, value.aiMaxChange].every(isFiniteNumber) && (value.min as number) < (value.max as number) // 숫자·범위
+        && isOneOf(value.mode, statModes) && isOneOf(value.scope, statScopes) // 방법·대상
+        && Array.isArray(value.rules) && value.rules.every((rule) => isRecord(rule) && isString(rule.keyword) && isFiniteNumber(rule.delta)); // 낱말 규칙
+} // 함수 종료
+
+function isStatValue(value: unknown): boolean // 스탯 값 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.statId) && isString(value.name) && isString(value.icon) && (value.target === null || isString(value.target)) && [value.value, value.delta, value.min, value.max].every(isFiniteNumber); // 값 확인
+} // 함수 종료
+
+function hasStatusTemplateBase(value: unknown): value is Record<string, unknown> // 상태창 형식 공통 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isBoolean(value.enabled) && isBoolean(value.location) && isBoolean(value.time) && isBoolean(value.tip) && isBoolean(value.thought) && isStringArray(value.customLabels) && value.customLabels.length <= 2; // 공통 항목 확인
+} // 함수 종료
+
+function isStatusTemplate(value: unknown): boolean // 상태창 형식 판정 함수(버전 13: 스탯)
+{ // 함수 시작
+    return hasStatusTemplateBase(value) && Array.isArray(value.stats) && value.stats.length <= STAT_LIMIT && value.stats.every(isStatDefinition) && hasUniqueIds(value.stats); // 스탯 확인
+} // 함수 종료
+
+function isVersionTwelveStatusTemplate(value: unknown): boolean // 버전 12 상태창 형식 판정 함수(호감도 켜기)
+{ // 함수 시작
+    return hasStatusTemplateBase(value) && isBoolean(value.affection); // 호감도 확인
 } // 함수 종료
 
 function isWorkUpdate(value: unknown): boolean // 업데이트 기록 판정 함수
@@ -429,9 +456,9 @@ function isWorkUpdate(value: unknown): boolean // 업데이트 기록 판정 함
     return isRecord(value) && isString(value.id) && isString(value.version) && isString(value.date) && isString(value.note); // 기록 확인
 } // 함수 종료
 
-function hasWorkFields(value: unknown): boolean // 작품 추가 필드 판정 함수(플레이 가이드·상태창·업데이트)
+function hasWorkFields(value: unknown, templateValidator: (template: unknown) => boolean = isStatusTemplate): boolean // 작품 추가 필드 판정 함수(플레이 가이드·상태창·업데이트)
 { // 함수 시작
-    return isRecord(value) && isString(value.playGuide) && isStatusTemplate(value.statusTemplate) && Array.isArray(value.updates) && value.updates.every(isWorkUpdate); // 필드 확인
+    return isRecord(value) && isString(value.playGuide) && templateValidator(value.statusTemplate) && Array.isArray(value.updates) && value.updates.every(isWorkUpdate); // 필드 확인
 } // 함수 종료
 
 function isTierOption(value: unknown): boolean // 등급별 답변 설정 판정 함수
@@ -451,16 +478,25 @@ function isConversationSettings(value: unknown): boolean // 대화방 설정 판
         && isBoolean(value.preventImpersonation); // 사칭 방지 확인
 } // 함수 종료
 
-function isStatusSnapshot(value: unknown): boolean // 상태창 값 판정 함수
+function hasStatusSnapshotBase(value: unknown): value is Record<string, unknown> // 상태창 값 공통 판정 함수
 { // 함수 시작
     return isRecord(value) // 객체 확인
         && isFiniteNumber(value.turn) // 턴 확인
         && (value.location === null || isString(value.location)) // 장소 확인
         && (value.time === null || isString(value.time)) // 시간 확인
         && (value.tip === null || isString(value.tip)) // 팁 확인
-        && Array.isArray(value.affection) && value.affection.every((item) => isRecord(item) && isString(item.name) && isFiniteNumber(item.value) && isFiniteNumber(item.delta)) // 호감도 확인
         && Array.isArray(value.thoughts) && value.thoughts.every((item) => isRecord(item) && isString(item.name) && isString(item.text)) // 속마음 확인
         && Array.isArray(value.custom) && value.custom.every((item) => isRecord(item) && isString(item.label) && isString(item.value)); // 직접 항목 확인
+} // 함수 종료
+
+function isStatusSnapshot(value: unknown): boolean // 상태창 값 판정 함수(버전 13: 스탯)
+{ // 함수 시작
+    return hasStatusSnapshotBase(value) && Array.isArray(value.stats) && value.stats.every(isStatValue); // 스탯 값 확인
+} // 함수 종료
+
+function isVersionTwelveStatusSnapshot(value: unknown): boolean // 버전 12 상태창 값 판정 함수(호감도)
+{ // 함수 시작
+    return hasStatusSnapshotBase(value) && Array.isArray(value.affection) && value.affection.every((item) => isRecord(item) && isString(item.name) && isFiniteNumber(item.value) && isFiniteNumber(item.delta)); // 호감도 확인
 } // 함수 종료
 
 function isPersona(value: unknown): boolean // 대화 프로필 판정 함수
@@ -483,10 +519,12 @@ function hasUniqueIds(items: unknown[]): boolean // 식별자 중복 판정 함�
     return new Set(items.map((item) => (item as { id: string }).id)).size === items.length; // 중복 없음
 } // 함수 종료
 
-function hasSchemaTwelveFields(value: Record<string, unknown>): boolean // 스키마 12 필드 판정 함수
+function hasSchemaTwelveFields(value: Record<string, unknown>, schemaVersion: 12 | 13 = 13): boolean // 스키마 12·13 필드 판정 함수(13은 스탯·색 테마)
 { // 함수 시작
     const settings = value.settings as Record<string, unknown>; // 설정
-    if (!(value.characters as unknown[]).every(hasWorkFields) || !(value.stories as unknown[]).every(hasWorkFields)) // 작품 필드 확인
+    const templateValidator = schemaVersion === 13 ? isStatusTemplate : isVersionTwelveStatusTemplate; // 버전별 상태창 형식
+    const snapshotValidator = schemaVersion === 13 ? isStatusSnapshot : isVersionTwelveStatusSnapshot; // 버전별 상태창 값
+    if (!(value.characters as unknown[]).every((item) => hasWorkFields(item, templateValidator)) || !(value.stories as unknown[]).every((item) => hasWorkFields(item, templateValidator))) // 작품 필드 확인
     { // 조건 시작
         return false; // 거부
     } // 조건 종료
@@ -504,9 +542,9 @@ function hasSchemaTwelveFields(value: Record<string, unknown>): boolean // 스�
     } // 조건 종료
     const folderIds = new Set((value.conversationFolders as Array<{ id: string }>).map((folder) => folder.id)); // 폴더 식별자
     const conversationsValid = (value.conversations as Array<Record<string, unknown>>).every((conversation) => isConversationSettings(conversation.settings) && (conversation.folderId === null || (isString(conversation.folderId) && folderIds.has(conversation.folderId)))); // 대화 설정·폴더 확인
-    const messagesValid = (value.messages as Array<Record<string, unknown>>).every((message) => (message.status === undefined || message.status === null || isStatusSnapshot(message.status)) && (message.sceneImage === undefined || message.sceneImage === null || isString(message.sceneImage))); // 메시지 상태창·이미지 확인
+    const messagesValid = (value.messages as Array<Record<string, unknown>>).every((message) => (message.status === undefined || message.status === null || snapshotValidator(message.status)) && (message.sceneImage === undefined || message.sceneImage === null || isString(message.sceneImage))); // 메시지 상태창·이미지 확인
     const memoriesValid = (value.memories as Array<Record<string, unknown>>).every((memory) => isOneOf(memory.category, memoryCategoriesV12)); // 새 기억 분류 확인
-    const settingsValid = isOneOf(settings.conversationFilter, conversationFilters) && isOneOf(settings.chatFont, chatFonts) && isOneOf(settings.chatFontSize, chatFontSizes) && isOneOf(settings.chatTheme, chatThemes) && isBoolean(settings.showSceneImages) && isBoolean(settings.statusPanelOpen); // 새 설정 확인
+    const settingsValid = isOneOf(settings.conversationFilter, conversationFilters) && isOneOf(settings.chatFont, chatFonts) && isOneOf(settings.chatFontSize, chatFontSizes) && (schemaVersion === 13 ? isOneOf(settings.theme, colorThemes) && isBoolean(settings.chatPanelOpen) : isOneOf(settings.chatTheme, colorThemes)) && isBoolean(settings.showSceneImages) && isBoolean(settings.statusPanelOpen); // 새 설정 확인
     return conversationsValid && messagesValid && memoriesValid && settingsValid; // 결과 반환
 } // 함수 종료
 
@@ -558,7 +596,12 @@ function hasSchemaTenFields(value: Record<string, unknown>): boolean // 스키�
 
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
-    return hasVersionedGraph(value, 12) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value); // 버전 12 상태 반환
+    return hasVersionedGraph(value, 13) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 13); // 버전 13 상태 반환
+} // 함수 종료
+
+function isVersionTwelveState(value: unknown): value is Record<string, unknown> // 버전 12 상태 판정 함수
+{ // 함수 시작
+    return hasVersionedGraph(value, 12) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 12); // 버전 12 상태 반환
 } // 함수 종료
 
 function isVersionElevenState(value: unknown): value is Record<string, unknown> // 버전 11 상태 판정 함수
@@ -586,7 +629,7 @@ function isVersionSevenState(value: unknown): value is VersionSevenState // 버�
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인
@@ -743,7 +786,7 @@ export function migrateVersionEleven(value: Record<string, unknown>): AppState |
     const extrasFor = (id: string, builtIns: ReadonlyArray<{ id: string; playGuide: string; statusTemplate: unknown; updates: unknown[] }>) => // 작품 추가 필드
     { // 함수 시작
         const builtIn = builtIns.find((item) => item.id === id); // 기본 작품
-        return builtIn === undefined ? { playGuide: "", statusTemplate: createDefaultStatusTemplate(true), updates: [] } : { playGuide: builtIn.playGuide, statusTemplate: structuredClone(builtIn.statusTemplate), updates: structuredClone(builtIn.updates) }; // 기본 작품은 기준값, 나머지는 빈 가이드
+        return builtIn === undefined ? { playGuide: "", statusTemplate: toVersionTwelveTemplate(createDefaultStatusTemplate(true)), updates: [] } : { playGuide: builtIn.playGuide, statusTemplate: toVersionTwelveTemplate(builtIn.statusTemplate as StatusTemplate), updates: structuredClone(builtIn.updates) }; // 기본 작품은 기준값, 나머지는 빈 가이드(버전 12 형식)
     }; // 함수 종료
     const characters = (value.characters as Array<Record<string, unknown>>).map((character) => ({ ...character, ...extrasFor(character.id as string, mockCharacters) })); // 캐릭터 추가 필드
     const stories = (value.stories as Array<Record<string, unknown>>).map((story) => ({ ...story, ...extrasFor(story.id as string, mockStories) })); // 스토리 추가 필드
@@ -752,6 +795,19 @@ export function migrateVersionEleven(value: Record<string, unknown>): AppState |
     const profile = value.profile as UserProfile; // 사용자
     const settings = { ...(value.settings as Record<string, unknown>), conversationFilter: "all", chatFont: "default", chatFontSize: "medium", chatTheme: "light", showSceneImages: true, statusPanelOpen: true }; // 새 설정 기본값
     const candidate: unknown = { ...value, schemaVersion: 12, characters, stories, conversations, memories, settings, personas: [createDefaultPersona(profile, new Date().toISOString())], conversationFolders: [], notifications: [] }; // 버전 12 후보
+    return isVersionTwelveState(candidate) ? migrateVersionTwelve(candidate) : null; // 연속 변환 반환
+} // 함수 종료
+
+export function migrateVersionTwelve(value: Record<string, unknown>): AppState | null // 버전 12 변환 함수(호감도 → 제작자 스탯, 채팅 테마 → 사이트 테마)
+{ // 함수 시작
+    if (!isVersionTwelveState(value)) // 버전 12 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const upgradeWork = (work: Record<string, unknown>) => ({ ...work, statusTemplate: upgradeStatusTemplate(work.statusTemplate as Record<string, unknown>) }); // 작품 상태창 변환
+    const messages = (value.messages as Array<Record<string, unknown>>).map((message) => isRecord(message.status) ? { ...message, status: upgradeStatusSnapshot(message.status) } : message); // 턴별 상태창 변환
+    const { chatTheme, ...settings } = value.settings as Record<string, unknown>; // 채팅 테마 분리
+    const candidate: unknown = { ...value, schemaVersion: 13, characters: (value.characters as Array<Record<string, unknown>>).map(upgradeWork), stories: (value.stories as Array<Record<string, unknown>>).map(upgradeWork), messages, settings: { ...settings, theme: chatTheme === "dark" ? "dark" : "light", chatPanelOpen: true } }; // 버전 13 후보
     return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
@@ -950,8 +1006,12 @@ function migrateParsedState(parsed: unknown): AppState | null // 분석 상태 �
     } // 버전 10 종료
     if (parsed.schemaVersion === 11) // 버전 11 판정
     { // 버전 11 시작
-        return migrateVersionEleven(parsed); // 버전 12 변환
+        return migrateVersionEleven(parsed); // 버전 13 변환
     } // 버전 11 종료
+    if (parsed.schemaVersion === 12) // 버전 12 판정
+    { // 버전 12 시작
+        return migrateVersionTwelve(parsed); // 버전 13 변환
+    } // 버전 12 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 
@@ -966,7 +1026,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     { // 실패 시작
         throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
     } // 실패 종료
-    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 12) // 미래 버전 판정
+    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 13) // 미래 버전 판정
     { // 미래 버전 시작
         throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
     } // 미래 버전 종료

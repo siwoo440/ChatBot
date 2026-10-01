@@ -1,3 +1,4 @@
+import type { StatChange, StatJudgeInput } from "@/features/chat/stat-model"; // 스탯 판단 형식
 import type { Character, ChatTierId, Conversation, ConversationVersion, LengthMultiplier, Message, ThinkingDepth, WritingStyle } from "@/features/core/types"; // 도메인 타입
 
 export interface ChatReplyOptions // 대화방 설정에서 온 응답 조건
@@ -11,6 +12,7 @@ export interface ChatReplyOptions // 대화방 설정에서 온 응답 조건
     userNote: string; // 유저 노트
     memories: string[]; // 요약 메모리
     playGuide: string; // 플레이 가이드
+    stats: Array<{ name: string; target: string | null; value: number; min: number; max: number }>; // 지금 스탯 값(역할극에 반영)
 } // 구조 종료
 import type { StoryPromptContext } from "@/lib/story/mock-story-writer"; // 스토리 문맥
 
@@ -35,4 +37,5 @@ export interface LLMAdapter // 대화 어댑터
 { // 구조 시작
     streamReply(input: LLMInput, signal?: AbortSignal): AsyncIterable<string>; // 중단 가능 응답 스트림
     summarizeConversation(input: SummaryInput): Promise<string>; // 대화 요약
+    judgeStats?(input: StatJudgeInput, signal?: AbortSignal): Promise<StatChange[]>; // AI가 정하는 스탯 변화(없으면 규칙만 적용)
 } // 구조 종료
