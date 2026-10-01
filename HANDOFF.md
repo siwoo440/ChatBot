@@ -39,6 +39,8 @@ git reset --hard origin/main
 | `3221d8f` | Text-Play 페이지를 주황·노랑·흰색 디자인으로 개편, SVG 일러스트 추가, 다운로드 정보 구역과 상단 바로가기 링크 삭제(사용자 요청) |
 | `4fbbd3e` | 밝은 다채색 디자인 1단계: 공통 틀(헤더·좌우 패널·모바일 하단 메뉴)과 메인 화면, 색 변수와 장르색 체계 추가 |
 | `5c141f5` | 탐색 페이지(`/explore`) 추가: 태그 검색, 장르별 추천 작품, 주목할 제작자, 인기 태그. 헤더 `탐색` → `메뉴` 변경 후 오른쪽에 `탐색` 추가 |
+| `2553009` | 밝은 다채색 디자인 2단계: 캐릭터 상세 화면, 태그를 탐색 페이지로 연결 |
+| (최신) | 오른쪽 메뉴 페이지 1단계: `/settings/*` 하위 페이지 5개와 `/support`, 공통 설정 메뉴, 오른쪽 패널 링크 연결 |
 
 ---
 
@@ -127,6 +129,7 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 - 토큰, 관계, 감정, 장면 상태의 로컬 진행
 - 404·오류 화면, 저장소 복구 안내, 읽기 실패 시 저장 차단, 저장공간 부족 안내
 - Text-Play 소개·다운로드 통합 페이지(`/text-play`, 설치 파일 미등록이라 버튼 비활성)
+- 설정·지원 페이지: 프로필 관리, 토큰 이용 내역, 화면 레이아웃, 알림과 선제 메시지, 개인정보 및 보안(데이터 관리 포함), 고객 지원(`/support`)
 - 모바일·태블릿·데스크톱 반응형 화면
 
 세부 구현 기록은 `docs/text-play-download-development.md`를 기준으로 확인한다. 디자인 전환은 38장, 오류 처리는 30.10, Text-Play는 1~28장이다.
@@ -148,7 +151,7 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 | 3 | 채팅 (`/chat/[characterId]`) | **다음 작업** |
 | 4 | 보관함 (`/library`) | 예정 |
 | 5 | 캐릭터 만들기·편집 (`/characters/new`, `/characters/[id]/edit`) | 예정 |
-| 6 | 설정(`/settings`), 공통 안내 화면, 전역 기본색 전환 | 예정 |
+| 6 | 공통 안내 화면(404·오류), 전역 기본색 전환 | 예정 (설정 페이지는 7절 작업에서 밝은 디자인으로 완료) |
 
 ### 색 체계 요약
 
@@ -165,6 +168,7 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 - 장식 요소가 가로로 넘치지 않도록 페이지 루트에 `overflow-x: clip`을 둔다.
 - 각 단계마다 390px·820px·1440px 화면, 가로 넘침, 키보드 조작을 확인하고 스크린샷을 사용자에게 보여 준 뒤 커밋한다.
 - 기존 테스트가 확인하는 링크 이름, 영역 이름, `data-tone`, 클래스명은 유지한다.
+- 전환한 페이지의 최상위 요소에는 `data-surface="light"`를 붙인다. `AppShell.module.css`의 `.shell:has([data-surface="light"])` 규칙이 그 페이지에서만 공통 틀 바탕을 밝게 바꿔, 모바일 하단 메뉴 자리에 어두운 띠가 보이지 않는다. 현재 메인·탐색·Text-Play·캐릭터 상세·설정·지원 페이지에 붙어 있다.
 
 ### 2단계(캐릭터 상세) 완료 내용
 
@@ -188,14 +192,55 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 
 ---
 
-## 7. 사용자 확인이 필요한 항목
+## 7. 진행 중인 작업: 오른쪽 메뉴 페이지
+
+오른쪽 사용자 패널의 메뉴마다 페이지를 만든다. 사용자가 정한 방향은 다음과 같다.
+
+- 주소: `/settings` 하위 페이지로 묶고 공통 왼쪽 메뉴를 둔다. 고객 지원만 `/support`로 분리한다. `/settings`는 `/settings/profile`로 307 이동한다(`next.config.ts`).
+- 데이터 관리(내보내기·가져오기·백업·복구·초기화)는 개인정보 및 보안 페이지 안에 둔다(`/settings/privacy#data`).
+- 범위: 1~3단계 전부, 단계마다 확인받으며 진행한다.
+
+| 단계 | 내용 | 상태 |
+| --- | --- | --- |
+| 1 | 페이지 틀과 공통 메뉴, 기존 탭 내용 이전, 오른쪽 패널 링크 연결 | 완료 |
+| 2 | 저장 구조 변경 없이 되는 기능 확장 | **다음 작업** |
+| 3 | 저장 구조 변경(앱 상태 버전 7 → 8): 토큰 사용 내역 등 | 예정 |
+
+### 구조
+
+- 메뉴 정의: `src/features/settings/settings-navigation.ts` 한 곳에서 오른쪽 패널(`UserPanel`)과 설정 왼쪽 메뉴(`SettingsShell`)가 함께 쓴다. 묶음 색은 계정 보라, 설정 파랑, 지원 초록이다.
+- 공통 틀: `SettingsShell.tsx`(왼쪽 메뉴, 현재 페이지 `aria-current`, 모바일 가로 메뉴에서 현재 항목 자동 스크롤), `SettingsPageHeader`
+- 페이지: `ProfileSettings`, `TokenSettings`, `DisplaySettings`, `NotificationSettings`, `PrivacySettings`(`src/features/settings/`), `SupportScreen`(`src/features/support/`)
+- 공통 스타일: `SettingsScreen.module.css`(카드, 입력, 버튼, 수치 칸, 표, 안내 상자, FAQ). `DataManagement`도 이 파일을 쓴다.
+- 토큰 비용표는 `src/lib/story/token-policy.ts`의 `tokenCosts`, `tokenActionLabels`를 쓴다.
+- 테스트: `tests/integration/settings-pages.test.tsx`, `tests/e2e/settings.spec.ts`
+
+### 2단계 할 일 (저장 구조 변경 없음)
+
+- 프로필 관리: 활동 요약(만든 캐릭터·대화·좋아요·보관·팔로우 수), 팔로우한 제작자 목록과 해제, 멤버십 비교표(결제 없이 안내만)
+- 화면 레이아웃: 레이아웃 9종(M1~M3·T1~T3·D1~D3)을 그림 카드로 보여 주고 현재 화면 추천 표시, 채팅 미리보기. `resolutionMode`는 지금 어디에도 적용되지 않으므로 적용하거나 제거한다.
+- 알림과 선제 메시지: 허용 시간대를 하루 막대로 시각화
+- 개인정보 및 보안: 장기 기억(`memories`) 보기·삭제, 내가 한 신고(`localReports`) 기록과 취소, 로그아웃을 실제 동작하는 "로컬 세션 정리"로 변경(지금은 확인 창만 뜬다)
+- 고객 지원: FAQ 검색·주제 구분, 문의 초안 작성 후 복사, 진단 정보 복사(앱·데이터 버전, 저장 용량), 업데이트 소식
+
+### 3단계 할 일 (앱 상태 버전 8)
+
+- 토큰 사용 내역: 사용할 때마다 날짜·종류·캐릭터·대화·차감량·남은 잔액을 기록. 기록 지점은 `chat-controller.ts`의 `trySpend` 호출부(자동 이미지, 메시지 보내기, 수정, 다시 생성, 직접 이미지)
+- 하루 사용량 초기화: `dailyChatUsed`, `dailyImageUsed`가 날짜가 바뀌어도 0으로 돌아가지 않으므로 기준 날짜를 저장해 초기화
+- 토큰 페이지: 사용 내역 목록과 기간·종류 필터, 최근 7일 사용 그래프
+- 알림: 캐릭터별 선제 메시지 허용
+- `LocalStorageGateway` 마이그레이션(7 → 8), 전체·대화 JSON 내보내기·가져오기 호환, 관련 단위 테스트
+
+---
+
+## 8. 사용자 확인이 필요한 항목
 
 - Text-Play 페이지의 파일 해시(SHA-256)·코드 서명 표시는 사용자 요청으로 삭제했다. 실제 설치 파일을 공개하기 전에 다시 표시해야 한다(`release-config.ts`에 값은 남아 있음).
 - 제작자 데이터는 `메이트버스 랭킹 연구소` 한 명이 작품 93개를 갖고 나머지 7명은 1개씩이라, 탐색 페이지 제작자 카드의 썸네일이 대부분 한 칸이다.
 
 ---
 
-## 8. 작업 규칙
+## 9. 작업 규칙
 
 - 응답과 문서는 한국어로 작성한다.
 - 커밋 메시지는 한글 제목 한 줄(접두어 없음) + 영역별 소제목 아래 `- ~추가 / ~수정 / ~변경` 목록으로, 이전 버전과 비교해 바뀐 점을 쓴다. `Co-Authored-By: Claude` 같은 공동 작성자 표기는 넣지 않는다.
@@ -208,11 +253,11 @@ $env:PLAYWRIGHT_PORT = '3005'; npm run test:e2e -- --project=chromium --workers=
 
 ---
 
-## 9. 로컬 데이터 이전 주의사항
+## 10. 로컬 데이터 이전 주의사항
 
 Git에는 소스 코드와 기본 Mock 데이터만 포함된다. 현재 컴퓨터 브라우저에 저장된 사용자 대화, 캐릭터, 토큰 상태는 Git으로 이동하지 않는다.
 
-1. 기존 컴퓨터에서 `설정` 화면 진입
+1. 기존 컴퓨터에서 오른쪽 패널의 `개인정보 및 보안`(`/settings/privacy`) 진입
 2. 데이터 관리의 `JSON 내보내기` 실행
 3. 생성된 `mateverse-data.json` 파일을 새 컴퓨터로 이동
 4. 새 컴퓨터의 같은 화면에서 JSON 파일 선택
@@ -222,7 +267,7 @@ Git에는 소스 코드와 기본 Mock 데이터만 포함된다. 현재 컴퓨�
 
 ---
 
-## 10. 디자인 전환 이후 개발 우선순위
+## 11. 디자인 전환 이후 개발 우선순위
 
 1. 로컬 대화 요약과 장기 기억 관리 화면 (개발 문서 30.4)
 2. 메인 화면 정렬·복수 필터 개선 (30.5)
@@ -235,12 +280,13 @@ Git에는 소스 코드와 기본 Mock 데이터만 포함된다. 현재 컴퓨�
 
 ---
 
-## 11. 주요 진입 주소
+## 12. 주요 진입 주소
 
 - 메인(메뉴): `http://localhost:3000/`
 - 탐색: `http://localhost:3000/explore` (태그 예: `/explore?tag=힐링`)
 - 하린 상세: `http://localhost:3000/characters/harin`
 - 보관함: `http://localhost:3000/library`
-- 설정·데이터 관리: `http://localhost:3000/settings`
+- 설정: `http://localhost:3000/settings` → 프로필 관리(`/settings/profile`), 토큰(`/settings/tokens`), 화면(`/settings/display`), 알림(`/settings/notifications`), 개인정보·데이터 관리(`/settings/privacy`)
+- 고객 지원: `http://localhost:3000/support`
 - Text-Play: `http://localhost:3000/text-play`
 - GitHub 커밋: `https://github.com/siwoo440/ChatBot/commits/main/`

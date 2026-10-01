@@ -4,6 +4,11 @@
     background: #090b10; /* 미전환 화면 기본 배경 */
 } /* 셸 종료 */
 
+.shell:has([data-surface="light"]) /* 밝은 화면을 연 셸 */
+{ /* 밝은 셸 시작 */
+    background: var(--mv-canvas); /* 밝은 바탕 */
+} /* 밝은 셸 종료 */
+
 .shell :global([data-accent="home"]) /* 메인 메뉴 강조색 */
 { /* 메인 시작 */
     --accent: var(--page-home); /* 메인 채움 */

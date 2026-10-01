@@ -110,7 +110,7 @@ describe("저장소 상태 안내", () => // 저장소 묶음
         render(<AppProvider><AppShell><main>본문</main></AppShell></AppProvider>); // 기본 저장소로 렌더
         const notice = await screen.findByText("손상된 저장 데이터를 백업하고 초기 상태로 복구했습니다."); // 복구 안내 대기
         const container = notice.closest("[role=\"status\"]") as HTMLElement; // 안내 영역 조회
-        expect(within(container).getByRole("link", { name: "데이터 관리 열기" })).toHaveAttribute("href", "/settings"); // 관리 링크 확인
+        expect(within(container).getByRole("link", { name: "데이터 관리 열기" })).toHaveAttribute("href", "/settings/privacy#data"); // 관리 링크 확인
         await user.click(within(container).getByRole("button", { name: "닫기" })); // 안내 닫기
         expect(screen.queryByText("손상된 저장 데이터를 백업하고 초기 상태로 복구했습니다.")).not.toBeInTheDocument(); // 닫힘 확인
     }); // 검증 종료

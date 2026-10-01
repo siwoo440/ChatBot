@@ -67,7 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
                     {storageNotice === null ? null : ( // 저장소 안내 판정
                         <div className={styles.storageNotice} data-tone={storageNotice.tone} role="status"> {/* 저장소 안내 */}
                             <p>{storageNotice.message}</p> {/* 안내 문구 */}
-                            {storageNotice.tone === "warning" ? <Link href={"/settings" as Route} onClick={closePanelsForNavigation}>데이터 관리 열기</Link> : null} {/* 데이터 관리 링크 */}
+                            {storageNotice.tone === "warning" ? <Link href={"/settings/privacy#data" as Route} onClick={closePanelsForNavigation}>데이터 관리 열기</Link> : null} {/* 데이터 관리 링크 */}
                             <button type="button" onClick={dismissStorageNotice}>닫기</button> {/* 안내 닫기 */}
                         </div> // 저장소 안내 종료
                     )} {/* 안내 판정 종료 */}

@@ -27,7 +27,7 @@ export function validateProfileSettings(draft: ProfileSettingsDraft): ProfileSet
     } // 조건 종료
     if (draft.avatar.trim().length === 0) // 빈 이미지 확인
     { // 조건 시작
-        return { avatar: "프로필 이미지를 입력해 주세요." }; // 이미지 오류 반환
+        return { avatar: "프로필 글자를 입력해 주세요." }; // 프로필 글자 오류 반환
     } // 조건 종료
     return {}; // 정상 결과 반환
 } // 함수 종료

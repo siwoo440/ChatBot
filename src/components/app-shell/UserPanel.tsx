@@ -1,6 +1,7 @@
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
 import type { AppSettings, TokenWallet, UserProfile } from "@/features/core/types"; // 사용자 타입
+import { settingsNavigation } from "@/features/settings/settings-navigation"; // 공통 메뉴 정의
 
 interface UserPanelProps // 패널 속성
 { // 구조 시작
@@ -34,28 +35,14 @@ export function UserPanel({ profile, wallet, settings, open, onNavigate }: UserP
                 </div> {/* 이미지 사용량 종료 */}
             </section> {/* 토큰 영역 종료 */}
             <nav className="user-panel-menu" aria-label="사용자 메뉴"> {/* 사용자 메뉴 */}
-                <section className="user-panel-group" aria-labelledby="user-account-title"> {/* 계정 영역 */}
-                    <h3 id="user-account-title" className="user-panel-group-title">계정</h3> {/* 계정 표제 */}
-                    <div className="user-panel-link-list"> {/* 계정 링크 목록 */}
-                        <Link href={"/settings" as Route} onClick={onNavigate}><span>프로필 관리</span><span aria-hidden="true">›</span></Link> {/* 프로필 링크 */}
-                        <Link href={"/library" as Route} onClick={onNavigate}><span>내 캐릭터와 작품</span><span aria-hidden="true">›</span></Link> {/* 작품 링크 */}
-                        <Link href={"/settings" as Route} onClick={onNavigate}><span>토큰 이용 내역</span><span aria-hidden="true">›</span></Link> {/* 토큰 링크 */}
-                    </div> {/* 계정 링크 종료 */}
-                </section> {/* 계정 영역 종료 */}
-                <section className="user-panel-group" aria-labelledby="user-settings-title"> {/* 설정 영역 */}
-                    <h3 id="user-settings-title" className="user-panel-group-title">설정</h3> {/* 설정 표제 */}
-                    <div className="user-panel-link-list"> {/* 설정 링크 목록 */}
-                        <Link href={"/settings" as Route} onClick={onNavigate}><span>화면 레이아웃</span><span>{settings.layoutId ?? "자동"}</span></Link> {/* 레이아웃 링크 */}
-                        <Link href={"/settings" as Route} onClick={onNavigate}><span>알림과 선제 메시지</span><span aria-hidden="true">›</span></Link> {/* 알림 링크 */}
-                    </div> {/* 설정 링크 종료 */}
-                </section> {/* 설정 영역 종료 */}
-                <section className="user-panel-group" aria-labelledby="user-support-title"> {/* 지원 영역 */}
-                    <h3 id="user-support-title" className="user-panel-group-title">지원</h3> {/* 지원 표제 */}
-                    <div className="user-panel-link-list"> {/* 지원 링크 목록 */}
-                        <Link href={"/settings" as Route} onClick={onNavigate}><span>개인정보 및 보안</span><span aria-hidden="true">›</span></Link> {/* 보안 링크 */}
-                        <Link href={"/settings" as Route} onClick={onNavigate}><span>고객 지원</span><span aria-hidden="true">›</span></Link> {/* 지원 링크 */}
-                    </div> {/* 지원 링크 종료 */}
-                </section> {/* 지원 영역 종료 */}
+                {settingsNavigation.map((group) => ( // 메뉴 묶음 순회
+                    <section key={group.id} className="user-panel-group" aria-labelledby={`user-${group.id}-title`}> {/* 메뉴 묶음 */}
+                        <h3 id={`user-${group.id}-title`} className="user-panel-group-title">{group.label}</h3> {/* 묶음 표제 */}
+                        <div className="user-panel-link-list"> {/* 링크 목록 */}
+                            {group.items.map((item) => <Link key={item.href} href={item.href as Route} onClick={onNavigate}><span>{item.label}</span>{item.href === "/settings/display" ? <span>{settings.layoutId ?? "자동"}</span> : <span aria-hidden="true">›</span>}</Link>)} {/* 메뉴 링크 */}
+                        </div> {/* 링크 목록 종료 */}
+                    </section> // 메뉴 묶음 종료
+                ))} {/* 묶음 순회 종료 */}
             </nav> {/* 메뉴 종료 */}
             <button className="user-panel-logout" type="button" onClick={() => window.confirm("로컬 세션에서 로그아웃하시겠습니까?")}>로그아웃</button> {/* 로그아웃 버튼 */}
         </aside> // 패널 종료

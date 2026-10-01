@@ -1361,4 +1361,27 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 메인 화면 `오늘의 추천`의 태그는 탐색 페이지 태그 결과로 연결된다.
 - 검증: `tests/unit/explore-model.test.ts` 5개, `tests/integration/explore.test.tsx` 4개
 
+---
+## 39. 설정·지원 페이지 (오른쪽 메뉴)
+
+오른쪽 사용자 패널의 메뉴마다 페이지를 둔다. 이전의 `/settings` 탭 화면(`SettingsScreen.tsx`)은 페이지별 컴포넌트로 나누고 삭제했다.
+
+| 묶음(색) | 메뉴 | 주소 | 화면 컴포넌트 | 현재 구성 |
+| --- | --- | --- | --- | --- |
+| 계정(보라) | 프로필 관리 | `/settings/profile` | `ProfileSettings` | 프로필 미리보기 카드(입력 즉시 반영), 닉네임·프로필 글자 수정 |
+| 계정(보라) | 내 캐릭터와 작품 | `/library` | `LibraryScreen` | 기존 보관함으로 연결 |
+| 계정(보라) | 토큰 이용 내역 | `/settings/tokens` | `TokenSettings` | 잔액·오늘·누적 칸, 항목별 비용표, 사용 내역·충전은 준비 중 |
+| 설정(파랑) | 화면 레이아웃 | `/settings/display` | `DisplaySettings` | 플랫폼·해상도·레이아웃 선택(바꾸면 바로 저장) |
+| 설정(파랑) | 알림과 선제 메시지 | `/settings/notifications` | `NotificationSettings` | 선제 메시지 허용, 허용 시간·하루 횟수, Mock 제약 안내 |
+| 지원(초록) | 개인정보 및 보안 | `/settings/privacy` | `PrivacySettings` | 저장 위치·외부 전송·계정 안내, 데이터 관리(`#data`), 정책 문서 준비 중 |
+| 지원(초록) | 고객 지원 | `/support` | `SupportScreen` | 자주 묻는 질문 6개, 문의 준비 중 안내, 앱·데이터 버전과 응답 방식 |
+
+- 메뉴 정의는 `src/features/settings/settings-navigation.ts` 하나를 오른쪽 패널(`UserPanel`)과 설정 왼쪽 메뉴(`SettingsShell`)가 함께 쓴다. 메뉴를 추가·변경할 때는 이 파일만 고친다.
+- `/settings`는 `next.config.ts`의 이동 규칙으로 `/settings/profile`에 307 이동한다. 페이지 안에서 `redirect()`를 쓰면 공통 레이아웃이 먼저 그려져 200 응답 뒤 화면 이동이 되므로 쓰지 않는다.
+- `/settings/*`는 `src/app/settings/layout.tsx`가 `SettingsShell`을 감싸고, `/support`는 페이지에서 직접 `SettingsShell`을 감싼다.
+- 저장공간 부족 안내와 복구 경고의 `데이터 관리 열기` 링크는 `/settings/privacy#data`를 가리킨다.
+- 표(`<table>`) 안에는 줄 끝 JSX 주석을 두지 않는다. 주석 앞 공백이 표의 텍스트 자식이 되어 하이드레이션 오류가 난다.
+- 남은 단계(기능 확장, 앱 상태 버전 8의 토큰 사용 내역)는 `HANDOFF.md` 7절을 따른다.
+- 검증: `tests/integration/settings-pages.test.tsx` 8개, `tests/e2e/settings.spec.ts` 3개
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

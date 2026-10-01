@@ -129,7 +129,7 @@ export function ExploreScreen({ initialTag }: { initialTag: string | null }) // 
         } // 조건 종료
     }; // 함수 종료
     return ( // 화면 반환
-        <main className={styles.page}> {/* 탐색 화면 */}
+        <main className={styles.page} data-surface="light"> {/* 탐색 화면 */}
             <header className={styles.hero}> {/* 탐색 머리말 */}
                 <p className={styles.eyebrow}>EXPLORE · 작품 · 제작자 · 태그</p> {/* 상단 표제 */}
                 <h1>취향을 따라 <span className={styles.highlight}>새로운 세계</span>를 찾아보세요</h1> {/* 화면 제목 */}

@@ -8,6 +8,7 @@ const nextConfig: NextConfig = // 설정 객체
     { // 함수 시작
         return [ // 규칙 목록
             { source: "/text-play/download", destination: "/text-play", permanent: true }, // 통합 전 다운로드 주소 이동
+            { source: "/settings", destination: "/settings/profile", permanent: false }, // 설정 첫 화면 이동
         ]; // 목록 종료
     }, // 함수 종료
 }; // 객체 종료

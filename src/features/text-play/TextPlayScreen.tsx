@@ -120,7 +120,7 @@ export function TextPlayScreen() // Text-Play 통합 화면
 { // 함수 시작
     const statusLabel = getDistributionLabel(textPlayRelease.status); // 상태 문구 조회
     return ( // 화면 반환
-        <main className={styles.page}> {/* Text-Play 화면 */}
+        <main className={styles.page} data-surface="light"> {/* Text-Play 화면 */}
             <section className={styles.hero} aria-labelledby="text-play-title"> {/* 상단 소개 */}
                 <div className={styles.heroCopy}> {/* 소개 문구 */}
                     <p className={styles.eyebrow}><span aria-hidden="true" />MATE TEXT-PLAY · FOR WINDOWS</p> {/* 상단 표제 */}

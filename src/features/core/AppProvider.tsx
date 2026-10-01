@@ -38,7 +38,7 @@ interface AppProviderProps // 공급자 속성
 } // 구조 종료
 
 const AppContext = createContext<AppStore | null>(null); // 앱 문맥
-const quotaGuide = "설정의 데이터 관리에서 JSON으로 내보낸 뒤 오래된 대화를 정리해 주세요."; // 용량 정리 안내
+const quotaGuide = "개인정보 및 보안의 데이터 관리에서 JSON으로 내보낸 뒤 오래된 대화를 정리해 주세요."; // 용량 정리 안내
 const blockedMessage = "저장된 데이터를 읽지 못해 기본 상태로 시작했습니다. 기존 데이터를 보호하기 위해 이번 방문의 변경 내용은 저장하지 않습니다."; // 저장 차단 안내
 
 function describeStorageFailure(error: unknown, quotaMessage: string, fallback: string): string // 저장 실패 문구

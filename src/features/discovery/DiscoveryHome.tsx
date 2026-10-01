@@ -47,7 +47,7 @@ export function DiscoveryHome() // 탐색 홈
         setVisibleCount(pageSize); // 표시 수 초기화
     }; // 함수 종료
     return ( // 홈 반환
-        <main className={styles.home}> {/* 탐색 본문 */}
+        <main className={styles.home} data-surface="light"> {/* 탐색 본문 */}
             <header className={styles.hero}> {/* 탐색 헤더 */}
                 <div> {/* 헤더 문구 */}
                     <span className={styles.eyebrow}>감정과 이야기가 이어지는 공간</span> {/* 상단 문구 */}
