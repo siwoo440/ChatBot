@@ -106,6 +106,13 @@
     backdrop-filter: blur(12px); /* 배지 흐림 */
 } /* 규칙 종료 */
 
+.ratingBadge[data-rating="mature"] /* 19세 등급 배지 */
+{ /* 규칙 시작 */
+    border-color: #ffffff; /* 흰 경계 */
+    color: #ffffff; /* 흰 글자 */
+    background: #e11d48; /* 19세 배경 */
+} /* 규칙 종료 */
+
 .heroContent /* 히어로 정보 */
 { /* 규칙 시작 */
     display: grid; /* 정보 배치 */

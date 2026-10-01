@@ -1,6 +1,7 @@
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
 import type { AppSettings, TokenWallet, UserProfile } from "@/features/core/types"; // 사용자 타입
+import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
 import { settingsNavigation } from "@/features/settings/settings-navigation"; // 공통 메뉴 정의
 
 interface UserPanelProps // 패널 속성
@@ -14,6 +15,7 @@ interface UserPanelProps // 패널 속성
 
 export function UserPanel({ profile, wallet, settings, open, onNavigate }: UserPanelProps) // 사용자 패널
 { // 함수 시작
+    const adultVerified = isAdultVerified(profile, new Date()); // 성인 인증 상태
     return ( // 패널 반환
         <aside id="user-panel" className="user-panel" role="complementary" aria-label="사용자 정보와 설정" aria-hidden={!open}> {/* 사용자 패널 */}
             <section className="user-panel-profile" aria-label="프로필 요약"> {/* 프로필 영역 */}
@@ -21,7 +23,10 @@ export function UserPanel({ profile, wallet, settings, open, onNavigate }: UserP
                 <div className="user-panel-profile-copy"> {/* 프로필 문구 */}
                     <span className="user-panel-eyebrow">MY PROFILE</span> {/* 프로필 표제 */}
                     <h2>{profile.nickname}</h2> {/* 사용자 이름 */}
-                    <span className="user-panel-membership">{profile.membership.toUpperCase()} 멤버십</span> {/* 멤버십 배지 */}
+                    <div className="user-panel-badges"> {/* 프로필 배지 묶음 */}
+                        <span className="user-panel-membership">{profile.membership.toUpperCase()} 멤버십</span> {/* 멤버십 배지 */}
+                        <Link href={"/settings/profile#adult" as Route} className="user-panel-membership user-panel-adult" data-state={adultVerified ? "on" : "off"} aria-label={`성인 인증 ${adultVerified ? "ON" : "OFF"}, 성인 인증 관리 열기`} onClick={onNavigate}>성인 인증 {adultVerified ? "ON" : "OFF"}</Link> {/* 성인 인증 배지 */}
+                    </div> {/* 배지 묶음 종료 */}
                 </div> {/* 프로필 문구 종료 */}
             </section> {/* 프로필 영역 종료 */}
             <section className="user-panel-wallet" aria-label="토큰 정보"> {/* 토큰 영역 */}

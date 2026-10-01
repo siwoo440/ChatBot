@@ -4,6 +4,7 @@ import type { Route } from "next"; // 경로 타입
 import Image from "next/image"; // 이미지 최적화
 import Link from "next/link"; // 내부 경로 링크
 import { usePathname } from "next/navigation"; // 현재 경로 도구
+import { AdultContentSwitch } from "@/features/adult/AdultContentSwitch"; // 19+ 스위치
 
 interface AppHeaderProps // 헤더 속성
 { // 구조 시작
@@ -53,6 +54,7 @@ export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, on
                 <Link href="/library" className="app-navigation-link" data-accent="library" aria-current={current(pathname.startsWith("/library"))} onClick={onNavigate}>내 작품</Link> {/* 작품 링크 */}
                 <Link href="/text-play" className="app-navigation-link" data-accent="textplay" aria-current={current(pathname.startsWith("/text-play"))} onClick={onNavigate}>Text-Play 다운로드</Link> {/* Text-Play 링크 */}
             </nav> {/* 메뉴 종료 */}
+            <AdultContentSwitch /> {/* 19+ 스위치 */}
             <button ref={rightButtonRef} type="button" aria-label="사용자 패널 열기와 닫기" aria-expanded={rightOpen} aria-controls="user-panel" onClick={onToggleRight}> {/* 오른쪽 버튼 */}
                 <MenuIcon /> {/* 메뉴 아이콘 */}
             </button> {/* 오른쪽 버튼 종료 */}

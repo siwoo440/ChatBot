@@ -118,6 +118,37 @@
     object-fit: cover; /* 이미지 채움 */
 } /* 이미지 종료 */
 
+.card[data-locked="true"] /* 잠긴 카드 */
+{ /* 잠금 시작 */
+    position: relative; /* 표시 기준 */
+    border-color: #9f1239; /* 19세 테두리 */
+} /* 잠금 종료 */
+
+.card[data-locked="true"] > img, /* 잠긴 카드 이미지 */
+.conversationCard[data-locked="true"] img /* 잠긴 대화 이미지 */
+{ /* 흐림 시작 */
+    filter: blur(14px) saturate(.7); /* 강한 흐림 */
+    clip-path: inset(0); /* 흐림 번짐 자르기 */
+} /* 흐림 종료 */
+
+.lockBadge /* 잠금 표시 */
+{ /* 표시 시작 */
+    position: absolute; /* 이미지 위 배치 */
+    top: 14px; /* 위쪽 위치 */
+    left: 14px; /* 왼쪽 위치 */
+    padding: 6px 11px; /* 표시 여백 */
+    border-radius: 999px; /* 알약 모양 */
+    background: #e11d48; /* 19세 배경 */
+    color: #ffffff; /* 흰 글자 */
+    font-size: 13px; /* 표시 크기 */
+    font-weight: 800; /* 굵은 글자 */
+} /* 표시 종료 */
+
+.conversationCard[data-locked="true"] /* 잠긴 대화 카드 */
+{ /* 잠금 시작 */
+    border-color: #9f1239; /* 19세 테두리 */
+} /* 잠금 종료 */
+
 .cardBody /* 카드 본문 */
 { /* 본문 시작 */
     padding: 20px; /* 내부 여백 */

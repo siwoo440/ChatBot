@@ -4,6 +4,7 @@ import Image from "next/image"; // 최적화 이미지
 import Link from "next/link"; // 내부 링크
 import type { Route } from "next"; // 경로 타입
 import { useState, type ChangeEvent } from "react"; // 리액트 상태
+import { canViewMatureContent, isMatureCharacter } from "@/features/adult/adult-access"; // 19세 콘텐츠 판정
 import { createConversationHref, getCharacterDetailProfile } from "@/features/character/character-detail-model"; // 상세 프로필 조회
 import { createConversationExport, mergeConversationExport, parseConversationExport } from "@/features/conversation/conversation-export"; // 대화 파일 도구
 import { getConversationSummary, type ConversationSummary } from "@/features/conversation/conversation-versioning"; // 대화 요약 조회
@@ -51,6 +52,8 @@ export function LibraryScreen() // 보관함 화면
         setDeleteTarget(null); // 대화상자 닫기
     }; // 함수 종료
     const characters = activeTab === "created" ? created : activeTab === "drafts" ? drafts : bookmarks; // 현재 캐릭터 목록
+    const showMature = canViewMatureContent(state, new Date()); // 19세 콘텐츠 표시 여부
+    const isLocked = (character: Character) => isMatureCharacter(character) && !showMature; // 19세 잠금 판정
     return ( // 보관함 반환
         <main className={styles.page}> {/* 보관함 본문 */}
             <header className={styles.header}> {/* 상단 영역 */}
@@ -61,7 +64,7 @@ export function LibraryScreen() // 보관함 화면
                 {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-label={tab.label} aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{tab.label}<small>{tab.id === "created" ? created.length : tab.id === "drafts" ? drafts.length : tab.id === "bookmarks" ? bookmarks.length : state.conversations.length}</small></button>)} {/* 탭 항목 */}
             </div> {/* 탭 종료 */}
             <section className={styles.content} role="tabpanel" aria-label={tabs.find((tab) => tab.id === activeTab)?.label}> {/* 탭 내용 */}
-                {activeTab === "conversations" ? <ConversationGrid /> : <CharacterGrid characters={characters} tab={activeTab} onDelete={setDeleteTarget} onToggleBookmark={(characterId) => dispatch({ type: "toggle-bookmark", characterId })} onTogglePublication={(character) => dispatch({ type: "set-publication-status", characterId: character.id, status: character.publicationStatus === "draft" ? "published" : "draft" })} />} {/* 탭 콘텐츠 */}
+                {activeTab === "conversations" ? <ConversationGrid isLocked={isLocked} /> : <CharacterGrid characters={characters} tab={activeTab} isLocked={isLocked} onDelete={setDeleteTarget} onToggleBookmark={(characterId) => dispatch({ type: "toggle-bookmark", characterId })} onTogglePublication={(character) => dispatch({ type: "set-publication-status", characterId: character.id, status: character.publicationStatus === "draft" ? "published" : "draft" })} />} {/* 탭 콘텐츠 */}
             </section> {/* 내용 종료 */}
             {deleteTarget === null ? null : ( // 삭제 대화상자 조건
                 <div className={styles.dialogBackdrop}> {/* 대화상자 배경 */}
@@ -77,7 +80,7 @@ export function LibraryScreen() // 보관함 화면
     ); // 반환 종료
 } // 함수 종료
 
-function CharacterGrid({ characters, tab, onDelete, onToggleBookmark, onTogglePublication }: { characters: Character[]; tab: LibraryTab; onDelete(character: Character): void; onToggleBookmark(characterId: string): void; onTogglePublication(character: Character): void }) // 캐릭터 목록
+function CharacterGrid({ characters, tab, isLocked, onDelete, onToggleBookmark, onTogglePublication }: { characters: Character[]; tab: LibraryTab; isLocked(character: Character): boolean; onDelete(character: Character): void; onToggleBookmark(characterId: string): void; onTogglePublication(character: Character): void }) // 캐릭터 목록
 { // 함수 시작
     if (characters.length === 0) // 빈 목록 판정
     { // 조건 시작
@@ -86,12 +89,13 @@ function CharacterGrid({ characters, tab, onDelete, onToggleBookmark, onTogglePu
     return ( // 목록 반환
         <div className={styles.grid}> {/* 카드 격자 */}
             {characters.map((character) => ( // 캐릭터 순회
-                <article key={character.id} className={styles.card}> {/* 캐릭터 카드 */}
+                <article key={character.id} className={styles.card} data-locked={isLocked(character) ? "true" : undefined}> {/* 캐릭터 카드 */}
                     <Image src={character.coverImage} alt={character.name} width={320} height={420} /> {/* 대표 이미지 */}
+                    {isLocked(character) ? <span className={styles.lockBadge}>19+ 잠금</span> : null} {/* 잠금 표시 */}
                     <div className={styles.cardBody}> {/* 카드 본문 */}
                         <span>{character.publicationStatus === "draft" ? "임시 저장" : character.visibility === "public" ? "전체 공개" : "비공개"}</span> {/* 공개 상태 */}
                         <Link href={`/characters/${character.id}` as Route} aria-label={`${character.name} 상세 보기`}><h2>{character.name}</h2></Link> {/* 상세 링크 */}
-                        <p>{character.summary}</p> {/* 한 줄 소개 */}
+                        <p>{isLocked(character) ? "19세 이용가 캐릭터입니다. 19+를 켜면 내용을 볼 수 있습니다." : character.summary}</p> {/* 한 줄 소개 */}
                         <small>최근 수정 {new Date(character.updatedAt).toLocaleDateString("ko-KR")}</small> {/* 수정 시각 */}
                         <div className={styles.cardActions}> {/* 카드 동작 */}
                             {tab === "bookmarks" ? <button type="button" aria-label={`${character.name} 보관 해제`} onClick={() => onToggleBookmark(character.id)}>보관 해제</button> : <><Link href={`/characters/${character.id}/edit` as Route}>수정</Link><button type="button" onClick={() => onTogglePublication(character)}>{character.publicationStatus === "draft" ? "공개 전환" : "임시 전환"}</button><button type="button" aria-label={`${character.name} 삭제`} onClick={() => onDelete(character)}>삭제</button></>} {/* 탭별 동작 */}
@@ -103,7 +107,7 @@ function CharacterGrid({ characters, tab, onDelete, onToggleBookmark, onTogglePu
     ); // 반환 종료
 } // 함수 종료
 
-function ConversationGrid() // 대화 목록
+function ConversationGrid({ isLocked }: { isLocked(character: Character): boolean }) // 대화 목록
 { // 함수 시작
     const { state, dispatch } = useAppStore(); // 앱 상태 조회
     const [renameTarget, setRenameTarget] = useState<Conversation | null>(null); // 이름 변경 대상
@@ -177,14 +181,14 @@ function ConversationGrid() // 대화 목록
                 {importStatus.length === 0 ? null : <p role="status">{importStatus}</p>} {/* 가져오기 안내 */}
             </div> {/* 가져오기 도구 종료 */}
             {state.conversations.length === 0 ? <div className={styles.empty}><strong>진행 중인 대화가 없습니다.</strong><p>캐릭터 상세 화면에서 첫 대화를 시작하거나 JSON 파일을 가져오세요.</p><Link href="/">캐릭터 탐색하기</Link></div> : null} {/* 빈 화면 */}
-            <ConversationSection title="진행 중인 대화" conversations={active} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} /> {/* 진행 대화 */}
-            {archived.length === 0 ? null : <ConversationSection title="보관한 대화" conversations={archived} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} />} {/* 보관 대화 */}
+            <ConversationSection isLocked={isLocked} title="진행 중인 대화" conversations={active} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} /> {/* 진행 대화 */}
+            {archived.length === 0 ? null : <ConversationSection isLocked={isLocked} title="보관한 대화" conversations={archived} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} />} {/* 보관 대화 */}
             {deleteTarget === null ? null : <div className={styles.dialogBackdrop}><section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="conversation-delete-title"><span>DELETE CONVERSATION</span><h2 id="conversation-delete-title">대화 삭제</h2><p><strong>{deleteTarget.title}</strong>과 연결된 메시지 {messageCount}개를 삭제합니다.</p><div><button type="button" onClick={() => setDeleteTarget(null)}>취소</button><button type="button" className={styles.danger} onClick={deleteConversation}>대화 삭제 확인</button></div></section></div>} {/* 삭제 대화상자 */}
         </div> // 구역 종료
     ); // 반환 종료
 } // 함수 종료
 
-function ConversationSection({ title, conversations, summaries, characters, renameTarget, renameDraft, onRenameDraft, onStartRename, onSaveRename, onCancelRename, onSelect, onArchive, onRestore, onExport, onDelete }: { title: string; conversations: Conversation[]; summaries: Map<string, ConversationSummary>; characters: Character[]; renameTarget: Conversation | null; renameDraft: string; onRenameDraft(value: string): void; onStartRename(conversation: Conversation): void; onSaveRename(): void; onCancelRename(): void; onSelect(conversation: Conversation): void; onArchive(conversation: Conversation): void; onRestore(conversation: Conversation): void; onExport(conversation: Conversation): void; onDelete(conversation: Conversation): void }) // 대화 구역
+function ConversationSection({ isLocked, title, conversations, summaries, characters, renameTarget, renameDraft, onRenameDraft, onStartRename, onSaveRename, onCancelRename, onSelect, onArchive, onRestore, onExport, onDelete }: { isLocked(character: Character): boolean; title: string; conversations: Conversation[]; summaries: Map<string, ConversationSummary>; characters: Character[]; renameTarget: Conversation | null; renameDraft: string; onRenameDraft(value: string): void; onStartRename(conversation: Conversation): void; onSaveRename(): void; onCancelRename(): void; onSelect(conversation: Conversation): void; onArchive(conversation: Conversation): void; onRestore(conversation: Conversation): void; onExport(conversation: Conversation): void; onDelete(conversation: Conversation): void }) // 대화 구역
 { // 함수 시작
     if (conversations.length === 0) // 빈 구역 확인
     { // 조건 시작
@@ -203,10 +207,11 @@ function ConversationSection({ title, conversations, summaries, characters, rena
                         return null; // 카드 생략
                     } // 조건 종료
                     const editing = renameTarget?.id === conversation.id; // 편집 상태 확인
+                    const locked = isLocked(character); // 19세 잠금 여부
                     const profile = getCharacterDetailProfile(character); // 상세 프로필 조회
                     const presetName = profile.startPresets.find((preset) => preset.id === conversation.startSettings.presetId)?.name ?? "기본 설정"; // 시작 설정 이름
                     const recentTime = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(summary.updatedAt)); // 최근 시각 표시
-                    return <article key={conversation.id} className={styles.conversationCard}><Link href={createConversationHref(character.id, conversation.id, conversation.currentVersionId) as Route} onClick={() => onSelect(conversation)}><Image src={character.coverImage} alt="" width={88} height={88} /><span><strong>{conversation.title}</strong><small>{character.name} · {summary.relationshipStage} · {summary.emotion}</small><small className={styles.conversationMeta}>시작: {presetName} · 최근 {recentTime}</small><p>{summary.lastMessage}</p></span></Link>{editing ? <div className={styles.renameRow}><label>대화 이름<input value={renameDraft} maxLength={60} onChange={(event) => onRenameDraft(event.target.value)} /></label><button type="button" onClick={onSaveRename}>이름 저장</button><button type="button" onClick={onCancelRename}>취소</button></div> : null}<div className={styles.conversationActions}><button type="button" aria-label={`${conversation.title} 이름 변경`} onClick={() => onStartRename(conversation)}>이름 변경</button>{conversation.archivedAt === null ? <button type="button" aria-label={`${conversation.title} 보관`} onClick={() => onArchive(conversation)}>보관</button> : <button type="button" aria-label={`${conversation.title} 복구`} onClick={() => onRestore(conversation)}>복구</button>}<button type="button" aria-label={`${conversation.title} 내보내기`} onClick={() => onExport(conversation)}>내보내기</button><button type="button" aria-label={`${conversation.title} 삭제`} onClick={() => onDelete(conversation)}>삭제</button></div></article>; // 대화 카드 반환
+                    return <article key={conversation.id} className={styles.conversationCard} data-locked={locked ? "true" : undefined}><Link href={createConversationHref(character.id, conversation.id, conversation.currentVersionId) as Route} onClick={() => onSelect(conversation)}><Image src={character.coverImage} alt="" width={88} height={88} /><span><strong>{conversation.title}</strong><small>{character.name} · {summary.relationshipStage} · {summary.emotion}</small><small className={styles.conversationMeta}>시작: {presetName} · 최근 {recentTime}</small><p>{locked ? "19+ 잠금 · 19+를 켜면 대화를 볼 수 있습니다." : summary.lastMessage}</p></span></Link>{editing ? <div className={styles.renameRow}><label>대화 이름<input value={renameDraft} maxLength={60} onChange={(event) => onRenameDraft(event.target.value)} /></label><button type="button" onClick={onSaveRename}>이름 저장</button><button type="button" onClick={onCancelRename}>취소</button></div> : null}<div className={styles.conversationActions}><button type="button" aria-label={`${conversation.title} 이름 변경`} onClick={() => onStartRename(conversation)}>이름 변경</button>{conversation.archivedAt === null ? <button type="button" aria-label={`${conversation.title} 보관`} onClick={() => onArchive(conversation)}>보관</button> : <button type="button" aria-label={`${conversation.title} 복구`} onClick={() => onRestore(conversation)}>복구</button>}<button type="button" aria-label={`${conversation.title} 내보내기`} onClick={() => onExport(conversation)}>내보내기</button><button type="button" aria-label={`${conversation.title} 삭제`} onClick={() => onDelete(conversation)}>삭제</button></div></article>; // 대화 카드 반환
                 })} {/* 순회 종료 */}
             </div> {/* 격자 종료 */}
         </section> // 그룹 종료

@@ -1,4 +1,5 @@
 import Image from "next/image"; // 이미지 도구
+import { contentRatingLabels } from "@/features/adult/adult-access"; // 등급 문구
 import type { CharacterDraft } from "@/features/core/types"; // 초안 타입
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
 
@@ -12,6 +13,7 @@ export function CharacterPreview({ draft }: { draft: CharacterDraft }) // 캐릭
             <span className={styles.previewLabel}>LIVE PREVIEW</span> {/* 미리보기 표시 */}
             <Image src={draft.coverImage} alt={`${name} 대표 이미지`} width={420} height={560} priority /> {/* 대표 이미지 */}
             <div className={styles.previewBody}> {/* 미리보기 본문 */}
+                <span className={styles.ratingTag} data-rating={draft.contentRating}>{contentRatingLabels[draft.contentRating]}</span> {/* 이용 등급 */}
                 <h2>{name}</h2> {/* 캐릭터 이름 */}
                 <p>{summary}</p> {/* 한 줄 소개 */}
                 <div className={styles.tags}> {/* 태그 목록 */}

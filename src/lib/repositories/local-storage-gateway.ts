@@ -1,6 +1,6 @@
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
 import { isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 그래프 검증
-import type { AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, Message, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
+import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, Message, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
 
 const stateKey = "mateverse:v1:state"; // 상태 저장 키
@@ -16,6 +16,8 @@ const relationshipStages = ["첫 만남", "아는 사이", "가까운 사이", "
 const messageRoles = ["user", "assistant", "system"] as const; // 메시지 역할 목록
 const memoryCategories = ["summary", "event", "preference"] as const; // 기억 분류 목록
 const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam", "other"] as const; // 신고 사유 목록
+const contentRatings = ["all", "teen", "mature"] as const; // 이용 등급 목록
+const adultVerificationMethods = ["mock"] as const; // 성인 인증 방식 목록
 
 export interface LoadResult // 읽기 결과 구조
 { // 구조 시작
@@ -123,6 +125,14 @@ function isUserProfile(value: unknown): value is UserProfile // 사용자 판정
         && isString(value.avatar) // 이미지 확인
         && isOneOf(value.membership, memberships) // 멤버십 확인
         && isString(value.createdAt); // 가입 시각 확인
+} // 함수 종료
+
+function isAdultVerification(value: unknown): value is AdultVerification // 성인 인증 판정 함수
+{ // 함수 시작
+    return isRecord(value) // 객체 확인
+        && isOneOf(value.method, adultVerificationMethods) // 인증 방식 확인
+        && isString(value.verifiedAt) // 인증 시각 확인
+        && isString(value.expiresAt); // 만료 시각 확인
 } // 함수 종료
 
 function isCharacter(value: unknown): value is Character // 캐릭터 판정 함수
@@ -333,6 +343,8 @@ function hasAppStateData(value: unknown, conversationValidator: (item: unknown) 
         && (value.selectedConversationId === null || isString(value.selectedConversationId)); // 선택 대화 확인
 } // 함수 종료
 
+type SchemaEightFields = "profile" | "characters" | "settings"; // 스키마 8 변경 필드
+type VersionSevenState = Omit<AppState, "schemaVersion" | SchemaEightFields> & { schemaVersion: 7; profile: Omit<UserProfile, "adultVerification">; characters: Array<Omit<Character, "contentRating">>; settings: Omit<AppSettings, "matureContentEnabled"> }; // 버전 7 상태 타입
 type SchemaSevenFields = "schemaVersion" | "conversations" | "conversationVersions" | "messages" | "memories" | "likedCharacterIds" | "followedCreatorIds" | "localReports"; // 스키마 7 필드 묶음
 type VersionSixConversation = Omit<Conversation, "currentVersionId"> & { relationshipLevel: number; relationshipStage: ConversationVersion["relationshipStage"]; emotion: string; currentScene: string; lastMessage: string }; // 버전 6 대화 타입
 type LegacyConversation = Omit<VersionSixConversation, "archivedAt" | "startSettings"> & { archivedAt?: string | null }; // 이전 대화 타입
@@ -344,10 +356,29 @@ type VersionFourState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 4; 
 type VersionFiveState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 5; conversations: VersionFiveConversation[]; messages: LegacyMessage[] }; // 버전 5 상태 타입
 type VersionSixState = Omit<AppState, SchemaSevenFields> & { schemaVersion: 6; conversations: VersionSixConversation[]; messages: LegacyMessage[]; memories: CharacterMemory[]; likedCharacterIds: string[]; followedCreatorIds: string[]; localReports: CharacterReport[] }; // 버전 6 상태 타입
 
+function hasSchemaEightFields(value: Record<string, unknown>): boolean // 스키마 8 필드 판정 함수
+{ // 함수 시작
+    const profile = value.profile as Record<string, unknown>; // 사용자 정보
+    const settings = value.settings as Record<string, unknown>; // 설정 정보
+    return (profile.adultVerification === null || isAdultVerification(profile.adultVerification)) // 성인 인증 확인
+        && isBoolean(settings.matureContentEnabled) // 19세 표시 설정 확인
+        && (value.characters as Array<Record<string, unknown>>).every((character) => isOneOf(character.contentRating, contentRatings)); // 이용 등급 확인
+} // 함수 종료
+
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
+    return hasVersionedGraph(value, 8) && hasSchemaEightFields(value); // 버전 8 상태 반환
+} // 함수 종료
+
+function isVersionSevenState(value: unknown): value is VersionSevenState // 버전 7 상태 판정 함수
+{ // 함수 시작
+    return hasVersionedGraph(value, 7); // 버전 7 상태 반환
+} // 함수 종료
+
+function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+{ // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
-        || value.schemaVersion !== 7 // 버전 7 확인
+        || value.schemaVersion !== schemaVersion // 버전 확인
         || !Array.isArray(value.memories) // 기억 목록 확인
         || !value.memories.every(isCharacterMemory) // 기억 항목 확인
         || !isStringArray(value.likedCharacterIds) // 좋아요 목록 확인
@@ -435,6 +466,24 @@ export function migrateVersionSix(value: Record<string, unknown>): AppState | nu
         return null; // 비파괴 거부
     } // 손상 상태 종료
     const candidate: unknown = { ...value, schemaVersion: 7, conversations, conversationVersions, messages }; // 버전 7 후보
+    return isVersionSevenState(candidate) ? migrateVersionSeven(candidate) : null; // 연속 변환 반환
+} // 함수 종료
+
+export function migrateVersionSeven(value: Record<string, unknown>): AppState | null // 버전 7 변환 함수
+{ // 함수 시작
+    if (!isVersionSevenState(value)) // 버전 7 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const defaultRatings = new Map(mockCharacters.map((character) => [character.id, character.contentRating])); // 기본 등급 색인
+    const characters = value.characters.map((character) => // 캐릭터 등급 추가
+    { // 변환 시작
+        const stored = (character as Record<string, unknown>).contentRating; // 기존 등급 조회
+        return { ...character, contentRating: isOneOf(stored, contentRatings) ? stored : defaultRatings.get(character.id) ?? "all" }; // 등급 적용
+    }); // 변환 종료
+    const profile = { ...value.profile, adultVerification: null }; // 성인 인증 전 상태
+    const settings = { ...value.settings, matureContentEnabled: false }; // 19세 콘텐츠 숨김
+    const candidate: unknown = { ...value, schemaVersion: 8, profile, characters, settings }; // 버전 8 후보
     return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
@@ -613,8 +662,12 @@ function migrateParsedState(parsed: unknown): AppState | null // 분석 상태 �
     } // 버전 5 종료
     if (parsed.schemaVersion === 6) // 버전 6 판정
     { // 버전 6 시작
-        return migrateVersionSix(parsed); // 버전 7 변환
+        return migrateVersionSix(parsed); // 버전 8 변환
     } // 버전 6 종료
+    if (parsed.schemaVersion === 7) // 버전 7 판정
+    { // 버전 7 시작
+        return migrateVersionSeven(parsed); // 버전 8 변환
+    } // 버전 7 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 
@@ -629,7 +682,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     { // 실패 시작
         throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
     } // 실패 종료
-    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 7) // 미래 버전 판정
+    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 8) // 미래 버전 판정
     { // 미래 버전 시작
         throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
     } // 미래 버전 종료

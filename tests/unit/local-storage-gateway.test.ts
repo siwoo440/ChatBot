@@ -132,7 +132,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const result = gateway.load(); // 데이터 읽기
         expect(result.recovered).toBe(true); // 복구 상태 확인
         expect(result.warning).toContain("복구"); // 복구 경고 확인
-        expect(result.state.schemaVersion).toBe(7); // 초기 상태 확인
+        expect(result.state.schemaVersion).toBe(8); // 초기 상태 확인
         expect(localStorage.getItem(backupKey)).toBe("{broken"); // 원본 백업 확인
     }); // 검증 종료
 
@@ -161,7 +161,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const result = new LocalStorageGateway(localStorage).load(); // 이전 상태 읽기
         expect(result.recovered).toBe(false); // 정상 변환 확인
         expect(result.warning).toContain("업데이트"); // 변환 안내 확인
-        expect(result.state.schemaVersion).toBe(7); // 현재 버전 확인
+        expect(result.state.schemaVersion).toBe(8); // 현재 버전 확인
         expect(result.state.providerMode).toBe("mock"); // 공급자 기본값 확인
         expect(result.state.wallet.balance).toBe(321); // 사용자 잔액 유지 확인
         expect(result.state.settings.leftPanelOpen).toBe(false); // 이전 설정 유지 확인
@@ -181,7 +181,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, JSON.stringify(legacy)); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(false); // 정상 변환 확인
-        expect(result.state.schemaVersion).toBe(7); // 새 버전 확인
+        expect(result.state.schemaVersion).toBe(8); // 새 버전 확인
         expect(result.state.wallet.balance).toBe(321); // 기존 데이터 확인
         expect(result.state.characters.every((character) => character.publicationStatus === "published")).toBe(true); // 공개 상태 확인
         expect(result.state.bookmarkedCharacterIds).toEqual([]); // 보관 목록 확인
@@ -196,7 +196,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, JSON.stringify(legacy)); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(false); // 정상 변환 확인
-        expect(result.state.schemaVersion).toBe(7); // 새 버전 확인
+        expect(result.state.schemaVersion).toBe(8); // 새 버전 확인
         expect(result.state.characters).toHaveLength(101); // 전체 목록 확인
         expect(result.state.characters.some((character) => character.id === "custom-local")).toBe(true); // 사용자 캐릭터 확인
         expect(result.state.characters.some((character) => character.id === "rank-100")).toBe(true); // 랭킹 캐릭터 확인
@@ -212,7 +212,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, JSON.stringify(legacy)); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(false); // 정상 변환 확인
-        expect(result.state.schemaVersion).toBe(7); // 새 버전 확인
+        expect(result.state.schemaVersion).toBe(8); // 새 버전 확인
         expect(result.state.characters.find((character) => character.id === "rank-050")?.coverImage).toBe("/images/characters/rank-050.webp"); // 이미지 갱신 확인
         expect(result.state.characters.find((character) => character.id === "custom-local")?.coverImage).toBe("/custom.webp"); // 사용자 이미지 유지 확인
     }); // 검증 종료
@@ -226,7 +226,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         conversations.forEach((conversation) => delete conversation.archivedAt); // 새 필드 제거
         localStorage.setItem(stateKey, JSON.stringify(legacy)); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
-        expect(result.state.schemaVersion).toBe(7); // 새 버전 확인
+        expect(result.state.schemaVersion).toBe(8); // 새 버전 확인
         expect(result.state.conversations.every((conversation) => conversation.archivedAt === null)).toBe(true); // 기본값 확인
     }); // 테스트 종료
 
@@ -248,7 +248,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, JSON.stringify(current)); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(false); // 정상 변환 확인
-        expect(result.state.schemaVersion).toBe(7); // 새 버전 확인
+        expect(result.state.schemaVersion).toBe(8); // 새 버전 확인
         expect(result.state.characters).toEqual(characters); // 캐릭터 유지 확인
         expect(result.state.messages.map((message) => message.content)).toEqual((messages as Array<Record<string, unknown>>).map((message) => message.content)); // 메시지 내용 유지 확인
         expect(result.state.messages.every((message) => message.versionId.length > 0)).toBe(true); // 메시지 버전 연결 확인
@@ -287,7 +287,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, JSON.stringify(legacy)); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(false); // 정상 변환 확인
-        expect(result.state.schemaVersion).toBe(7); // 버전 확인
+        expect(result.state.schemaVersion).toBe(8); // 버전 확인
         expect(result.state.conversationVersions).toHaveLength(result.state.conversations.length); // 원본 버전 확인
         expect(result.state.messages.every((message) => message.versionId.length > 0)).toBe(true); // 메시지 연결 확인
         expect(result.state.messages.every((message) => message.sourceMessageId === null)).toBe(true); // 원본 메시지 확인
@@ -344,7 +344,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, raw); // 손상 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(true); // 복구 상태 확인
-        expect(result.state.schemaVersion).toBe(7); // 안전 버전 확인
+        expect(result.state.schemaVersion).toBe(8); // 안전 버전 확인
         expect(localStorage.getItem(backupKey)).toBe(raw); // 원본 백업 확인
     }); // 테스트 종료
 
@@ -541,5 +541,47 @@ describe("로컬 Repository 공급자", () => // 공급자 묶음
         expect(provider.tokens.get().balance).toBe(900); // 지갑 유지 확인
         expect(provider.gateway.load().state.settings.platformMode).toBe("tablet"); // 공유 설정 확인
         expect(provider.gateway.load().state.wallet.balance).toBe(900); // 공유 지갑 확인
+    }); // 검증 종료
+}); // 묶음 종료
+
+describe("스키마 8 성인 인증 변환", () => // 스키마 8 묶음
+{ // 묶음 시작
+    beforeEach(() => // 테스트 초기화
+    { // 초기화 시작
+        localStorage.clear(); // 저장소 비우기
+    }); // 초기화 종료
+
+    it("스키마 7 데이터에 이용 등급과 인증 전 상태를 추가한다", () => // 버전 7 변환 검증
+    { // 검증 시작
+        const legacy = structuredClone(createInitialState()) as unknown as Record<string, unknown>; // 이전 상태 복사
+        legacy.schemaVersion = 7; // 이전 버전 적용
+        delete (legacy.profile as Record<string, unknown>).adultVerification; // 인증 필드 제거
+        delete (legacy.settings as Record<string, unknown>).matureContentEnabled; // 19+ 설정 제거
+        const characters = legacy.characters as Array<Record<string, unknown>>; // 캐릭터 목록 접근
+        characters.forEach((character) => delete character.contentRating); // 등급 제거
+        characters.push({ ...characters[0], id: "character-custom", creatorId: "user-demo", name: "내 캐릭터" }); // 사용자 캐릭터 추가
+        localStorage.setItem(stateKey, JSON.stringify(legacy)); // 이전 상태 저장
+        const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
+        expect(result.recovered).toBe(false); // 정상 변환 확인
+        expect(result.warning).toContain("업데이트"); // 변환 안내 확인
+        expect(result.state.schemaVersion).toBe(8); // 버전 확인
+        expect(result.state.profile.adultVerification).toBeNull(); // 인증 전 확인
+        expect(result.state.settings.matureContentEnabled).toBe(false); // 19+ 꺼짐 확인
+        const rating = (id: string) => result.state.characters.find((character) => character.id === id)?.contentRating; // 등급 조회
+        expect(rating("rank-017")).toBe("mature"); // 19세 예시 등급
+        expect(rating("sera")).toBe("teen"); // 15세 기본 등급
+        expect(rating("rian")).toBe("all"); // 전체 기본 등급
+        expect(rating("character-custom")).toBe("all"); // 사용자 캐릭터 기본 등급
+    }); // 검증 종료
+
+    it("잘못된 이용 등급이나 인증 정보는 저장하지 않는다", () => // 잘못된 값 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태
+        const badRating = { ...state, characters: state.characters.map((character, index) => index === 0 ? { ...character, contentRating: "adult" } : character) } as unknown as AppState; // 잘못된 등급
+        const badVerification = { ...state, profile: { ...state.profile, adultVerification: { method: "pass", verifiedAt: "x", expiresAt: "y" } } } as unknown as AppState; // 잘못된 인증
+        const gateway = new LocalStorageGateway(localStorage); // 게이트웨이 생성
+        expect(() => gateway.save(badRating)).toThrow(TypeError); // 등급 거부 확인
+        expect(() => gateway.save(badVerification)).toThrow(TypeError); // 인증 거부 확인
+        expect(() => gateway.prepareImport(JSON.stringify({ ...state, schemaVersion: 9 }))).toThrow(ImportValidationError); // 미래 버전 거부 확인
     }); // 검증 종료
 }); // 묶음 종료

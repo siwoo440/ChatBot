@@ -6,6 +6,7 @@ import Link from "next/link"; // 내부 경로 링크
 import { useState } from "react"; // 리액트 상태
 import type { Character, CharacterDetailProfile, Conversation } from "@/features/core/types"; // 캐릭터 타입
 import { createExploreHref } from "@/features/explore/explore-model"; // 탐색 주소 생성
+import { contentRatingLabels } from "@/features/adult/adult-access"; // 등급 문구
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 
 interface CharacterHeroProps // 히어로 속성
@@ -27,7 +28,6 @@ interface CharacterHeroProps // 히어로 속성
     onStart: () => void; // 새 대화 동작
 } // 구조 종료
 
-const ratingLabels = { all: "전체 이용가", teen: "15세 이용가", mature: "성인 이용가" } as const; // 등급 문구
 
 function formatMetric(value: number | null): string // 지표 표시 함수
 { // 함수 시작
@@ -73,7 +73,7 @@ export function CharacterHero({ character, profile, bookmarked, liked, followed,
                 ) : ( // 정상 이미지 분기
                     <Image className={styles.portrait} src={character.coverImage} alt={`${character.name} 대표 이미지`} width={720} height={900} sizes="(max-width: 719px) 100vw, (max-width: 1100px) 42vw, 430px" priority onError={() => setImageFailed(true)} /> // 대표 이미지
                 )} {/* 이미지 분기 종료 */}
-                <span className={styles.ratingBadge}>{ratingLabels[profile.contentRating]}</span> {/* 등급 배지 */}
+                <span className={styles.ratingBadge} data-rating={profile.contentRating}>{contentRatingLabels[profile.contentRating]}</span> {/* 등급 배지 */}
             </div> {/* 이미지 프레임 종료 */}
             <div className={styles.heroContent}> {/* 히어로 정보 */}
                 <div className={styles.creatorRow}> {/* 제작자 행 */}

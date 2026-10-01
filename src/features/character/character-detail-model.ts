@@ -1,4 +1,5 @@
 import { characterDetailProfiles } from "@/features/character/character-detail-data"; // 상세 프로필 데이터
+import { rankingContentWarnings } from "@/mocks/ranking-character-concepts"; // 랭킹 캐릭터 주의 목록
 import type { AppState, Character, CharacterDetailProfile, CharacterReport, Conversation, ConversationVersion, Message, ReportReason } from "@/features/core/types"; // 도메인 타입
 
 export interface ConversationStartResult // 대화 시작 결과
@@ -55,8 +56,8 @@ function createFallbackProfile(character: Character): CharacterDetailProfile // 
         characterId: character.id, // 캐릭터 식별자
         accentColor: "#8ea4ff", // 기본 강조 색상
         badges: [...character.tags], // 기존 태그 배지
-        contentRating: "all", // 안전 기본 등급
-        contentWarnings: [], // 미확인 경고 제외
+        contentRating: character.contentRating, // 캐릭터 이용 등급
+        contentWarnings: [...(rankingContentWarnings[character.id] ?? [])], // 등록된 주의 목록
         dialogueStyle: character.summary, // 기존 소개 활용
         relationshipSetup: character.worldSetting, // 기존 세계관 활용
         startPresets: // 기본 프리셋 목록
@@ -76,7 +77,8 @@ function createFallbackProfile(character: Character): CharacterDetailProfile // 
 export function getCharacterDetailProfile(character: Character): CharacterDetailProfile // 상세 프로필 조회
 { // 함수 시작
     const profile = characterDetailProfiles[character.id]; // 정적 프로필 조회
-    return structuredClone(profile ?? createFallbackProfile(character)); // 독립 프로필 반환
+    const detail = structuredClone(profile ?? createFallbackProfile(character)); // 독립 프로필 복사
+    return { ...detail, contentRating: character.contentRating }; // 저장된 이용 등급 우선
 } // 함수 종료
 
 function collectWorldKeywords(value: string): Set<string> // 세계관 키워드 수집

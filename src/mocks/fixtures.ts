@@ -7,6 +7,7 @@ export const mockProfile: UserProfile = // 사용자 기준값
     nickname: "태평양12", // 사용자 이름
     avatar: "태", // 사용자 이미지
     membership: "free", // 무료 멤버십
+    adultVerification: null, // 성인 인증 전
     createdAt: "2026-09-01T09:00:00.000Z", // 가입 시각
 }; // 사용자 종료
 
@@ -26,6 +27,7 @@ export const mockCharacters: Character[] = // 캐릭터 기준값
         tags: ["감정 교류", "판타지", "도서관"], // 검색 태그
         coverImage: "/images/characters/rian.webp", // 대표 이미지
         visibility: "public", // 공개 범위
+        contentRating: "all", // 이용 등급
         publicationStatus: "published", // 발행 상태
         popularity: 184000, // 대화 지표
         createdAt: "2026-08-10T10:00:00.000Z", // 생성 시각
@@ -45,6 +47,7 @@ export const mockCharacters: Character[] = // 캐릭터 기준값
         tags: ["일상", "힐링", "로맨스"], // 검색 태그
         coverImage: "/images/characters/harin.webp", // 대표 이미지
         visibility: "public", // 공개 범위
+        contentRating: "all", // 이용 등급
         publicationStatus: "published", // 발행 상태
         popularity: 162000, // 대화 지표
         createdAt: "2026-08-14T11:00:00.000Z", // 생성 시각
@@ -64,6 +67,7 @@ export const mockCharacters: Character[] = // 캐릭터 기준값
         tags: ["현대", "미스터리", "감정 교류"], // 검색 태그
         coverImage: "/images/characters/sera.webp", // 대표 이미지
         visibility: "public", // 공개 범위
+        contentRating: "teen", // 이용 등급
         publicationStatus: "published", // 발행 상태
         popularity: 127000, // 대화 지표
         createdAt: "2026-08-18T12:00:00.000Z", // 생성 시각
@@ -83,6 +87,7 @@ export const mockCharacters: Character[] = // 캐릭터 기준값
         tags: ["SF", "모험", "동료"], // 검색 태그
         coverImage: "/images/characters/kyle.webp", // 대표 이미지
         visibility: "public", // 공개 범위
+        contentRating: "all", // 이용 등급
         publicationStatus: "published", // 발행 상태
         popularity: 98000, // 대화 지표
         createdAt: "2026-08-21T13:00:00.000Z", // 생성 시각
@@ -102,6 +107,7 @@ export const mockCharacters: Character[] = // 캐릭터 기준값
         tags: ["판타지", "감성", "미스터리"], // 검색 태그
         coverImage: "/images/characters/noah.webp", // 대표 이미지
         visibility: "public", // 공개 범위
+        contentRating: "all", // 이용 등급
         publicationStatus: "published", // 발행 상태
         popularity: 81000, // 대화 지표
         createdAt: "2026-08-24T14:00:00.000Z", // 생성 시각
@@ -121,6 +127,7 @@ export const mockCharacters: Character[] = // 캐릭터 기준값
         tags: ["힐링", "판타지", "일상"], // 검색 태그
         coverImage: "/images/characters/miel.webp", // 대표 이미지
         visibility: "public", // 공개 범위
+        contentRating: "all", // 이용 등급
         publicationStatus: "published", // 발행 상태
         popularity: 65000, // 대화 지표
         createdAt: "2026-08-27T15:00:00.000Z", // 생성 시각
@@ -140,6 +147,7 @@ export const mockCharacters: Character[] = // 캐릭터 기준값
         tags: ["음악", "현대", "로맨스"], // 검색 태그
         coverImage: "/images/characters/yuna.webp", // 대표 이미지
         visibility: "public", // 공개 범위
+        contentRating: "all", // 이용 등급
         publicationStatus: "published", // 발행 상태
         popularity: 59000, // 대화 지표
         createdAt: "2026-08-30T16:00:00.000Z", // 생성 시각
@@ -214,4 +222,5 @@ export const validCharacterDraft: CharacterDraft = // 유효 초안 기준값
     tags: ["힐링", "판타지", "여행"], // 검색 태그
     coverImage: "/images/scenes/fallback-scene.svg", // 대표 이미지
     visibility: "private", // 공개 범위
+    contentRating: "all", // 이용 등급
 }; // 초안 종료

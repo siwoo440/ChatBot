@@ -263,6 +263,26 @@
     background: #ffffff; /* 배지 배경 */
 } /* 배지 종료 */
 
+.badgeRow /* 배지 묶음 */
+{ /* 묶음 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 허용 */
+    gap: 6px; /* 배지 간격 */
+} /* 묶음 종료 */
+
+.badge[data-adult="off"] /* 성인 인증 전 배지 */
+{ /* 꺼짐 시작 */
+    border-color: var(--mv-line); /* 기본 경계 */
+    color: var(--mv-muted); /* 기본 글자 */
+} /* 꺼짐 종료 */
+
+.badge[data-adult="on"] /* 성인 인증 배지 */
+{ /* 켜짐 시작 */
+    border-color: #fda4af; /* 인증 경계 */
+    color: #be123c; /* 인증 글자 */
+    background: #fff1f2; /* 인증 배경 */
+} /* 켜짐 종료 */
+
 .statGrid /* 수치 격자 */
 { /* 격자 시작 */
     display: grid; /* 격자 배치 */

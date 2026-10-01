@@ -5,7 +5,7 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
 { // 함수 시작
     return ( // 초기 상태 반환
     { // 상태 시작
-        schemaVersion: 7, // 스키마 버전
+        schemaVersion: 8, // 스키마 버전
         providerMode: "mock", // Mock 공급자
         profile: structuredClone(mockProfile), // 사용자 복사본
         characters: structuredClone(mockCharacters), // 캐릭터 복사본
@@ -31,6 +31,7 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
             notificationStartTime: "09:00", // 알림 시작 시각
             notificationEndTime: "22:00", // 알림 종료 시각
             dailyNotificationLimit: 3, // 일일 알림 제한
+            matureContentEnabled: false, // 19세 이상 콘텐츠 숨김
         }, // 설정 종료
         bookmarkedCharacterIds: [], // 보관 캐릭터
         memories: [], // 장기 기억 목록

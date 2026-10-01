@@ -4,9 +4,10 @@ import Image from "next/image"; // 이미지 최적화
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"; // 리액트 도구
+import { canViewMatureContent, getDiscoverableCharacters } from "@/features/adult/adult-access"; // 19세 콘텐츠 필터
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { CharacterCard } from "@/features/discovery/CharacterCard"; // 캐릭터 카드
-import { buildCreatorStats, buildTagStats, createExploreHref, findTag, getCharactersByTag, getPublicCharacters, getTagHue, pickDiverseWorks, searchTags, type CreatorStat } from "@/features/explore/explore-model"; // 탐색 계산
+import { buildCreatorStats, buildTagStats, createExploreHref, findTag, getCharactersByTag, getTagHue, pickDiverseWorks, searchTags, type CreatorStat } from "@/features/explore/explore-model"; // 탐색 계산
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
 import styles from "@/features/explore/ExploreScreen.module.css"; // 탐색 스타일
 
@@ -76,7 +77,8 @@ function RowHeading({ id, kicker, title, description }: { id: string; kicker: st
 export function ExploreScreen({ initialTag }: { initialTag: string | null }) // 탐색 화면
 { // 함수 시작
     const { state, dispatch } = useAppStore(); // 앱 상태
-    const characters = useMemo(() => getPublicCharacters(state.characters), [state.characters]); // 공개 작품
+    const showMature = canViewMatureContent(state, new Date()); // 19세 콘텐츠 표시 여부
+    const characters = useMemo(() => getDiscoverableCharacters(state.characters, showMature), [showMature, state.characters]); // 추천 가능한 공개 작품
     const tagStats = useMemo(() => buildTagStats(characters), [characters]); // 태그 통계
     const creators = useMemo(() => buildCreatorStats(characters), [characters]); // 제작자 통계
     const works = useMemo(() => pickDiverseWorks(characters, 12), [characters]); // 추천 작품

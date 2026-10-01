@@ -9,6 +9,14 @@ export type Membership = "free" | "plus" | "creator"; // 멤버십 종류
 export type RelationshipStage = "첫 만남" | "아는 사이" | "가까운 사이" | "특별한 사이"; // 관계 단계
 export type MemoryCategory = "summary" | "event" | "preference"; // 기억 분류
 export type ReportReason = "incorrect-rating" | "harmful-content" | "copyright" | "spam" | "other"; // 신고 사유
+export type AdultVerificationMethod = "mock"; // 성인 인증 방식
+
+export interface AdultVerification // 성인 인증 구조
+{ // 구조 시작
+    method: AdultVerificationMethod; // 인증 방식
+    verifiedAt: string; // 인증 시각
+    expiresAt: string; // 만료 시각
+} // 구조 종료
 
 export interface UserProfile // 사용자 프로필 구조
 { // 구조 시작
@@ -16,6 +24,7 @@ export interface UserProfile // 사용자 프로필 구조
     nickname: string; // 사용자 이름
     avatar: string; // 사용자 이미지
     membership: Membership; // 멤버십 상태
+    adultVerification: AdultVerification | null; // 성인 인증 상태
     createdAt: string; // 가입 시각
 } // 구조 종료
 
@@ -34,6 +43,7 @@ export interface Character // 캐릭터 구조
     tags: string[]; // 검색 태그
     coverImage: string; // 대표 이미지
     visibility: CharacterVisibility; // 공개 범위
+    contentRating: ContentRating; // 이용 등급
     publicationStatus: PublicationStatus; // 발행 상태
     popularity: number; // 대화 지표
     createdAt: string; // 생성 시각
@@ -52,6 +62,7 @@ export interface CharacterDraft // 캐릭터 초안 구조
     tags: string[]; // 검색 태그
     coverImage: string; // 대표 이미지
     visibility: CharacterVisibility; // 공개 범위
+    contentRating: ContentRating; // 이용 등급
 } // 구조 종료
 
 export interface Conversation // 대화방 구조
@@ -206,11 +217,12 @@ export interface AppSettings // 앱 설정 구조
     notificationStartTime: string; // 알림 시작 시각
     notificationEndTime: string; // 알림 종료 시각
     dailyNotificationLimit: number; // 일일 알림 제한
+    matureContentEnabled: boolean; // 19세 이상 콘텐츠 표시
 } // 구조 종료
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 7; // 스키마 버전
+    schemaVersion: 8; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록

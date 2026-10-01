@@ -12,6 +12,7 @@ export function CharacterCard({ character }: { character: Character }) // 캐릭
             <span className={styles.cardMedia}> {/* 이미지 영역 */}
                 <Image src={character.coverImage} alt={character.name} width={360} height={480} /> {/* 대표 이미지 */}
                 <em className={styles.genreChip}>{getGenreLabel(character.tags)}</em> {/* 장르 표시 */}
+                {character.contentRating === "mature" ? <em className={styles.adultChip}>19+</em> : null} {/* 19세 표시 */}
             </span> {/* 이미지 영역 종료 */}
             <div> {/* 카드 설명 */}
                 <h3>{character.name}</h3> {/* 캐릭터 이름 */}

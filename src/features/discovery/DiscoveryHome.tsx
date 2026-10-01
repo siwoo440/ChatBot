@@ -1,6 +1,7 @@
 "use client"; // 클라이언트 컴포넌트
 
 import { useMemo, useState } from "react"; // 리액트 상태
+import { canViewMatureContent, getDiscoverableCharacters } from "@/features/adult/adult-access"; // 19세 콘텐츠 필터
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { CategoryFilter } from "@/features/discovery/CategoryFilter"; // 카테고리 필터
 import { CharacterRail } from "@/features/discovery/CharacterRail"; // 캐릭터 레일
@@ -17,21 +18,19 @@ export function DiscoveryHome() // 탐색 홈
     const [query, setQuery] = useState(""); // 검색어
     const [category, setCategory] = useState("전체"); // 선택 카테고리
     const [visibleCount, setVisibleCount] = useState(pageSize); // 표시 항목 수
+    const showMature = canViewMatureContent(state, new Date()); // 19세 콘텐츠 표시 여부
+    const discoverable = useMemo(() => getDiscoverableCharacters(state.characters, showMature), [showMature, state.characters]); // 추천 가능한 캐릭터
     const filtered = useMemo(() => // 필터 결과
     { // 계산 시작
         const normalized = query.trim().toLowerCase(); // 검색어 정규화
-        return state.characters.filter((character) => // 캐릭터 필터
+        return discoverable.filter((character) => // 캐릭터 필터
         { // 필터 시작
-            if (character.publicationStatus !== "published" || character.visibility !== "public") // 공개 상태 판정
-            { // 조건 시작
-                return false; // 비공개 항목 제외
-            } // 조건 종료
             const categoryMatch = category === "전체" || character.tags.includes(category); // 카테고리 일치
             const searchTarget = `${character.name} ${character.summary} ${character.worldSetting} ${character.tags.join(" ")}`.toLowerCase(); // 검색 대상
             return categoryMatch && (normalized.length === 0 || searchTarget.includes(normalized)); // 복합 결과
         }); // 필터 종료
-    }, [category, query, state.characters]); // 필터 의존
-    const publicCount = state.characters.filter((character) => character.publicationStatus === "published" && character.visibility === "public").length; // 공개 캐릭터 수
+    }, [category, discoverable, query]); // 필터 의존
+    const publicCount = discoverable.length; // 공개 캐릭터 수
     const defaultView = query.length === 0 && category === "전체"; // 기본 화면 판정
     const rankingCharacters = defaultView ? filtered.slice(0, 10) : []; // 상위 랭킹 목록
     const browsableCharacters = defaultView ? filtered.slice(10) : filtered; // 탐색 대상 목록

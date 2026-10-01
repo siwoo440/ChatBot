@@ -5,6 +5,7 @@ import Image from "next/image"; // 최적화 이미지
 import type { Route } from "next"; // 경로 타입
 import { useEffect, useMemo, useState } from "react"; // 리액트 도구
 import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
+import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
 import { CharacterPreview } from "@/features/character/CharacterPreview"; // 미리보기
 import { normalizeCharacterDraft, validateCharacterDraft, type CharacterValidationResult } from "@/features/character/character-validation"; // 초안 검증
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
@@ -27,6 +28,7 @@ function createEmptyDraft(): CharacterDraft // 빈 초안 생성
         tags: [], // 빈 태그
         coverImage: imageOptions[0], // 기본 이미지
         visibility: "private", // 기본 공개 범위
+        contentRating: "all", // 기본 이용 등급
     }); // 초안 종료
 } // 함수 종료
 
@@ -44,6 +46,7 @@ function toDraft(character: Character): CharacterDraft // 캐릭터 초안 변�
         tags: [...character.tags], // 태그 복사
         coverImage: character.coverImage, // 이미지 복사
         visibility: character.visibility, // 공개 범위 복사
+        contentRating: character.contentRating, // 이용 등급 복사
     }); // 초안 종료
 } // 함수 종료
 
@@ -57,6 +60,7 @@ export function CharacterEditor({ characterId }: { characterId?: string }) // �
     const [notice, setNotice] = useState(""); // 저장 안내
     const [savedId] = useState(() => existing?.id ?? `character-${Date.now()}`); // 저장 식별자
     const [dirty, setDirty] = useState(false); // 변경 표시
+    const adultVerified = isAdultVerified(state.profile, new Date()); // 성인 인증 상태
     useEffect(() => // 이탈 경고 효과
     { // 효과 시작
         const warn = (event: BeforeUnloadEvent) => // 이탈 처리
@@ -129,6 +133,12 @@ export function CharacterEditor({ characterId }: { characterId?: string }) // �
         const normalized = normalizeCharacterDraft(draft); // 초안 정규화
         const validation = validateCharacterDraft(normalized); // 초안 검증
         setResult(validation); // 검증 결과 반영
+        if (validation.valid && normalized.contentRating === "mature" && !adultVerified) // 인증 없는 19세 등급 판정
+        { // 조건 시작
+            setResult({ valid: false, errors: { contentRating: "19세 이용가는 성인 인증 후 선택할 수 있습니다." } }); // 등급 오류 반영
+            setNotice("입력 내용을 확인해 주세요."); // 오류 안내
+            return; // 저장 중단
+        } // 조건 종료
         if (!validation.valid) // 오류 판정
         { // 조건 시작
             setNotice("입력 내용을 확인해 주세요."); // 오류 안내
@@ -182,6 +192,9 @@ export function CharacterEditor({ characterId }: { characterId?: string }) // �
                     </fieldset> {/* 이미지 종료 */}
                     {error("coverImage")} {/* 이미지 오류 */}
                     <label>공개 범위<select value={draft.visibility} onChange={(event) => update("visibility", event.target.value as CharacterDraft["visibility"])}><option value="private">비공개</option><option value="unlisted">링크 공개</option><option value="public">전체 공개</option></select></label> {/* 공개 범위 */}
+                    <label>이용 등급<select value={draft.contentRating} aria-describedby="rating-hint" onChange={(event) => update("contentRating", event.target.value as CharacterDraft["contentRating"])}><option value="all">전체 이용가</option><option value="teen">15세 이용가</option><option value="mature" disabled={!adultVerified}>19세 이용가</option></select></label> {/* 이용 등급 */}
+                    <p id="rating-hint" className={styles.hint}>{adultVerified ? "19세 이용가 캐릭터는 19+를 켠 성인 인증 사용자에게만 보입니다." : "19세 이용가는 성인 인증 후 선택할 수 있습니다."}</p> {/* 등급 안내 */}
+                    {error("contentRating")} {/* 등급 오류 */}
                     <div className={styles.actions}> {/* 저장 동작 */}
                         <button type="button" className={styles.secondary} onClick={() => save("draft")}>임시 저장</button> {/* 임시 저장 */}
                         <button type="button" className={styles.primary} onClick={() => save("published")}>공개 저장</button> {/* 공개 저장 */}

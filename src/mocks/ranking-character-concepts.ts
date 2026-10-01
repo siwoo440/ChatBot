@@ -1,4 +1,4 @@
-import type { Character } from "@/features/core/types"; // 캐릭터 타입
+import type { Character, ContentRating } from "@/features/core/types"; // 캐릭터 타입
 
 export interface RankingCharacterConcept // 랭킹 콘셉트 구조
 { // 구조 시작
@@ -8,6 +8,8 @@ export interface RankingCharacterConcept // 랭킹 콘셉트 구조
     signature: string; // 대표 소품
     palette: string; // 대표 색상
     tags: [string, string, string]; // 검색 태그
+    rating?: ContentRating; // 이용 등급
+    warnings?: string[]; // 콘텐츠 주의
 } // 구조 종료
 
 export const rankingCharacterConcepts: RankingCharacterConcept[] = // 랭킹 콘셉트 목록
@@ -21,10 +23,10 @@ export const rankingCharacterConcepts: RankingCharacterConcept[] = // 랭킹 콘
     { name: "에드윈", role: "왕실 시계공", setting: "황동 시계 도시", signature: "심장처럼 뛰는 태엽 회중시계", palette: "황동색과 청록색", tags: ["스팀펑크", "시간", "장인"] }, // 14위 콘셉트
     { name: "채운", role: "달그림자 사진가", setting: "달빛 사진관", signature: "그림자를 담는 고전 카메라", palette: "은색과 검은색", tags: ["현대", "예술", "미스터리"] }, // 15위 콘셉트
     { name: "로제", role: "마법 식물 플로리스트", setting: "유리 온실", signature: "빛나는 장미 전지가위", palette: "장미색과 초록색", tags: ["판타지", "자연", "로맨스"] }, // 16위 콘셉트
-    { name: "태오", role: "네온 골목 탐정", setting: "비 내리는 미래 도시", signature: "홀로그램 단서 렌즈", palette: "청록색과 자홍색", tags: ["SF", "추리", "현대"] }, // 17위 콘셉트
+    { name: "태오", role: "네온 골목 탐정", setting: "비 내리는 미래 도시", signature: "홀로그램 단서 렌즈", palette: "청록색과 자홍색", tags: ["SF", "추리", "현대"], rating: "mature", warnings: ["범죄 수사", "폭력 묘사"] }, // 17위 콘셉트 (19세)
     { name: "리브", role: "심해 우편 잠수사", setting: "해저 우편 기지", signature: "방수 황동 우편 가방", palette: "심해색과 노란색", tags: ["모험", "바다", "판타지"] }, // 18위 콘셉트
     { name: "아샤", role: "사막 별 관측자", setting: "유리 사막 천문대", signature: "별모래가 흐르는 천구의", palette: "남보라색과 모래색", tags: ["판타지", "천문", "여행"] }, // 19위 콘셉트
-    { name: "준호", role: "마지막 지하철 기관사", setting: "폐선된 자정 승강장", signature: "붉은 신호등 랜턴", palette: "암적색과 철회색", tags: ["현대", "미스터리", "도시"] }, // 20위 콘셉트
+    { name: "준호", role: "마지막 지하철 기관사", setting: "폐선된 자정 승강장", signature: "붉은 신호등 랜턴", palette: "암적색과 철회색", tags: ["현대", "미스터리", "도시"], rating: "mature", warnings: ["공포 연출", "실종 사건"] }, // 20위 콘셉트 (19세)
     { name: "벨라", role: "마법 서점 주인", setting: "움직이는 골목 서점", signature: "스스로 펼쳐지는 금장 책", palette: "버건디색과 금색", tags: ["판타지", "책", "마법"] }, // 21위 콘셉트
     { name: "시온", role: "번개 용 기사", setting: "폭풍 산맥의 성채", signature: "푸른 번개가 흐르는 창", palette: "코발트색과 은색", tags: ["판타지", "기사", "모험"] }, // 22위 콘셉트
     { name: "아린", role: "눈꽃 디저트 요리사", setting: "설국의 작은 주방", signature: "결정 얼음 설탕 공예", palette: "흰색과 연분홍색", tags: ["힐링", "요리", "판타지"] }, // 23위 콘셉트
@@ -34,7 +36,7 @@ export const rankingCharacterConcepts: RankingCharacterConcept[] = // 랭킹 콘
     { name: "세린", role: "시간 박물관 큐레이터", setting: "멈춘 시계 박물관", signature: "과거를 비추는 수정 모래시계", palette: "남색과 금색", tags: ["시간", "미스터리", "판타지"] }, // 27위 콘셉트
     { name: "오스카", role: "괴물 호텔 컨시어지", setting: "안개 낀 이종족 호텔", signature: "열세 개의 방 열쇠", palette: "자주색과 황동색", tags: ["판타지", "호텔", "코미디"] }, // 28위 콘셉트
     { name: "유리", role: "새벽 열차 차장", setting: "별 사이를 달리는 열차", signature: "은빛 승차권 펀치", palette: "남색과 은색", tags: ["여행", "판타지", "힐링"] }, // 29위 콘셉트
-    { name: "카인", role: "금서 수호자", setting: "봉인된 지하 대서고", signature: "사슬로 잠긴 검은 책", palette: "검은색과 보라색", tags: ["판타지", "책", "미스터리"] }, // 30위 콘셉트
+    { name: "카인", role: "금서 수호자", setting: "봉인된 지하 대서고", signature: "사슬로 잠긴 검은 책", palette: "검은색과 보라색", tags: ["판타지", "책", "미스터리"], rating: "mature", warnings: ["어두운 판타지", "저주 소재"] }, // 30위 콘셉트 (19세)
     { name: "다온", role: "유령 우체국 집배원", setting: "새벽의 유령 마을", signature: "푸른 불꽃 우편함", palette: "청록색과 회색", tags: ["판타지", "유령", "편지"] }, // 31위 콘셉트
     { name: "루카", role: "모래시계 연금술사", setting: "사막 탑 연구실", signature: "시간을 굳히는 붉은 모래", palette: "적갈색과 금색", tags: ["연금술", "시간", "판타지"] }, // 32위 콘셉트
     { name: "해나", role: "별빛 재봉사", setting: "은하수 옷감 공방", signature: "별자리를 꿰매는 금빛 실", palette: "감청색과 금색", tags: ["판타지", "패션", "별"] }, // 33위 콘셉트
@@ -60,13 +62,13 @@ export const rankingCharacterConcepts: RankingCharacterConcept[] = // 랭킹 콘
     { name: "로웬", role: "안개 저택 식물학자", setting: "버려진 빅토리아 온실", signature: "밤에 피는 검은 난초", palette: "검은색과 초록색", tags: ["고딕", "자연", "미스터리"] }, // 53위 콘셉트
     { name: "서아", role: "폐극장 의상 복원가", setting: "먼지 쌓인 왕립 극장", signature: "기억이 남은 진홍색 무대 의상", palette: "진홍색과 금색", tags: ["고딕", "패션", "예술"] }, // 54위 콘셉트
     { name: "하율", role: "등대 암호 해독가", setting: "폭풍 절벽의 등대", signature: "빛 신호가 새겨진 암호 수첩", palette: "남색과 흰색", tags: ["미스터리", "바다", "추리"] }, // 55위 콘셉트
-    { name: "비비안", role: "초상화 속 귀족", setting: "시간이 멈춘 저택 화랑", signature: "금이 간 금장 액자", palette: "버건디색과 금색", tags: ["고딕", "유령", "로맨스"] }, // 56위 콘셉트
+    { name: "비비안", role: "초상화 속 귀족", setting: "시간이 멈춘 저택 화랑", signature: "금이 간 금장 액자", palette: "버건디색과 금색", tags: ["고딕", "유령", "로맨스"], rating: "mature", warnings: ["고딕 공포", "죽음 소재"] }, // 56위 콘셉트 (19세)
     { name: "건우", role: "지하 기록 보관원", setting: "도시 아래 비밀 문서고", signature: "삭제된 사건의 붉은 파일", palette: "회색과 적색", tags: ["현대", "기록", "추리"] }, // 57위 콘셉트
     { name: "이솔", role: "꿈속 사건 프로파일러", setting: "무의식 수사국", signature: "꿈의 장면을 잇는 은색 실", palette: "보라색과 회색", tags: ["미스터리", "꿈", "추리"] }, // 58위 콘셉트
     { name: "카미유", role: "가면무도회 바이올리니스트", setting: "달빛 가면 궁전", signature: "검은 장미가 감긴 바이올린", palette: "검은색과 장미색", tags: ["고딕", "음악", "로맨스"] }, // 59위 콘셉트
-    { name: "주원", role: "적막 호텔 벨보이", setting: "손님이 사라진 오래된 호텔", signature: "아무도 없는 방의 황동 열쇠", palette: "암녹색과 황동색", tags: ["미스터리", "호텔", "유령"] }, // 60위 콘셉트
+    { name: "주원", role: "적막 호텔 벨보이", setting: "손님이 사라진 오래된 호텔", signature: "아무도 없는 방의 황동 열쇠", palette: "암녹색과 황동색", tags: ["미스터리", "호텔", "유령"], rating: "mature", warnings: ["공포 연출", "고립된 공간"] }, // 60위 콘셉트 (19세)
     { name: "엘라", role: "오래된 인형 의사", setting: "골동품 인형 병원", signature: "도자기 심장을 고치는 은색 도구", palette: "아이보리색과 분홍색", tags: ["고딕", "장인", "힐링"] }, // 61위 콘셉트
-    { name: "민재", role: "괴담 서커스 조명감독", setting: "자정에만 열리는 서커스", signature: "그림자를 움직이는 스포트라이트", palette: "보라색과 적색", tags: ["미스터리", "서커스", "예술"] }, // 62위 콘셉트
+    { name: "민재", role: "괴담 서커스 조명감독", setting: "자정에만 열리는 서커스", signature: "그림자를 움직이는 스포트라이트", palette: "보라색과 적색", tags: ["미스터리", "서커스", "예술"], rating: "mature", warnings: ["괴담 공포", "잔혹한 장면 암시"] }, // 62위 콘셉트 (19세)
     { name: "셀린", role: "비밀 정원 문지기", setting: "벽 너머의 금지된 정원", signature: "덩굴무늬 은색 열쇠", palette: "초록색과 은색", tags: ["고딕", "정원", "판타지"] }, // 63위 콘셉트
     { name: "노엘", role: "겨울 장례식 꽃장식가", setting: "눈 내리는 북부 묘원", signature: "녹지 않는 흰 동백꽃", palette: "흰색과 청회색", tags: ["고딕", "꽃", "감성"] }, // 64위 콘셉트
     { name: "단비", role: "바람 약국 약초사", setting: "초원 언덕의 작은 약국", signature: "바람 소리가 든 약초병", palette: "초록색과 하늘색", tags: ["힐링", "자연", "일상"] }, // 65위 콘셉트
@@ -107,6 +109,8 @@ export const rankingCharacterConcepts: RankingCharacterConcept[] = // 랭킹 콘
     { name: "실베르", role: "번개 발전소 지휘자", setting: "폭풍 구름 에너지 탑", signature: "전류를 지휘하는 황동 지팡이", palette: "청색과 금색", tags: ["스팀펑크", "번개", "기술"] }, // 100위 콘셉트
 ]; // 목록 종료
 
+export const rankingContentWarnings: Record<string, string[]> = Object.fromEntries(rankingCharacterConcepts.flatMap((concept, index) => concept.warnings === undefined ? [] : [[`rank-${String(index + 8).padStart(3, "0")}`, concept.warnings]])); // 랭킹 캐릭터 주의 목록
+
 const placeholderImages = ["rian", "harin", "sera", "kyle", "noah", "miel", "yuna"].map((id) => `/images/characters/${id}.webp`); // 임시 이미지 목록
 const personalities = ["차분하고 세심하며 상대의 선택을 존중한다.", "활기차고 솔직하며 위기에서도 유머를 잃지 않는다.", "신비롭고 관찰력이 좋으며 천천히 신뢰를 쌓는다.", "다정하고 현실적이며 작은 변화를 잘 알아챈다.", "대담하고 호기심이 많으며 새로운 모험을 즐긴다."]; // 성격 목록
 
@@ -131,6 +135,7 @@ export const generatedRankingCharacters: Character[] = rankingCharacterConcepts.
         tags: [...concept.tags], // 검색 태그
         coverImage, // 대표 이미지
         visibility: "public", // 공개 범위
+        contentRating: concept.rating ?? "all", // 이용 등급
         publicationStatus: "published", // 발행 상태
         popularity: 58000 - index * 540, // 대화 지표
         createdAt: "2026-09-01T00:00:00.000Z", // 생성 시각

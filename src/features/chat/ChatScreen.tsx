@@ -4,6 +4,8 @@ import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
 import { useEffect, useState } from "react"; // 리액트 도구
 import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
+import { isCharacterLocked } from "@/features/adult/adult-access"; // 19세 잠금 판정
+import { AdultContentGate } from "@/features/adult/AdultContentGate"; // 19세 잠금 화면
 import { useRouter } from "next/navigation"; // 경로 이동 도구
 import { ChatComposer } from "@/features/chat/ChatComposer"; // 채팅 입력
 import { ChatController, type ChatProgress, type EditMessageResult, type SendResult } from "@/features/chat/chat-controller"; // 채팅 제어기
@@ -34,7 +36,8 @@ interface ChatScreenProps // 채팅 화면 속성
 export function ChatScreen(props: ChatScreenProps) // 채팅 화면
 { // 함수 시작
     const { state } = useAppStore(); // 앱 상태
-    if (!state.characters.some((item) => item.id === props.characterId)) // 캐릭터 부재 판정
+    const character = state.characters.find((item) => item.id === props.characterId); // 대화 캐릭터 조회
+    if (character === undefined) // 캐릭터 부재 판정
     { // 조건 시작
         return ( // 부재 화면 반환
             <StatusScreen tone="not-found" label="CHARACTER NOT FOUND" title="대화할 캐릭터를 찾을 수 없습니다" description="주소가 잘못되었거나 이 브라우저에서 삭제된 캐릭터입니다. 탐색 화면에서 다른 캐릭터를 골라 주세요."> {/* 부재 안내 */}
@@ -42,6 +45,10 @@ export function ChatScreen(props: ChatScreenProps) // 채팅 화면
                 <Link href={"/library" as Route}>보관함 열기</Link> {/* 보관함 링크 */}
             </StatusScreen> // 부재 안내 종료
         ); // 반환 종료
+    } // 조건 종료
+    if (isCharacterLocked(character, state, new Date())) // 19세 잠금 판정
+    { // 조건 시작
+        return <AdultContentGate character={character} target="chat" />; // 잠금 화면 반환
     } // 조건 종료
     return <ChatConversationScreen {...props} />; // 대화 화면 반환
 } // 함수 종료

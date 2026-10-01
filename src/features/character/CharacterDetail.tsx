@@ -5,6 +5,8 @@ import type { Route } from "next"; // 경로 타입
 import { useRouter } from "next/navigation"; // 경로 이동 도구
 import { useRef, useState, type CSSProperties } from "react"; // 리액트 상태 도구
 import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
+import { canViewMatureContent, isMatureCharacter } from "@/features/adult/adult-access"; // 19세 콘텐츠 판정
+import { AdultContentGate } from "@/features/adult/AdultContentGate"; // 19세 잠금 화면
 import { CharacterActionBar } from "@/features/character/CharacterActionBar"; // 하단 대화 동작
 import { CharacterDiscoverySections } from "@/features/character/CharacterDiscoverySections"; // 탐색 보조 섹션
 import { CharacterHero } from "@/features/character/CharacterHero"; // 캐릭터 히어로
@@ -41,11 +43,17 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
             </StatusScreen> // 부재 안내 종료
         ); // 반환 종료
     } // 조건 종료
+    const showMature = canViewMatureContent(state, new Date()); // 19세 콘텐츠 표시 여부
+    if (isMatureCharacter(character) && !showMature) // 잠긴 캐릭터 판정
+    { // 조건 시작
+        return <AdultContentGate character={character} target="detail" />; // 잠금 화면 반환
+    } // 조건 종료
+    const visibleCharacters = showMature ? state.characters : state.characters.filter((item) => !isMatureCharacter(item)); // 등급 허용 캐릭터
     const profile = initialProfile; // 상세 프로필 확정
     const selectedPreset = profile.startPresets.find((preset) => preset.id === selectedPresetId) ?? profile.startPresets[0]; // 선택 프리셋 조회
     const selectedPrologue = profile.prologues.find((prologue) => prologue.id === selectedPreset?.prologueId) ?? profile.prologues[0]; // 선택 프롤로그 조회
     const latestConversation = getLatestActiveConversation(state.conversations, character.id); // 최근 대화 조회
-    const relatedCharacters = getRelatedCharacters(character, state.characters, 8); // 연관 캐릭터 조회
+    const relatedCharacters = getRelatedCharacters(character, visibleCharacters, 8); // 연관 캐릭터 조회
     const continueConversation = () => // 최근 대화 이어가기
     { // 함수 시작
         if (latestConversation === null) // 최근 대화 부재 확인
@@ -110,7 +118,7 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
                 <CharacterStoryInfo character={character} profile={profile} /> {/* 스토리 정보 */}
                 <ConversationSetup profile={state.profile} presets={profile.startPresets} selectedProfileId={selectedProfileId} selectedPresetId={selectedPreset?.id ?? ""} onProfileChange={setSelectedProfileId} onPresetChange={setSelectedPresetId} /> {/* 시작 설정 */}
                 {selectedPrologue === undefined || selectedPreset === undefined ? null : <ProloguePreview key={selectedPrologue.id} prologue={selectedPrologue} presetName={selectedPreset.name} fallbackImage={character.coverImage} characterName={character.name} />} {/* 프롤로그 미리보기 */}
-                <CharacterDiscoverySections profile={profile} userProfile={state.profile} characters={state.characters} relatedCharacters={relatedCharacters} /> {/* 업데이트와 탐색 */}
+                <CharacterDiscoverySections profile={profile} userProfile={state.profile} characters={visibleCharacters} relatedCharacters={relatedCharacters} /> {/* 업데이트와 탐색 */}
                 <CharacterActionBar latestConversation={latestConversation} creating={creating} onContinue={continueConversation} onStart={startConversation} /> {/* 대화 동작 */}
             </div> {/* 상세 내용 종료 */}
             {reportOpen ? <CharacterReportDialog characterName={character.name} reason={reportReason} onReasonChange={setReportReason} onCancel={closeReport} onSubmit={submitReport} /> : null} {/* 신고 창 */}

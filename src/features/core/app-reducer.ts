@@ -1,5 +1,6 @@
 import { removeMessageFromVersion, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 변경 함수
-import type { AppSettings, AppState, Character, CharacterReport, Conversation, ConversationVersion, Message, PublicationStatus, UserProfile } from "@/features/core/types"; // 상태 타입
+import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
+import type { AdultVerification, AppSettings, AppState, Character, CharacterReport, Conversation, ConversationVersion, Message, PublicationStatus, UserProfile } from "@/features/core/types"; // 상태 타입
 import { trySpend, type TokenAction } from "@/lib/story/token-policy"; // 토큰 정책
 
 export type AppAction = // 앱 동작
@@ -8,6 +9,9 @@ export type AppAction = // 앱 동작
     | { type: "close-panels" } // 전체 패널 닫기
     | { type: "update-settings"; settings: Partial<AppSettings> } // 설정 변경
     | { type: "update-profile"; profile: Pick<UserProfile, "nickname" | "avatar"> } // 프로필 변경
+    | { type: "verify-adult"; verification: AdultVerification; enableMatureContent: boolean } // 성인 인증 완료
+    | { type: "revoke-adult-verification" } // 성인 인증 해제
+    | { type: "set-mature-content"; enabled: boolean; now: string } // 19세 콘텐츠 표시 전환
     | { type: "add-message"; message: Message } // 메시지 추가
     | { type: "upsert-conversation"; conversation: Conversation } // 대화방 저장
     | { type: "upsert-character"; character: Character } // 캐릭터 저장
@@ -43,6 +47,16 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             return { ...state, settings: { ...state.settings, ...action.settings } }; // 병합 상태 반환
         case "update-profile": // 프로필 변경
             return { ...state, profile: { ...state.profile, ...action.profile } }; // 프로필 상태 반환
+        case "verify-adult": // 성인 인증 완료
+            return { ...state, profile: { ...state.profile, adultVerification: structuredClone(action.verification) }, settings: { ...state.settings, matureContentEnabled: action.enableMatureContent || state.settings.matureContentEnabled } }; // 인증 상태 반환
+        case "revoke-adult-verification": // 성인 인증 해제
+            return { ...state, profile: { ...state.profile, adultVerification: null }, settings: { ...state.settings, matureContentEnabled: false } }; // 해제 상태 반환
+        case "set-mature-content": // 19세 콘텐츠 표시 전환
+            if (action.enabled && !isAdultVerified(state.profile, new Date(action.now))) // 인증 없는 켜기 판정
+            { // 조건 시작
+                return state; // 기존 상태 반환
+            } // 조건 종료
+            return { ...state, settings: { ...state.settings, matureContentEnabled: action.enabled } }; // 표시 상태 반환
         case "add-message": // 메시지 추가
             return { ...state, messages: [...state.messages, action.message] }; // 메시지 상태 반환
         case "upsert-conversation": // 대화방 저장
