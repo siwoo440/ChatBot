@@ -37,7 +37,7 @@ export function MobileBottomNavigation({ onNavigate }: { onNavigate(): void }) /
             <Link href="/" aria-current={pathname === "/" && !rankingActive ? "page" : undefined} onClick={navigateHome}>홈</Link> {/* 홈 링크 */}
             <Link href={"/#ranking" as Route} aria-current={rankingActive ? "page" : undefined} onClick={navigateRanking}>랭킹</Link> {/* 랭킹 링크 */}
             <Link href={"/characters/new" as Route} aria-current={pathname === "/characters/new" ? "page" : undefined} onClick={onNavigate}>만들기</Link> {/* 제작 링크 */}
-            <Link href={"/text-play/download" as Route} aria-current={pathname === "/text-play/download" ? "page" : undefined} onClick={onNavigate}>Text-Play</Link> {/* Text-Play 링크 */}
+            <Link href="/text-play" aria-current={pathname === "/text-play" ? "page" : undefined} onClick={onNavigate}>Text-Play</Link> {/* Text-Play 링크 */}
             <Link href={"/library" as Route} aria-current={pathname === "/library" ? "page" : undefined} onClick={onNavigate}>보관함</Link> {/* 보관함 링크 */}
         </nav> // 메뉴 종료
     ); // 반환 종료

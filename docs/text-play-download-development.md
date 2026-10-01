@@ -1,7 +1,7 @@
 ---
 # MATE Text-Play Windows 다운로드 페이지 개발 문서
 
-이 문서는 `codex/text-play-download` 브랜치에 구현된 MATE Text-Play 소개 화면과 Windows 다운로드 확인 화면을 처음 접하는 개발자가 구조, 데이터 흐름, 수정 지점, 테스트 방법, 배포 전 준비 사항까지 한 번에 이해할 수 있도록 정리한 개발 문서다.
+이 문서는 `main` 브랜치의 MATE Text-Play 페이지를 처음 접하는 개발자가 구조, 데이터 흐름, 수정 지점, 테스트 방법, 배포 전 준비 사항까지 한 번에 이해할 수 있도록 정리한 개발 문서다. 처음에는 제품 소개(`/text-play`)와 Windows 다운로드 확인(`/text-play/download`)이 별도 화면이었지만, 현재는 소개와 다운로드를 `/text-play` 한 페이지로 통합했다.
 
 확인되지 않은 실제 배포 정보는 추측하지 않는다. 설치 파일, 버전, 용량, 게시일, 코드 서명, 해시, 지원 Windows 버전, 최소 시스템 요구사항은 현재 `확인 필요` 상태다.
 
@@ -11,8 +11,9 @@
 | 항목 | 값 |
 | --- | --- |
 | 저장소 | `siwoo440/ChatBot` |
-| 작업 브랜치 | `codex/text-play-download` |
+| 기준 브랜치 | `main` |
 | 기준 | 이 문서가 포함된 현재 브랜치의 `HEAD` |
+| 페이지 구성 | 소개와 다운로드를 합친 단일 페이지 `/text-play` |
 | 구현 프레임워크 | Next.js App Router |
 | 기본 언어 | TypeScript, React, CSS Modules |
 | 현재 배포 상태 | 다운로드 준비 중 |
@@ -23,12 +24,13 @@
 ---
 ## 2. 구현 목적
 
-이번 개발의 목적은 기존 Mate Verse Character Chat 웹 앱 안에 Text-Play 제품 소개와 Windows 프로그램 다운로드 확인 흐름을 추가하는 것이다.
+이번 개발의 목적은 기존 Mate Verse Character Chat 웹 앱 안에 Text-Play 제품 소개와 Windows 프로그램 다운로드 확인 흐름을 한 페이지로 제공하는 것이다.
 
 사용자는 다음 작업을 할 수 있다.
 
-- 상단 공통 메뉴에서 Text-Play 홈으로 이동
-- Text-Play 홈에서 Windows 다운로드 확인 화면으로 이동
+- 상단 공통 메뉴의 `Text-Play 다운로드` 또는 모바일 하단 메뉴의 `Text-Play`로 페이지 이동
+- 첫 화면에서 제품 소개, 배포 상태, 다운로드 버튼을 함께 확인
+- `다운로드 정보 보기` 링크로 같은 페이지의 다운로드 정보 영역으로 이동
 - 현재 배포 상태 확인
 - 버전, 채널, 파일 형식, 용량, 게시일, 파일명 확인
 - 지원 Windows와 최소 시스템 요구사항 확인
@@ -45,8 +47,8 @@
 ---
 ### 구현 범위
 
-- `/text-play` 제품 소개 페이지
-- `/text-play/download` Windows 다운로드 확인 페이지
+- `/text-play` 제품 소개와 Windows 다운로드 확인을 합친 단일 페이지
+- 이전 주소 `/text-play/download`의 `/text-play` 영구 이동(HTTP 308)
 - 공통 데스크톱 헤더 메뉴 연결
 - 모바일 하단 메뉴 연결
 - 정적 배포 설정 모듈
@@ -110,8 +112,9 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 
 | 화면 | 기본 주소 |
 | --- | --- |
-| Text-Play 홈 | `http://localhost:3000/text-play` |
-| Windows 다운로드 | `http://localhost:3000/text-play/download` |
+| Text-Play 소개·다운로드 | `http://localhost:3000/text-play` |
+| 다운로드 정보 영역 바로가기 | `http://localhost:3000/text-play#download-info` |
+| 이전 다운로드 주소(이동 확인용) | `http://localhost:3000/text-play/download` → `/text-play`로 308 이동 |
 
 ---
 ## 6. 전체 구조
@@ -120,58 +123,74 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 
 1. `src/app/layout.tsx`가 모든 화면을 `AppProvider`와 `AppShell`로 감싼다.
 2. `AppShell`이 공통 헤더, 대화방 패널, 사용자 패널, 모바일 하단 메뉴를 제공한다.
-3. `/text-play`는 `TextPlayHomeScreen`을 렌더링한다.
-4. `/text-play/download`는 `TextPlayDownloadScreen`을 렌더링한다.
-5. `TextPlayDownloadScreen`은 `release-config.ts`의 단일 설정 객체를 읽는다.
-6. `DownloadAction`이 다운로드 URL의 유효성을 검사해 버튼 또는 링크를 출력한다.
-7. `TextPlayScreen.module.css`가 Text-Play 두 화면의 공통 디자인과 반응형 동작을 담당한다.
+3. `/text-play`는 `TextPlayScreen`을 렌더링한다.
+4. `next.config.ts`의 `redirects()`가 이전 주소 `/text-play/download` 요청을 `/text-play`로 영구 이동시킨다.
+5. `TextPlayScreen`은 `release-config.ts`의 단일 설정 객체를 읽는다.
+6. `DownloadAction`이 다운로드 URL의 유효성을 검사해 버튼 또는 링크를 출력한다. 페이지 안에서 상단 히어로에 한 번만 사용된다.
+7. `TextPlayScreen.module.css`가 Text-Play 페이지의 디자인과 반응형 동작을 담당한다.
 
 이 구조에서 화면과 배포 데이터가 분리되어 있으므로, 향후 정적 객체를 API 응답으로 교체할 때 화면 전체를 다시 작성하지 않아도 된다.
 
 ---
 ## 7. 라우팅 구조
 
-| URL | 페이지 파일 | 화면 컴포넌트 | 역할 |
+| URL | 페이지 파일 또는 설정 | 화면 컴포넌트 | 역할 |
 | --- | --- | --- | --- |
-| `/text-play` | `src/app/text-play/page.tsx` | `TextPlayHomeScreen` | 제품 개요와 핵심 흐름 소개 |
-| `/text-play/download` | `src/app/text-play/download/page.tsx` | `TextPlayDownloadScreen` | 배포 정보, 다운로드, 설치, 안전 정보 제공 |
-| `/` | 기존 홈 | 기존 Character Chat | 하단 메뉴에서 돌아갈 수 있는 기존 서비스 |
+| `/text-play` | `src/app/text-play/page.tsx` | `TextPlayScreen` | 제품 소개, 다운로드 버튼, 배포·안전 정보, 설치 순서, FAQ를 한 페이지로 제공 |
+| `/text-play/download` | `next.config.ts`의 `redirects()` | 없음 | `/text-play`로 영구 이동(`permanent: true`, HTTP 308) |
+| `/` | 기존 홈 | 기존 Character Chat | 히어로와 하단 메뉴에서 돌아갈 수 있는 기존 서비스 |
 
-두 App Router 페이지는 각각 `Metadata`를 제공한다.
+`/text-play/download` 페이지 파일은 삭제됐다. 이전 링크와 북마크가 계속 동작하도록 `next.config.ts`에 다음 이동 규칙을 둔다.
 
-- Text-Play 홈 제목: `MATE Text-Play | Mate Verse`
-- 다운로드 화면 제목: `Text-Play Windows 다운로드 | Mate Verse`
-- 각 화면에는 검색 결과와 브라우저 탭에 사용되는 설명이 포함된다.
+```ts
+{ source: "/text-play/download", destination: "/text-play", permanent: true }
+```
+
+`permanent: true`이므로 Next.js는 HTTP 308 응답을 보낸다. 브라우저와 검색 엔진이 이동을 캐시할 수 있으므로, 나중에 `/text-play/download` 경로를 다시 실제 페이지로 쓰려면 이 규칙의 영향부터 검토해야 한다.
+
+`src/app/text-play/page.tsx`는 다음 `Metadata`를 제공한다.
+
+- 제목: `MATE Text-Play 다운로드 | Mate Verse`
+- 설명: Windows용 텍스트 게임 프로그램 MATE Text-Play의 소개, 배포 상태, 안전 정보와 설치 순서
 
 ---
-## 8. 이번 커밋의 파일 목록
+## 8. Text-Play 관련 파일 목록
 
-이번 기능 커밋은 13개 코드·테스트 파일을 추가 또는 수정한다. 이 문서가 추가되면 총 변경 파일 수는 14개가 된다.
+현재 Text-Play 기능을 구성하는 코드·설정·테스트 파일은 다음과 같다.
 
 ---
-### 새로 추가된 파일
+### Text-Play 전용 파일
 
 | 파일 | 역할 |
 | --- | --- |
-| `src/app/text-play/page.tsx` | Text-Play 홈 라우트와 메타데이터 정의 |
-| `src/app/text-play/download/page.tsx` | Windows 다운로드 라우트와 메타데이터 정의 |
-| `src/features/text-play/TextPlayHomeScreen.tsx` | 제품 소개와 핵심 사용 흐름 표시 |
-| `src/features/text-play/TextPlayDownloadScreen.tsx` | 다운로드 페이지 전체 섹션 구성 |
+| `src/app/text-play/page.tsx` | `/text-play` 라우트와 메타데이터 정의 |
+| `src/features/text-play/TextPlayScreen.tsx` | 소개와 다운로드를 합친 페이지 전체 섹션 구성 |
 | `src/features/text-play/DownloadAction.tsx` | URL 상태에 따른 다운로드 버튼·링크 처리 |
 | `src/features/text-play/release-config.ts` | 배포 정보 타입, 현재 설정, 검사 및 표시 함수 |
-| `src/features/text-play/TextPlayScreen.module.css` | Text-Play 홈·다운로드 화면 스타일과 반응형 규칙 |
+| `src/features/text-play/TextPlayScreen.module.css` | Text-Play 페이지 스타일과 반응형 규칙 |
 | `tests/unit/text-play-release.test.ts` | URL 검사와 다운로드 가능 조건 단위 테스트 |
-| `tests/integration/text-play-download.test.tsx` | 두 페이지와 다운로드 상태 통합 테스트 |
+| `tests/integration/text-play.test.tsx` | 통합 페이지와 다운로드 상태 통합 테스트 |
 
 ---
-### 수정된 파일
+### Text-Play와 연결된 공통 파일
 
-| 파일 | 변경 내용 |
+| 파일 | 관련 내용 |
 | --- | --- |
-| `src/components/app-shell/AppHeader.tsx` | 데스크톱 헤더에 `Text-Play`, `Windows 다운로드` 링크 추가 |
-| `src/components/app-shell/MobileBottomNavigation.tsx` | 모바일 하단 메뉴에 Text-Play 다운로드 링크 추가 |
-| `src/components/app-shell/AppShell.module.css` | 추가된 헤더 링크가 태블릿에서 맞도록 761~980px 스타일 보정 |
-| `tests/components/app-shell.test.tsx` | 공통 메뉴의 다운로드 경로 연결 검증 추가 |
+| `next.config.ts` | `/text-play/download` → `/text-play` 영구 이동 규칙 |
+| `src/components/app-shell/AppHeader.tsx` | 데스크톱 헤더의 `Text-Play 다운로드` 링크 |
+| `src/components/app-shell/MobileBottomNavigation.tsx` | 모바일 하단 메뉴의 `Text-Play` 링크 |
+| `src/components/app-shell/AppShell.module.css` | 헤더 메뉴가 태블릿에서 맞도록 하는 761~980px 스타일 보정 |
+| `tests/components/app-shell.test.tsx` | 공통 메뉴의 Text-Play 경로 연결 검증 |
+
+---
+### 페이지 통합 시 정리된 파일
+
+| 이전 파일 | 처리 |
+| --- | --- |
+| `src/app/text-play/download/page.tsx` | 삭제, 경로는 `next.config.ts`의 이동 규칙으로 대체 |
+| `src/features/text-play/TextPlayHomeScreen.tsx` | 삭제, 소개 내용은 `TextPlayScreen` 히어로로 흡수 |
+| `src/features/text-play/TextPlayDownloadScreen.tsx` | `TextPlayScreen.tsx`로 이름 변경 |
+| `tests/integration/text-play-download.test.tsx` | `tests/integration/text-play.test.tsx`로 이름 변경 |
 
 ---
 ## 9. 파일별 상세 설명
@@ -180,45 +199,32 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 ### `src/app/text-play/page.tsx`
 
 - Next.js App Router의 서버 페이지
-- Text-Play 홈 전용 메타데이터 제공
-- 실제 화면 구성은 `TextPlayHomeScreen`에 위임
+- 메타데이터 제목 `MATE Text-Play 다운로드 | Mate Verse`와 설명 제공
+- 실제 화면 구성은 `TextPlayScreen`에 위임
 - 페이지 파일을 얇게 유지해 라우팅과 UI 책임을 분리
 
 ---
-### `src/app/text-play/download/page.tsx`
+### `next.config.ts`
 
-- Windows 다운로드 전용 서버 페이지
-- 다운로드 화면 제목과 설명 메타데이터 제공
-- 실제 화면 구성은 `TextPlayDownloadScreen`에 위임
-
----
-### `src/features/text-play/TextPlayHomeScreen.tsx`
-
-- Text-Play가 어떤 제품인지 설명
-- Windows 다운로드 화면으로 이동하는 기본 CTA 제공
-- 기존 Character Chat으로 돌아가는 보조 링크 제공
-- 작품 다운로드, 선택과 자유 입력, 세이브와 기억의 세 가지 핵심 흐름 제공
-- `next/link`와 타입이 지정된 `Route`를 사용
+- `typedRoutes: true` 설정 유지
+- `redirects()`에서 `/text-play/download`를 `/text-play`로 영구 이동(`permanent: true`, HTTP 308)
+- 페이지 통합 전에 공유된 링크와 북마크가 깨지지 않도록 하는 호환용 규칙
 
 ---
-### `src/features/text-play/TextPlayDownloadScreen.tsx`
+### `src/features/text-play/TextPlayScreen.tsx`
 
-다운로드 페이지의 조립 컴포넌트다. 네트워크 요청이나 배포 판정 로직은 직접 처리하지 않고 설정과 하위 컴포넌트를 조합한다.
+소개와 다운로드를 합친 Text-Play 페이지의 조립 컴포넌트다. 네트워크 요청이나 배포 판정 로직은 직접 처리하지 않고 설정과 하위 컴포넌트를 조합한다.
 
 화면 섹션은 다음 순서다.
 
-1. 제품 소개와 플랫폼·배포 상태
-2. 릴리스 준비 상태 표시
-3. 다운로드 메타데이터
-4. 지원 Windows와 최소 요구사항
-5. 다운로드 동작
-6. SHA-256과 코드 서명 상태
-7. 설치 순서
-8. 주요 기능
-9. FAQ
-10. 관련 화면 이동과 준비 중 링크
+1. 히어로: 제품 소개, 플랫폼·배포 상태 배지, 다운로드 동작, 보조 링크, RELEASE CHECK 준비 단계
+2. 주요 기능
+3. 다운로드 정보: 메타데이터, 지원 Windows와 최소 요구사항, 파일 안전 정보, 베타 경고
+4. 설치 순서
+5. 자주 묻는 질문
+6. 하단 Character Chat 링크와 준비 중 항목
 
-화면 내부의 설치 단계, 기능, FAQ는 읽기 전용 배열로 선언되어 있다. 배포 정보만 `release-config.ts`에서 가져온다.
+`DownloadAction`은 히어로에서 한 번만 렌더링한다. 화면 내부의 설치 단계, 기능, FAQ는 읽기 전용 배열로 선언되어 있다. 배포 정보만 `release-config.ts`에서 가져온다.
 
 ---
 ### `src/features/text-play/DownloadAction.tsx`
@@ -257,23 +263,30 @@ Node.js 버전은 저장소에서 고정하지 않았다. 개발 환경을 통�
 ---
 ### `src/features/text-play/TextPlayScreen.module.css`
 
-Text-Play 홈과 다운로드 페이지가 공유하는 CSS Module이다.
+Text-Play 페이지와 `DownloadAction`이 사용하는 CSS Module이다.
 
 주요 스타일 영역은 다음과 같다.
 
 - 공통 페이지 배경과 최대 너비
 - 제품 히어로 영역
+- 히어로 다운로드 영역(`heroDownload`)과 보조 링크(`heroLinks`)
 - 릴리스 상태 배지
 - 런처 형태의 준비 상태 패널
-- 배포 메타데이터 카드
+- 다운로드 정보 카드(`downloadCard`)와 배포 메타데이터
+- 다운로드 정보 카드 안의 소제목(`subheading`)과 안전 정보 카드
 - 다운로드 버튼
-- 안전 정보 카드
 - 설치 순서와 기능 카드
 - FAQ `details` 요소
 - 하단 이동 메뉴
-- Text-Play 홈 전용 CTA와 카드
 - 키보드 포커스 표시
 - 모션 축소 환경 처리
+
+페이지 통합 시 다음 규칙이 정리됐다.
+
+- 삭제: `homeHero`, `homeGrid`, `homeCard`, `safetySection`, `primaryLink`, `secondaryLink`, `heroActions`
+- 추가: `heroDownload`, `heroLinks`, `subheading`
+- `.downloadCard`에 `scroll-margin-top: 88px`를 지정해 `#download-info` 앵커로 이동할 때 공통 헤더에 제목이 가려지지 않도록 처리
+- 히어로 `h1`, `.lead`, `.downloadHint`에 `word-break: keep-all`을 지정해 한글이 단어 단위로 줄바꿈되도록 처리
 
 반응형 기준은 다음과 같다.
 
@@ -281,30 +294,27 @@ Text-Play 홈과 다운로드 페이지가 공유하는 CSS Module이다.
 | --- | --- |
 | 기본 데스크톱 | 히어로 2열, 정보와 기능 다열 배치 |
 | 최대 980px | 히어로와 주요 그리드 단순화 |
-| 최대 680px | 단일 열 중심 모바일 배치 |
+| 최대 680px | 단일 열 중심 모바일 배치, 히어로 다운로드 버튼 전체 너비 |
 | `prefers-reduced-motion: reduce` | 버튼과 링크 전환 효과 제거 |
 
 ---
 ### `src/components/app-shell/AppHeader.tsx`
 
-기존 공통 헤더에 다음 링크를 추가한다.
+공통 헤더의 주요 메뉴에는 Text-Play 링크가 하나만 있다.
 
-- `Text-Play` → `/text-play`
-- `Windows 다운로드` → `/text-play/download`
+- `Text-Play 다운로드` → `/text-play`
 
-기존 탐색, 내 작품, 로고, 좌우 패널 버튼 동작은 변경하지 않는다.
+페이지 통합 전에는 `Text-Play`(`/text-play`)와 `Windows 다운로드`(`/text-play/download`) 두 링크가 있었지만 하나로 합쳤다. 기존 탐색, 내 작품, 로고, 좌우 패널 버튼 동작은 변경하지 않는다.
 
 ---
 ### `src/components/app-shell/MobileBottomNavigation.tsx`
 
-모바일 하단 메뉴에 `Text-Play` 항목을 추가한다. 현재 경로가 `/text-play/download`이면 `aria-current="page"`를 설정한다.
-
-현재 모바일 메뉴의 Text-Play 항목은 제품 홈이 아니라 다운로드 화면으로 직접 연결된다.
+모바일 하단 메뉴의 `Text-Play` 항목은 `/text-play`로 연결된다. 현재 경로가 `/text-play`이면 `aria-current="page"`를 설정한다.
 
 ---
 ### `src/components/app-shell/AppShell.module.css`
 
-헤더 메뉴가 네 개로 늘어나면서 태블릿 너비에서 넘치지 않도록 761~980px 구간에 다음 보정이 추가됐다.
+헤더 메뉴가 태블릿 너비에서 넘치지 않도록 761~980px 구간에 다음 보정이 있다. 이 보정은 헤더 링크가 네 개였던 시점에 추가됐고, 현재 세 개(탐색, 내 작품, Text-Play 다운로드)로 줄어든 뒤에도 유지된다.
 
 - 헤더 간격 축소
 - 좌우 여백 축소
@@ -397,7 +407,7 @@ export const textPlayRelease: TextPlayRelease = // 현재 배포 정보
 다운로드 상태는 다음 흐름으로 결정된다.
 
 1. 개발자가 `textPlayRelease`에 배포 정보를 입력한다.
-2. `TextPlayDownloadScreen`이 설정을 읽어 메타데이터와 안전 정보를 출력한다.
+2. `TextPlayScreen`이 설정을 읽어 배포 상태 배지, 메타데이터, 안전 정보를 출력한다.
 3. `DownloadAction`이 `isTextPlayDownloadAvailable`을 호출한다.
 4. `isTextPlayDownloadAvailable`이 `isValidDownloadUrl` 결과를 반환한다.
 5. URL이 유효하지 않으면 비활성 버튼을 출력한다.
@@ -410,44 +420,44 @@ export const textPlayRelease: TextPlayRelease = // 현재 배포 정보
 ## 15. 화면 구성 상세
 
 ---
-### Text-Play 홈
+### Text-Play 통합 페이지
 
-Text-Play 홈은 제품을 처음 접하는 사용자를 위한 짧은 소개 화면이다.
+`/text-play`는 제품 소개와 다운로드 확인을 한 화면에 담는다. 첫 화면에서 제품 설명과 다운로드 버튼을 함께 보여 주고, 자세한 배포 정보는 아래 구역에서 제공한다. 위에서 아래로 다음 순서로 구성된다.
 
-- 브랜드 표제
-- 제품 메시지
-- Windows 다운로드 확인 링크
-- Character Chat 이동 링크
-- 작품 다운로드 설명
-- 선택지와 자유 입력 설명
-- 세이브와 기억 설명
+1. 히어로
+   - 상단 표제 `MATE TEXT-PLAY · FOR WINDOWS`
+   - `h1` `이야기를 읽는 순간에서 / 직접 움직이는 순간으로`
+   - 선택지와 자유 입력, 작품·세이브·장기 기억 관리를 설명하는 리드 문구
+   - `Windows용 프로그램` 배지와 배포 상태 배지
+   - `DownloadAction` 다운로드 버튼(페이지 전체에서 유일한 다운로드 버튼)
+   - `다운로드 정보 보기`(`#download-info` 앵커)와 `Character Chat 열기`(`/`) 보조 링크
+   - 오른쪽 `RELEASE CHECK` 런처 미리보기: 페이지 구성·다운로드 안전 처리 완료, 설치 파일 등록·코드 서명 확인 대기
+2. 주요 기능
+   - 텍스트 게임 실행, 선택지와 자유 입력, 로컬 세이브, 상태와 장기 기억, 동일 LLM 모델 연동, 작품 다운로드와 업데이트의 6개 카드
+3. 다운로드 정보(`section id="download-info"`)
+   - 버전, 배포 채널, 파일 형식, 파일 크기, 게시일, 파일명 메타데이터
+   - 지원 Windows와 최소 시스템 요구사항
+   - `h3` `파일 안전 정보` 소구역: SHA-256과 코드 서명 상태
+   - `beta` 상태일 때만 표시되는 베타 경고
+4. 설치 순서
+   - 설치 파일 다운로드부터 Text-Play 작품 다운로드 및 실행까지 5단계
+5. 자주 묻는 질문
+   - 웹 버전과의 차이, 설치 없는 체험, 저장 위치, 인터넷 연결, 업데이트 방식
+6. 하단 메뉴
+   - `Character Chat`(`/`) 링크
+   - 개인정보처리방침, 이용약관, 고객지원의 `준비 중` 항목
 
----
-### Windows 다운로드 화면
-
-다운로드 화면은 제품 소개보다 배포 상태와 설치 준비 정보에 초점을 맞춘다.
-
-- Windows 전용 프로그램 표시
-- 배포 상태 배지
-- 릴리스 준비 진행표
-- 다운로드 정보 카드
-- 지원 환경
-- 다운로드 동작
-- 파일 안전 정보
-- 설치 순서
-- 주요 기능
-- FAQ
-- 관련 메뉴
+통합 전 홈 화면에 있던 세 카드(작품 다운로드, 선택과 자유 입력, 세이브와 기억)와 별도의 안전 정보 구역은 없어졌다. 안전 정보는 다운로드 정보 카드 안의 소구역으로 옮겨졌고, 하단의 `Text-Play 홈` 링크는 자기 자신을 가리키게 되어 제거됐다.
 
 ---
 ### 준비 중 상태
 
 현재 화면은 실제 URL이 없으므로 다음 요소가 표시된다.
 
-- `다운로드 준비 중` 상태 배지
+- 히어로와 다운로드 정보 카드의 `다운로드 준비 중` 상태 표시
 - 버전 등 미확정 항목의 `확인 필요` 문구
-- 비활성 다운로드 버튼
-- 실제 URL 등록 후 활성화된다는 설명
+- 히어로의 비활성 `다운로드 준비 중` 버튼 하나
+- 실제 설치 파일과 배포 URL이 등록되면 버튼이 활성화된다는 안내
 
 색상만으로 상태를 구분하지 않고 텍스트를 함께 제공한다.
 
@@ -460,7 +470,7 @@ Text-Play 화면도 기존 페이지와 동일하게 루트 레이아웃을 사�
 
 1. `AppProvider`가 앱 전역 상태와 로컬 저장소를 제공
 2. `AppShell`이 공통 헤더와 좌우 패널을 제공
-3. 각 Text-Play 페이지가 중앙 콘텐츠로 렌더링
+3. Text-Play 페이지가 중앙 콘텐츠로 렌더링
 
 Text-Play 기능은 기존 앱 상태를 변경하지 않는다.
 
@@ -478,8 +488,10 @@ Text-Play 기능은 기존 앱 상태를 변경하지 않는다.
 
 현재 적용된 접근성 요소는 다음과 같다.
 
-- 페이지마다 하나의 주요 `h1`
+- 페이지에 하나의 주요 `h1`
 - 섹션 제목과 `aria-labelledby` 연결
+- 히어로 보조 링크에 `aria-label="Text-Play 바로가기"` 지정
+- `다운로드 정보 보기` 앵커 대상에 접근 가능한 이름 `다운로드 정보` 제공
 - 배포 정보에 `dl`, `dt`, `dd` 사용
 - 설치 순서에 `ol` 사용
 - FAQ에 기본 `details`, `summary` 사용
@@ -514,6 +526,7 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 ### 모바일
 
 - 최대 680px에서 Text-Play 주요 콘텐츠 단일 열 전환
+- 히어로 다운로드 버튼을 전체 너비로 표시해 첫 화면에서 바로 확인 가능
 - 최대 760px에서 공통 데스크톱 메뉴 숨김
 - 모바일 하단 메뉴 표시
 - 하단 메뉴 높이만큼 콘텐츠 아래 여백 확보
@@ -538,16 +551,18 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 - 유효 URL 입력 시 다운로드 활성화
 
 ---
-### `tests/integration/text-play-download.test.tsx`
+### `tests/integration/text-play.test.tsx`
 
-다음 사용자 화면 동작을 검증한다.
+`src/app/text-play/page.tsx`의 페이지 컴포넌트를 렌더링해 다음 사용자 화면 동작을 검증한다. 이전 이름은 `tests/integration/text-play-download.test.tsx`다.
 
-- 페이지 제목과 Windows 플랫폼 표시
-- 미확정 배포 정보 표시
-- 다운로드 준비 중 버튼 비활성화
-- Text-Play 홈과 Character Chat 링크
+- `h1` 제목과 Windows 플랫폼 표시
+- 미확정 배포 정보의 `확인 필요` 표시
+- `다운로드 준비 중` 버튼 비활성화
+- 다운로드 버튼이 페이지에 하나만 있는지 확인
+- 주요 기능, 다운로드 정보, 파일 안전 정보, 설치 순서, 자주 묻는 질문 제목 존재
+- `다운로드 정보 보기` 링크가 `#download-info`를 가리키고, 대상 구역의 접근 가능한 이름이 `다운로드 정보`인지 확인
+- 하단 `Character Chat` 링크가 `/`로 연결되고 `Text-Play 홈` 링크가 없는지 확인
 - 개인정보처리방침, 이용약관, 고객지원의 준비 중 상태
-- Text-Play 홈에서 다운로드 화면 연결
 - 사이트 내부 다운로드 링크 활성화
 - HTTPS 외부 다운로드 링크 활성화
 - 다운로드 실패 대응 안내 문구
@@ -555,10 +570,13 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 ---
 ### `tests/components/app-shell.test.tsx`
 
-기존 앱 셸 테스트에 다음 검증이 추가됐다.
+앱 셸 테스트에서 Text-Play 메뉴를 다음과 같이 검증한다.
 
-- 공통 헤더에 `Windows 다운로드` 링크 존재
-- 링크 경로가 `/text-play/download`인지 확인
+- 데스크톱 주요 메뉴의 Text-Play 관련 링크가 정확히 하나인지 확인
+- 그 링크의 이름이 `Text-Play 다운로드`이고 경로가 `/text-play`인지 확인
+- 모바일 메뉴의 `Text-Play` 링크 경로가 `/text-play`인지 확인
+
+`/text-play/download` 이동 규칙은 `next.config.ts` 설정이므로 Vitest에서 검증하지 않는다. 개발 서버나 프로덕션 서버에서 직접 요청해 308 응답과 `/text-play` 이동을 확인한다.
 
 ---
 ## 20. 검증 명령
@@ -567,11 +585,12 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 | --- | --- | --- |
 | 전체 테스트 | `npm run test:run` | 실패 테스트 없음 |
 | Text-Play 단위 테스트 | `npx vitest run tests/unit/text-play-release.test.ts` | URL 검사 테스트 통과 |
-| Text-Play 통합 테스트 | `npx vitest run tests/integration/text-play-download.test.tsx` | 화면 상태 테스트 통과 |
+| Text-Play 통합 테스트 | `npx vitest run tests/integration/text-play.test.tsx` | 화면 상태 테스트 통과 |
 | 앱 셸 테스트 | `npx vitest run tests/components/app-shell.test.tsx` | 공통 메뉴 테스트 통과 |
 | 타입 검사 | `npm run typecheck` | TypeScript 오류 없음 |
 | 린트 | `npm run lint` | ESLint 오류 없음 |
-| 프로덕션 빌드 | `npm run build` | `/text-play`, `/text-play/download` 경로 생성 |
+| 프로덕션 빌드 | `npm run build` | `/text-play` 경로 생성, 별도 `/text-play/download` 페이지 없음 |
+| 이전 주소 이동 | 서버 실행 후 `curl -I http://localhost:3000/text-play/download` | `308` 응답과 `location: /text-play` |
 
 브라우저에서는 최소한 다음 크기를 확인한다.
 
@@ -646,8 +665,9 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 6. 이전 버전 다운로드와 롤백 정책이 없다.
 7. 다운로드 실패를 서버 수준에서 감지하지 않는다.
 8. 해시는 표시만 하며 브라우저에서 자동 검증하지 않는다.
-9. 모바일에서 실제 다운로드 버튼까지 스크롤 거리가 길다.
+9. 다운로드 버튼은 히어로에만 있으므로, 아래쪽 다운로드 정보 구역까지 내려간 사용자는 버튼을 보려면 다시 위로 올라가야 한다.
 10. 화면 너비 전환 시 열린 앱 셸 패널을 자동으로 닫지 않는다.
+11. `/text-play/download` 영구 이동(308)은 브라우저에 캐시될 수 있어, 같은 경로를 나중에 다른 용도로 쓰기 어렵다.
 
 ---
 ## 23. 향후 개선 우선순위
@@ -680,7 +700,7 @@ Text-Play 화면은 CSS만으로 주요 레이아웃을 재배치한다.
 ---
 ### 4순위: 모바일 사용성 개선
 
-- 상단 다운로드 CTA 또는 다운로드 카드 앵커
+- 다운로드 정보 구역에서 히어로 다운로드 버튼으로 돌아가는 방법 검토
 - 콘텐츠 길이 축소
 - 화면 전환 시 패널 자동 닫기
 - 주요 배포 정보 우선 배치
@@ -738,7 +758,7 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 ## 26. 신규 개발자 작업 순서
 
 1. 이 문서와 `release-config.ts`를 먼저 읽는다.
-2. `/text-play`와 `/text-play/download`를 브라우저에서 확인한다.
+2. `/text-play`를 브라우저에서 확인하고, `/text-play/download`가 `/text-play`로 이동하는지 확인한다.
 3. 현재 배포 정보가 실제 값인지 담당자에게 확인한다.
 4. 변경하려는 책임이 설정, 화면, 다운로드 동작, 스타일 중 어디에 있는지 구분한다.
 5. 기존 테스트를 먼저 실행한다.
@@ -756,7 +776,10 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 
 개발 단계의 완료 기준은 다음과 같다.
 
-- 두 라우트가 정상 렌더링됨
+- `/text-play`가 정상 렌더링됨
+- `/text-play/download`가 `/text-play`로 308 이동함
+- 다운로드 버튼이 페이지에 하나만 표시됨
+- `다운로드 정보 보기` 링크가 다운로드 정보 구역으로 이동함
 - 공통 헤더와 모바일 메뉴에서 접근 가능
 - URL이 없으면 다운로드 버튼 비활성화
 - 유효한 내부 경로나 HTTPS URL이면 다운로드 링크 활성화
@@ -777,15 +800,17 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 
 | 목적 | 경로 |
 | --- | --- |
-| 제품 홈 | `/text-play` |
-| 다운로드 화면 | `/text-play/download` |
+| Text-Play 페이지 | `/text-play` |
+| 다운로드 정보 구역 | `/text-play#download-info` |
+| 이전 다운로드 주소 | `/text-play/download` → `/text-play` (308) |
+| 페이지 라우트 | `src/app/text-play/page.tsx` |
+| 이동 규칙 | `next.config.ts` |
 | 배포 설정 | `src/features/text-play/release-config.ts` |
 | 다운로드 동작 | `src/features/text-play/DownloadAction.tsx` |
-| 다운로드 화면 | `src/features/text-play/TextPlayDownloadScreen.tsx` |
-| 제품 홈 화면 | `src/features/text-play/TextPlayHomeScreen.tsx` |
-| 공통 스타일 | `src/features/text-play/TextPlayScreen.module.css` |
+| 페이지 화면 | `src/features/text-play/TextPlayScreen.tsx` |
+| 페이지 스타일 | `src/features/text-play/TextPlayScreen.module.css` |
 | 단위 테스트 | `tests/unit/text-play-release.test.ts` |
-| 통합 테스트 | `tests/integration/text-play-download.test.tsx` |
+| 통합 테스트 | `tests/integration/text-play.test.tsx` |
 | 공통 메뉴 테스트 | `tests/components/app-shell.test.tsx` |
 
 ---

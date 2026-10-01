@@ -6,8 +6,7 @@
     color: #f7f8ff; /* 기본 글자 */
 } /* 페이지 종료 */
 
-.hero, /* 다운로드 소개 */
-.homeHero /* 홈 소개 */
+.hero /* 상단 소개 */
 { /* 소개 시작 */
     position: relative; /* 장식 기준 */
     max-width: 1220px; /* 최대 너비 */
@@ -19,8 +18,7 @@
     box-shadow: 0 26px 80px rgb(0 0 0 / 32%), inset 0 1px 0 rgb(255 255 255 / 4%); /* 소개 그림자 */
 } /* 소개 종료 */
 
-.hero::before, /* 다운로드 장식 */
-.homeHero::before /* 홈 장식 */
+.hero::before /* 소개 장식 */
 { /* 장식 시작 */
     position: absolute; /* 장식 배치 */
     top: -180px; /* 상단 위치 */
@@ -43,12 +41,6 @@
     padding: clamp(34px, 6vw, 76px); /* 소개 여백 */
 } /* 다운로드 소개 종료 */
 
-.homeHero /* 홈 소개 */
-{ /* 홈 소개 시작 */
-    padding: clamp(48px, 9vw, 108px) clamp(30px, 8vw, 96px); /* 홈 여백 */
-    text-align: center; /* 중앙 정렬 */
-} /* 홈 소개 종료 */
-
 .heroCopy /* 소개 문구 */
 { /* 문구 시작 */
     position: relative; /* 문구 배치 */
@@ -66,38 +58,28 @@
     letter-spacing: .14em; /* 표제 자간 */
 } /* 표제 종료 */
 
-.hero h1, /* 다운로드 제목 */
-.homeHero h1 /* 홈 제목 */
+.hero h1 /* 소개 제목 */
 { /* 제목 시작 */
     margin: 0; /* 기본 여백 제거 */
     background: linear-gradient(100deg, #ffffff 14%, #9b77ff 58%, #4edfe7); /* 제목 그라데이션 */
     background-clip: text; /* 글자 배경 자르기 */
     color: transparent; /* 글자 투명화 */
-    font-size: clamp(2.3rem, 5vw, 4.9rem); /* 반응형 제목 */
-    line-height: 1.02; /* 제목 줄 높이 */
+    max-width: 760px; /* 제목 너비 */
+    font-size: clamp(2.1rem, 3.9vw, 3.9rem); /* 반응형 제목 */
+    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
+    line-height: 1.08; /* 제목 줄 높이 */
     letter-spacing: -.045em; /* 제목 자간 */
 } /* 제목 종료 */
 
-.hero h1 /* 다운로드 제목 */
-{ /* 다운로드 제목 시작 */
-    max-width: 760px; /* 제목 너비 */
-    font-size: clamp(2.2rem, 4vw, 4.25rem); /* 다운로드 제목 크기 */
-} /* 다운로드 제목 종료 */
-
 .lead /* 주요 설명 */
 { /* 설명 시작 */
-    max-width: 720px; /* 설명 너비 */
-    margin: 22px auto 0; /* 설명 여백 */
+    max-width: 640px; /* 설명 너비 */
+    margin: 22px 0 0; /* 설명 여백 */
+    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
     color: #c1c8dd; /* 설명 색상 */
     font-size: clamp(1rem, 1.5vw, 1.18rem); /* 설명 크기 */
     line-height: 1.8; /* 설명 줄 높이 */
 } /* 설명 종료 */
-
-.heroCopy .lead /* 다운로드 설명 */
-{ /* 다운로드 설명 시작 */
-    margin-right: 0; /* 오른쪽 여백 */
-    margin-left: 0; /* 왼쪽 여백 */
-} /* 다운로드 설명 종료 */
 
 .badges /* 상태 배지 영역 */
 { /* 배지 시작 */
@@ -106,6 +88,45 @@
     gap: 10px; /* 배지 간격 */
     margin-top: 28px; /* 상단 여백 */
 } /* 배지 종료 */
+
+.heroDownload /* 상단 다운로드 */
+{ /* 상단 다운로드 시작 */
+    max-width: 440px; /* 버튼 너비 */
+} /* 상단 다운로드 종료 */
+
+.heroDownload .downloadAction /* 상단 다운로드 동작 */
+{ /* 동작 시작 */
+    margin-top: 26px; /* 상단 여백 */
+} /* 동작 종료 */
+
+.heroDownload .downloadHint /* 상단 다운로드 안내 */
+{ /* 안내 시작 */
+    text-align: left; /* 왼쪽 정렬 */
+} /* 안내 종료 */
+
+.heroLinks /* 보조 이동 */
+{ /* 보조 이동 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 허용 */
+    gap: 8px 22px; /* 링크 간격 */
+    margin-top: 18px; /* 상단 여백 */
+} /* 보조 이동 종료 */
+
+.heroLinks a /* 보조 링크 */
+{ /* 보조 링크 시작 */
+    color: #c9bcff; /* 링크 색상 */
+    font-size: .92rem; /* 링크 크기 */
+    font-weight: 750; /* 링크 굵기 */
+    text-decoration: underline; /* 링크 밑줄 */
+    text-decoration-color: rgb(201 188 255 / 40%); /* 밑줄 색상 */
+    text-underline-offset: 4px; /* 밑줄 간격 */
+} /* 보조 링크 종료 */
+
+.heroLinks a:hover /* 보조 링크 올림 */
+{ /* 올림 시작 */
+    color: #ffffff; /* 올림 색상 */
+    text-decoration-color: currentcolor; /* 올림 밑줄 */
+} /* 올림 종료 */
 
 .platformBadge, /* 플랫폼 배지 */
 .statusBadge, /* 상태 배지 */
@@ -223,7 +244,6 @@
 } /* 상태 종료 */
 
 .downloadCard, /* 다운로드 카드 */
-.safetySection, /* 안전 구역 */
 .contentSection /* 일반 구역 */
 { /* 구역 시작 */
     max-width: 1220px; /* 최대 너비 */
@@ -234,6 +254,18 @@
     background: linear-gradient(145deg, rgb(18 22 36 / 96%), rgb(12 16 28 / 96%)); /* 구역 배경 */
     box-shadow: 0 18px 58px rgb(0 0 0 / 20%); /* 구역 그림자 */
 } /* 구역 종료 */
+
+.downloadCard /* 다운로드 카드 */
+{ /* 카드 시작 */
+    scroll-margin-top: 88px; /* 앵커 이동 시 헤더 공간 */
+} /* 카드 종료 */
+
+.subheading /* 카드 소제목 */
+{ /* 소제목 시작 */
+    margin: 30px 0 14px; /* 소제목 여백 */
+    color: #dce2f4; /* 소제목 색상 */
+    font-size: 1.05rem; /* 소제목 크기 */
+} /* 소제목 종료 */
 
 .sectionHeading /* 구역 제목 영역 */
 { /* 제목 영역 시작 */
@@ -356,8 +388,7 @@
 } /* 비활성 종료 */
 
 .downloadButton:focus-visible, /* 버튼 초점 */
-.primaryLink:focus-visible, /* 주요 링크 초점 */
-.secondaryLink:focus-visible, /* 보조 링크 초점 */
+.heroLinks a:focus-visible, /* 보조 링크 초점 */
 .footer a:focus-visible, /* 하단 링크 초점 */
 .faqList summary:focus-visible /* 질문 초점 */
 { /* 초점 시작 */
@@ -371,6 +402,7 @@
     color: #929db7; /* 안내 색상 */
     font-size: .86rem; /* 안내 크기 */
     text-align: center; /* 중앙 정렬 */
+    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
 } /* 안내 종료 */
 
 .downloadError /* 다운로드 오류 */
@@ -445,8 +477,7 @@
 } /* 항목 종료 */
 
 .stepList span, /* 단계 번호 */
-.featureGrid article > span, /* 기능 번호 */
-.homeCard > span /* 홈 번호 */
+.featureGrid article > span /* 기능 번호 */
 { /* 번호 시작 */
     display: block; /* 줄 분리 */
     margin-bottom: 28px; /* 번호 여백 */
@@ -462,16 +493,14 @@
     line-height: 1.5; /* 문구 줄 높이 */
 } /* 문구 종료 */
 
-.featureGrid, /* 기능 격자 */
-.homeGrid /* 홈 격자 */
+.featureGrid /* 기능 격자 */
 { /* 격자 시작 */
     display: grid; /* 격자 배치 */
     grid-template-columns: repeat(3, minmax(0, 1fr)); /* 세 열 배치 */
     gap: 14px; /* 카드 간격 */
 } /* 격자 종료 */
 
-.featureGrid article, /* 기능 카드 */
-.homeCard /* 홈 카드 */
+.featureGrid article /* 기능 카드 */
 { /* 카드 시작 */
     padding: 24px; /* 카드 여백 */
     border: 1px solid #2c3550; /* 카드 테두리 */
@@ -479,16 +508,14 @@
     background: linear-gradient(150deg, #141a2a, #0e1320); /* 카드 배경 */
 } /* 카드 종료 */
 
-.featureGrid h3, /* 기능 제목 */
-.homeCard h2 /* 홈 카드 제목 */
+.featureGrid h3 /* 기능 제목 */
 { /* 카드 제목 시작 */
     margin: 0; /* 기본 여백 제거 */
     color: #f0f2fb; /* 제목 색상 */
     font-size: 1.08rem; /* 제목 크기 */
 } /* 카드 제목 종료 */
 
-.featureGrid p, /* 기능 설명 */
-.homeCard p /* 홈 카드 설명 */
+.featureGrid p /* 기능 설명 */
 { /* 카드 설명 시작 */
     margin: 10px 0 0; /* 설명 여백 */
     color: #9da7c0; /* 설명 색상 */
@@ -569,61 +596,6 @@
     color: #747e96; /* 비활성 색상 */
 } /* 비활성 종료 */
 
-.heroActions /* 홈 동작 */
-{ /* 동작 시작 */
-    display: flex; /* 가로 배치 */
-    flex-wrap: wrap; /* 줄바꿈 허용 */
-    gap: 12px; /* 링크 간격 */
-    justify-content: center; /* 중앙 정렬 */
-    margin-top: 30px; /* 상단 여백 */
-} /* 동작 종료 */
-
-.primaryLink, /* 주요 링크 */
-.secondaryLink /* 보조 링크 */
-{ /* 동작 링크 시작 */
-    display: inline-flex; /* 중앙 배치 */
-    align-items: center; /* 세로 중앙 */
-    justify-content: center; /* 가로 중앙 */
-    min-height: 48px; /* 링크 높이 */
-    padding: 0 20px; /* 링크 여백 */
-    border: 1px solid #744eff; /* 링크 테두리 */
-    border-radius: 14px; /* 링크 모서리 */
-    color: #f8f7ff; /* 링크 글자 */
-    font-weight: 800; /* 링크 굵기 */
-    text-decoration: none; /* 밑줄 제거 */
-    transition: filter 160ms ease, transform 160ms ease; /* 링크 전환 */
-} /* 동작 링크 종료 */
-
-.primaryLink /* 주요 링크 */
-{ /* 주요 링크 시작 */
-    background: linear-gradient(100deg, #5932df, #7949ff); /* 주요 배경 */
-    box-shadow: 0 12px 28px rgb(91 49 219 / 28%); /* 주요 그림자 */
-} /* 주요 링크 종료 */
-
-.secondaryLink /* 보조 링크 */
-{ /* 보조 링크 시작 */
-    border-color: #39445f; /* 보조 테두리 */
-    background: #171d2b; /* 보조 배경 */
-} /* 보조 링크 종료 */
-
-.primaryLink:hover, /* 주요 링크 올림 */
-.secondaryLink:hover /* 보조 링크 올림 */
-{ /* 링크 올림 시작 */
-    filter: brightness(1.1); /* 링크 밝기 */
-    transform: translateY(-1px); /* 위쪽 이동 */
-} /* 링크 올림 종료 */
-
-.homeGrid /* 홈 격자 */
-{ /* 홈 격자 시작 */
-    max-width: 1220px; /* 최대 너비 */
-    margin: 0 auto; /* 중앙 배치 */
-} /* 홈 격자 종료 */
-
-.homeCard > span /* 홈 번호 */
-{ /* 홈 번호 시작 */
-    margin-bottom: 42px; /* 번호 여백 */
-} /* 홈 번호 종료 */
-
 @media (max-width: 980px) /* 태블릿 화면 */
 { /* 태블릿 시작 */
     .hero /* 태블릿 소개 */
@@ -632,8 +604,7 @@
     } /* 소개 종료 */
 
     .metadataGrid, /* 태블릿 정보 */
-    .featureGrid, /* 태블릿 기능 */
-    .homeGrid /* 태블릿 홈 */
+    .featureGrid /* 태블릿 기능 */
     { /* 격자 시작 */
         grid-template-columns: repeat(2, minmax(0, 1fr)); /* 두 열 배치 */
     } /* 격자 종료 */
@@ -651,21 +622,23 @@
         padding: 22px 14px 92px; /* 모바일 여백 */
     } /* 페이지 종료 */
 
-    .hero, /* 모바일 소개 */
-    .homeHero /* 모바일 홈 */
+    .hero /* 모바일 소개 */
     { /* 소개 시작 */
         padding: 28px 20px; /* 모바일 소개 여백 */
         border-radius: 20px; /* 모바일 모서리 */
     } /* 소개 종료 */
 
-    .hero h1, /* 모바일 다운로드 제목 */
-    .homeHero h1 /* 모바일 홈 제목 */
+    .hero h1 /* 모바일 제목 */
     { /* 제목 시작 */
-        font-size: clamp(2rem, 11vw, 3rem); /* 모바일 제목 크기 */
+        font-size: clamp(1.9rem, 9.4vw, 2.8rem); /* 모바일 제목 크기 */
     } /* 제목 종료 */
 
+    .heroDownload /* 모바일 상단 다운로드 */
+    { /* 다운로드 시작 */
+        max-width: none; /* 전체 너비 */
+    } /* 다운로드 종료 */
+
     .downloadCard, /* 모바일 다운로드 카드 */
-    .safetySection, /* 모바일 안전 구역 */
     .contentSection /* 모바일 일반 구역 */
     { /* 구역 시작 */
         padding: 22px 18px; /* 모바일 구역 여백 */
@@ -682,7 +655,6 @@
     .requirements, /* 모바일 요구사항 */
     .safetyGrid, /* 모바일 안전 */
     .featureGrid, /* 모바일 기능 */
-    .homeGrid, /* 모바일 홈 */
     .stepList /* 모바일 단계 */
     { /* 모바일 격자 시작 */
         grid-template-columns: 1fr; /* 한 열 배치 */
@@ -712,9 +684,7 @@
 
 @media (prefers-reduced-motion: reduce) /* 동작 축소 환경 */
 { /* 동작 축소 시작 */
-    .downloadButton, /* 다운로드 버튼 */
-    .primaryLink, /* 주요 링크 */
-    .secondaryLink /* 보조 링크 */
+    .downloadButton /* 다운로드 버튼 */
     { /* 전환 대상 시작 */
         transition: none; /* 전환 제거 */
     } /* 전환 대상 종료 */

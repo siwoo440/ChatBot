@@ -64,8 +64,13 @@ describe("앱 셸 패널", () => // 패널 묶음
     it("공통 메뉴에서 Text-Play 다운로드 화면으로 이동한다", () => // 다운로드 이동 검증
     { // 검증 시작
         renderWithApp(<AppShell><main>본문</main></AppShell>); // 화면 렌더
-        const downloadLink = screen.getByRole("link", { name: "Windows 다운로드" }); // 다운로드 링크 조회
-        expect(downloadLink).toHaveAttribute("href", "/text-play/download"); // 다운로드 경로 확인
+        const navigation = screen.getByRole("navigation", { name: "주요 메뉴" }); // 주요 메뉴 조회
+        const textPlayLinks = within(navigation).getAllByRole("link", { name: /Text-Play|Windows/ }); // Text-Play 관련 링크
+        expect(textPlayLinks).toHaveLength(1); // 단일 메뉴 확인
+        expect(textPlayLinks[0]).toHaveAccessibleName("Text-Play 다운로드"); // 메뉴 이름 확인
+        expect(textPlayLinks[0]).toHaveAttribute("href", "/text-play"); // 통합 경로 확인
+        const mobileNavigation = screen.getByRole("navigation", { name: "모바일 메뉴" }); // 모바일 메뉴 조회
+        expect(within(mobileNavigation).getByRole("link", { name: "Text-Play" })).toHaveAttribute("href", "/text-play"); // 모바일 경로 확인
     }); // 검증 종료
 
     it("좌측 대화 목록을 대비가 있는 개별 카드로 표시한다", () => // 대화 카드 검증

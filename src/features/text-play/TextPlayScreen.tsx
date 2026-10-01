@@ -18,11 +18,11 @@ const features = [ // 주요 기능 목록
     }, // 게임 실행 기능 종료
     { // 입력 기능 시작
         title: "선택지와 자유 입력", // 기능 제목
-        description: "선택형 진행과 직접 입력을 함께 사용하는 상호작용", // 기능 설명
+        description: "정해진 선택지와 직접 작성한 행동을 함께 사용해 이야기를 진행", // 기능 설명
     }, // 입력 기능 종료
     { // 저장 기능 시작
         title: "로컬 세이브", // 기능 제목
-        description: "진행 상황을 기기에 저장하고 이어서 플레이하는 구조", // 기능 설명
+        description: "진행 상황을 기기에 저장하고 다음 실행에서 이어서 플레이", // 기능 설명
     }, // 저장 기능 종료
     { // 기억 기능 시작
         title: "상태와 장기 기억", // 기능 제목
@@ -34,7 +34,7 @@ const features = [ // 주요 기능 목록
     }, // 모델 기능 종료
     { // 업데이트 기능 시작
         title: "작품 다운로드와 업데이트", // 기능 제목
-        description: "작품 패키지 내려받기와 업데이트 상태 확인", // 기능 설명
+        description: "보유 작품을 내려받고 업데이트 상태를 한곳에서 확인", // 기능 설명
     }, // 업데이트 기능 종료
 ] as const; // 읽기 전용 목록
 
@@ -61,20 +61,27 @@ const faqs = [ // 질문 목록
     }, // 업데이트 안내 종료
 ] as const; // 읽기 전용 목록
 
-export function TextPlayDownloadScreen() // 다운로드 화면
+export function TextPlayScreen() // Text-Play 통합 화면
 { // 함수 시작
     const statusLabel = getDistributionLabel(textPlayRelease.status); // 상태 문구 조회
     return ( // 화면 반환
-        <main className={styles.page}> {/* 다운로드 화면 */}
-            <section className={styles.hero} aria-labelledby="text-play-download-title"> {/* 상단 소개 */}
+        <main className={styles.page}> {/* Text-Play 화면 */}
+            <section className={styles.hero} aria-labelledby="text-play-title"> {/* 상단 소개 */}
                 <div className={styles.heroCopy}> {/* 소개 문구 */}
-                    <p className={styles.eyebrow}>MATE VERSE · TEXT-PLAY LAUNCHER</p> {/* 상단 표제 */}
-                    <h1 id="text-play-download-title">MATE Text-Play for Windows</h1> {/* 화면 제목 */}
-                    <p className={styles.lead}>선택지와 자유 입력으로 텍스트 게임을 플레이하고, 작품·세이브·장기 기억을 한곳에서 관리하는 Windows 프로그램입니다.</p> {/* 화면 설명 */}
+                    <p className={styles.eyebrow}>MATE TEXT-PLAY · FOR WINDOWS</p> {/* 상단 표제 */}
+                    <h1 id="text-play-title">이야기를 읽는 순간에서<br />직접 움직이는 순간으로</h1> {/* 화면 제목 */}
+                    <p className={styles.lead}>MATE Text-Play는 선택지와 자유 입력으로 텍스트 게임을 플레이하고, 작품·세이브·장기 기억을 한곳에서 관리하는 Windows 프로그램입니다.</p> {/* 화면 설명 */}
                     <div className={styles.badges}> {/* 상태 배지 */}
                         <span className={styles.platformBadge}>Windows용 프로그램</span> {/* 플랫폼 배지 */}
                         <span className={styles.statusBadge} data-status={textPlayRelease.status}>{statusLabel}</span> {/* 배포 상태 */}
                     </div> {/* 상태 배지 종료 */}
+                    <div className={styles.heroDownload}> {/* 상단 다운로드 */}
+                        <DownloadAction release={textPlayRelease} /> {/* 다운로드 동작 */}
+                    </div> {/* 상단 다운로드 종료 */}
+                    <nav className={styles.heroLinks} aria-label="Text-Play 바로가기"> {/* 보조 이동 */}
+                        <a href="#download-info">다운로드 정보 보기</a> {/* 정보 앵커 */}
+                        <Link href="/">Character Chat 열기</Link> {/* 챗봇 링크 */}
+                    </nav> {/* 보조 이동 종료 */}
                 </div> {/* 소개 문구 종료 */}
                 <div className={styles.launcherPreview} aria-label="Text-Play 배포 준비 단계"> {/* 런처 미리보기 */}
                     <span className={styles.previewLabel}>RELEASE CHECK</span> {/* 미리보기 표제 */}
@@ -87,14 +94,24 @@ export function TextPlayDownloadScreen() // 다운로드 화면
                 </div> {/* 런처 미리보기 종료 */}
             </section> {/* 상단 소개 종료 */}
 
-            <section className={styles.downloadCard} aria-labelledby="download-card-title"> {/* 다운로드 카드 */}
-                <div className={styles.sectionHeading}> {/* 카드 제목 영역 */}
+            <section className={styles.contentSection} aria-labelledby="feature-title"> {/* 기능 안내 */}
+                <div className={styles.sectionHeading}> {/* 기능 제목 영역 */}
                     <div> {/* 제목 문구 */}
-                        <p className={styles.sectionKicker}>WINDOWS RELEASE</p> {/* 카드 표제 */}
-                        <h2 id="download-card-title">다운로드 정보</h2> {/* 카드 제목 */}
+                        <p className={styles.sectionKicker}>PLAY SYSTEM</p> {/* 기능 표제 */}
+                        <h2 id="feature-title">주요 기능</h2> {/* 기능 제목 */}
+                    </div> {/* 제목 문구 종료 */}
+                </div> {/* 기능 제목 영역 종료 */}
+                <div className={styles.featureGrid}>{features.map((feature, index) => <article key={feature.title}><span>{String(index + 1).padStart(2, "0")}</span><h3>{feature.title}</h3><p>{feature.description}</p></article>)}</div> {/* 기능 그리드 */}
+            </section> {/* 기능 안내 종료 */}
+
+            <section id="download-info" className={styles.downloadCard} aria-labelledby="download-card-title"> {/* 다운로드 정보 */}
+                <div className={styles.sectionHeading}> {/* 정보 제목 영역 */}
+                    <div> {/* 제목 문구 */}
+                        <p className={styles.sectionKicker}>WINDOWS RELEASE</p> {/* 정보 표제 */}
+                        <h2 id="download-card-title">다운로드 정보</h2> {/* 정보 제목 */}
                     </div> {/* 제목 문구 종료 */}
                     <span className={styles.releaseState}>{statusLabel}</span> {/* 현재 상태 */}
-                </div> {/* 카드 제목 영역 종료 */}
+                </div> {/* 정보 제목 영역 종료 */}
                 <dl className={styles.metadataGrid}> {/* 배포 정보 목록 */}
                     <div><dt>버전</dt><dd>{displayReleaseValue(textPlayRelease.version)}</dd></div> {/* 버전 정보 */}
                     <div><dt>배포 채널</dt><dd>{displayReleaseValue(textPlayRelease.channel)}</dd></div> {/* 채널 정보 */}
@@ -113,16 +130,7 @@ export function TextPlayDownloadScreen() // 다운로드 화면
                         <ul>{textPlayRelease.minimumRequirements.map((item) => <li key={item}>{item}</li>)}</ul> {/* 요구사항 목록 */}
                     </div> {/* 최소 사양 영역 종료 */}
                 </div> {/* 요구사항 영역 종료 */}
-                <DownloadAction release={textPlayRelease} /> {/* 다운로드 동작 */}
-            </section> {/* 다운로드 카드 종료 */}
-
-            <section className={styles.safetySection} aria-labelledby="safety-title"> {/* 안전 정보 */}
-                <div className={styles.sectionHeading}> {/* 안전 제목 영역 */}
-                    <div> {/* 제목 문구 */}
-                        <p className={styles.sectionKicker}>SECURITY</p> {/* 안전 표제 */}
-                        <h2 id="safety-title">파일 안전 정보</h2> {/* 안전 제목 */}
-                    </div> {/* 제목 문구 종료 */}
-                </div> {/* 안전 제목 영역 종료 */}
+                <h3 className={styles.subheading}>파일 안전 정보</h3> {/* 안전 제목 */}
                 <div className={styles.safetyGrid}> {/* 안전 정보 그리드 */}
                     <article> {/* 해시 정보 */}
                         <span>SHA-256</span> {/* 해시 표제 */}
@@ -134,7 +142,7 @@ export function TextPlayDownloadScreen() // 다운로드 화면
                     </article> {/* 서명 정보 종료 */}
                 </div> {/* 안전 정보 그리드 종료 */}
                 {textPlayRelease.status === "beta" ? <p className={styles.betaWarning} role="note">베타 버전은 예기치 않은 오류와 데이터 형식 변경이 발생할 수 있습니다.</p> : null} {/* 베타 경고 */}
-            </section> {/* 안전 정보 종료 */}
+            </section> {/* 다운로드 정보 종료 */}
 
             <section className={styles.contentSection} aria-labelledby="install-title"> {/* 설치 안내 */}
                 <div className={styles.sectionHeading}> {/* 설치 제목 영역 */}
@@ -145,16 +153,6 @@ export function TextPlayDownloadScreen() // 다운로드 화면
                 </div> {/* 설치 제목 영역 종료 */}
                 <ol className={styles.stepList}>{installationSteps.map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>)}</ol> {/* 설치 단계 목록 */}
             </section> {/* 설치 안내 종료 */}
-
-            <section className={styles.contentSection} aria-labelledby="feature-title"> {/* 기능 안내 */}
-                <div className={styles.sectionHeading}> {/* 기능 제목 영역 */}
-                    <div> {/* 제목 문구 */}
-                        <p className={styles.sectionKicker}>PLAY SYSTEM</p> {/* 기능 표제 */}
-                        <h2 id="feature-title">주요 기능</h2> {/* 기능 제목 */}
-                    </div> {/* 제목 문구 종료 */}
-                </div> {/* 기능 제목 영역 종료 */}
-                <div className={styles.featureGrid}>{features.map((feature, index) => <article key={feature.title}><span>{String(index + 1).padStart(2, "0")}</span><h3>{feature.title}</h3><p>{feature.description}</p></article>)}</div> {/* 기능 그리드 */}
-            </section> {/* 기능 안내 종료 */}
 
             <section className={styles.contentSection} aria-labelledby="faq-title"> {/* 자주 묻는 질문 */}
                 <div className={styles.sectionHeading}> {/* 질문 제목 영역 */}
@@ -169,13 +167,12 @@ export function TextPlayDownloadScreen() // 다운로드 화면
             <footer className={styles.footer}> {/* 하단 이동 */}
                 <p>MATE Text-Play</p> {/* 하단 브랜드 */}
                 <nav aria-label="Text-Play 관련 메뉴"> {/* 하단 메뉴 */}
-                    <Link href="/text-play">Text-Play 홈</Link> {/* Text-Play 홈 링크 */}
                     <Link href="/">Character Chat</Link> {/* 챗봇 링크 */}
                     <span aria-disabled="true">개인정보처리방침 · 준비 중</span> {/* 개인정보 준비 상태 */}
                     <span aria-disabled="true">이용약관 · 준비 중</span> {/* 약관 준비 상태 */}
                     <span aria-disabled="true">고객지원 · 준비 중</span> {/* 지원 준비 상태 */}
                 </nav> {/* 하단 메뉴 종료 */}
             </footer> {/* 하단 이동 종료 */}
-        </main> // 다운로드 화면 종료
+        </main> // 화면 종료
     ); // 반환 종료
 } // 함수 종료

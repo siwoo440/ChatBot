@@ -44,8 +44,7 @@ export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, on
             <nav aria-label="주요 메뉴"> {/* 주요 메뉴 */}
                 <Link href="/" className="app-navigation-link" onClick={onNavigate}>탐색</Link> {/* 탐색 링크 */}
                 <Link href="/library" className="app-navigation-link" onClick={onNavigate}>내 작품</Link> {/* 작품 링크 */}
-                <Link href="/text-play" className="app-navigation-link" onClick={onNavigate}>Text-Play</Link> {/* Text-Play 링크 */}
-                <Link href="/text-play/download" className="app-navigation-link" onClick={onNavigate}>Windows 다운로드</Link> {/* 다운로드 링크 */}
+                <Link href="/text-play" className="app-navigation-link" onClick={onNavigate}>Text-Play 다운로드</Link> {/* Text-Play 링크 */}
             </nav> {/* 메뉴 종료 */}
             <button ref={rightButtonRef} type="button" aria-label="사용자 패널 열기와 닫기" aria-expanded={rightOpen} aria-controls="user-panel" onClick={onToggleRight}> {/* 오른쪽 버튼 */}
                 <MenuIcon /> {/* 메뉴 아이콘 */}
