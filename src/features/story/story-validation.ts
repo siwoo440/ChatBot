@@ -1,5 +1,6 @@
 import { contentRatingLabels } from "@/features/adult/adult-access"; // 등급 문구
-import type { AppState, Character, CharacterVisibility, ContentRating, Story, StoryCastMember } from "@/features/core/types"; // 도메인 타입
+import type { AppState, Character, GeneratedImage, CharacterVisibility, ContentRating, Story, StoryCastMember } from "@/features/core/types"; // 도메인 타입
+import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { deriveDisplayName, getRequiredStoryRating, STORY_CAST_LIMIT, STORY_NARRATOR_LABEL } from "@/features/story/story-model"; // 스토리 도구
 
 export interface StoryDraft // 스토리 편집 초안
@@ -22,7 +23,28 @@ export interface StoryValidationResult // 검증 결과
     errors: Partial<Record<keyof StoryDraft, string>>; // 필드 오류
 } // 구조 종료
 
-export const storyCoverOptions = ["/images/scenes/moon-library.svg", "/images/scenes/rainy-classroom.svg", "/images/scenes/dawn-letter.svg"]; // 고를 수 있는 표지
+export const storyCoverOptions = ["/images/scenes/moon-library.svg", "/images/scenes/rainy-classroom.svg", "/images/scenes/dawn-letter.svg"]; // 고를 수 있는 장면 표지
+const sceneCoverNames: Record<string, string> = { "/images/scenes/moon-library.svg": "달빛 도서관", "/images/scenes/rainy-classroom.svg": "비 오는 교실", "/images/scenes/dawn-letter.svg": "새벽 편지" }; // 장면 표지 이름
+const characterCoverPattern = /^\/images\/characters\/[a-z0-9-]+\.webp$/; // 프로젝트 캐릭터 이미지 규칙
+
+export interface StoryCoverChoice // 표지 선택지
+{ // 구조 시작
+    path: string; // 이미지 경로
+    label: string; // 표시 이름
+} // 구조 종료
+
+export function isStoryCoverImage(path: string): boolean // 쓸 수 있는 표지인지
+{ // 함수 시작
+    return storyCoverOptions.includes(path) || characterCoverPattern.test(path) || isGeneratedImageSource(path); // 장면·캐릭터·내 이미지
+} // 함수 종료
+
+export function getStoryCoverChoices(cast: readonly StoryCastMember[], characters: readonly Character[], images: readonly Pick<GeneratedImage, "src" | "prompt">[] = []): StoryCoverChoice[] // 표지 선택지(장면 + 등장인물 + 내 이미지)
+{ // 함수 시작
+    const scenes = storyCoverOptions.map((path) => ({ path, label: sceneCoverNames[path] ?? "장면" })); // 장면 표지
+    const people = cast.flatMap((member) => characters.filter((character) => character.id === member.characterId && characterCoverPattern.test(character.coverImage)).map((character) => ({ path: character.coverImage, label: member.displayName || character.name }))); // 등장인물 표지
+    const mine = images.map((image) => ({ path: image.src, label: image.prompt })); // 내 이미지 표지
+    return [...scenes, ...people, ...mine].filter((choice, index, list) => list.findIndex((item) => item.path === choice.path) === index); // 중복 제거
+} // 함수 종료
 const ratingOrder: Record<ContentRating, number> = { all: 0, teen: 1, mature: 2 }; // 등급 순서
 
 export function createEmptyStoryDraft(): StoryDraft // 빈 초안
@@ -162,7 +184,7 @@ export function validateStoryDraft(draft: StoryDraft, characters: readonly Chara
     { // 조건 시작
         errors.tags = "각 태그는 12자 이하여야 합니다."; // 태그 길이 오류
     } // 조건 종료
-    if (!storyCoverOptions.includes(normalized.coverImage)) // 표지 판정
+    if (!isStoryCoverImage(normalized.coverImage)) // 표지 판정
     { // 조건 시작
         errors.coverImage = "준비된 표지 이미지를 골라 주세요."; // 표지 오류
     } // 조건 종료

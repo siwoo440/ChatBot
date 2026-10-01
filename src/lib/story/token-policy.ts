@@ -1,7 +1,7 @@
 import type { TokenWallet } from "@/features/core/types"; // 지갑 타입
 import { getDateKey } from "@/lib/time/date-key"; // 날짜 키
 
-export type TokenAction = "chat" | "advanced-chat" | "auto-image" | "manual-image" | "regenerate-image"; // 토큰 동작
+export type TokenAction = "chat" | "advanced-chat" | "auto-image" | "manual-image" | "regenerate-image" | "studio-image"; // 토큰 동작
 
 export interface SpendResult // 차감 결과
 { // 구조 시작
@@ -17,6 +17,7 @@ const costs: Record<TokenAction, number> = // 비용표
     "auto-image": 15, // 자동 이미지
     "manual-image": 20, // 수동 이미지
     "regenerate-image": 20, // 이미지 재생성
+    "studio-image": 20, // 이미지 스튜디오 생성
 }; // 비용표 종료
 
 export const tokenCosts: Readonly<Record<TokenAction, number>> = costs; // 공개 비용표
@@ -28,6 +29,7 @@ export const tokenActionLabels: Readonly<Record<TokenAction, { label: string; de
     "auto-image": { label: "자동 장면 이미지", description: "응답과 함께 장면이 바뀔 때 생성" }, // 자동 이미지 설명
     "manual-image": { label: "직접 장면 이미지", description: "장면 생성 버튼으로 직접 요청" }, // 직접 이미지 설명
     "regenerate-image": { label: "이미지 다시 생성", description: "장면 이미지를 새로 요청(준비 중)" }, // 재생성 설명
+    "studio-image": { label: "이미지 스튜디오", description: "설명으로 이미지를 만들어 내 이미지에 저장" }, // 스튜디오 설명
 }; // 설명 종료
 
 export function getDailyUsage(wallet: TokenWallet, now = new Date()): { chat: number; image: number } // 오늘 사용량(날짜가 바뀌면 0)
@@ -43,7 +45,7 @@ export function trySpend(wallet: TokenWallet, action: TokenAction, now = new Dat
     { // 조건 시작
         return { ok: false, wallet, cost }; // 실패 반환
     } // 조건 종료
-    const imageAction = action === "auto-image" || action === "manual-image" || action === "regenerate-image"; // 이미지 판정
+    const imageAction = action === "auto-image" || action === "manual-image" || action === "regenerate-image" || action === "studio-image"; // 이미지 판정
     const daily = getDailyUsage(wallet, new Date(now)); // 날짜가 바뀌었으면 0부터
     return ( // 성공 반환
     { // 결과 시작

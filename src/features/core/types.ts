@@ -255,13 +255,32 @@ export interface AppSettings // 앱 설정 구조
     conversationSort: ConversationSort; // 왼쪽 대화방 정렬
 } // 구조 종료
 
+export type ImageStyle = "anime" | "illustration" | "watercolor" | "cinematic"; // 이미지 그림체
+export type ImageAspect = "portrait" | "square" | "landscape"; // 이미지 비율
+export type ImageExposure = "none" | "covered" | "uncovered"; // 19세 이미지 가림 처리(19세가 아니면 none)
+
+export interface GeneratedImage // 이미지 스튜디오 생성 이미지
+{ // 구조 시작
+    id: string; // 이미지 식별자
+    prompt: string; // 장면 설명
+    style: ImageStyle; // 그림체
+    aspect: ImageAspect; // 비율
+    referenceCharacterId: string | null; // 참고 캐릭터
+    contentRating: ContentRating; // 이용 등급
+    exposure: ImageExposure; // 가림 처리
+    src: string; // 이미지 주소(Mock은 SVG 데이터)
+    favorite: boolean; // 즐겨찾기
+    createdAt: string; // 생성 시각
+} // 구조 종료
+
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 10; // 스키마 버전
+    schemaVersion: 11; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록
     stories: Story[]; // 스토리 목록
+    images: GeneratedImage[]; // 생성 이미지(최근 순)
     conversations: Conversation[]; // 대화방 목록
     conversationVersions: ConversationVersion[]; // 대화 버전 목록
     messages: Message[]; // 메시지 목록

@@ -24,6 +24,10 @@ import type { ImageGenerationAdapter } from "@/lib/adapters/image-generation-ada
 import type { LLMAdapter } from "@/lib/adapters/llm-adapter"; // 대화 계약
 import { MockImageAdapter } from "@/lib/adapters/mock-image-adapter"; // Mock 이미지
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // Mock 대화
+import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
+import { canViewMatureContent } from "@/features/adult/adult-access"; // 19세 콘텐츠 판정
+import type { GeneratedImage } from "@/features/core/types"; // 생성 이미지 타입
+import { canUseImageForRating } from "@/features/images/image-model"; // 이미지 등급 판정
 import styles from "@/features/chat/ChatScreen.module.css"; // 채팅 스타일
 
 interface ChatScreenProps // 채팅 화면 속성
@@ -285,6 +289,12 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     { // 함수 시작
         controller.cancelReply(); // 활성 요청 중단
     }; // 함수 종료
+    const applyImage = (image: GeneratedImage) => // 내 이미지로 장면 바꾸기
+    { // 함수 시작
+        const result = controller.applySceneImage(image.src); // 장면 반영
+        sync(); // 상태 동기화
+        setNotice(result.ok ? "내 이미지로 장면을 바꿨습니다." : "응답 중에는 장면을 바꿀 수 없습니다."); // 안내 갱신
+    }; // 함수 종료
     const generateScene = async () => // 수동 장면 생성
     { // 함수 시작
         const result = await controller.generateManualScene(); // 장면 생성
@@ -295,17 +305,19 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const story = storyMode ? snapshot.stories.find((item) => item.id === conversation.storyId) : undefined; // 연결 스토리
     const castEntries = storyMode ? getStoryCastEntries(snapshot, conversation.storyCast) : undefined; // 등장인물과 캐릭터
     const title = storyMode ? conversation.title : character.name; // 화면 제목
+    const workRating = story?.contentRating ?? character.contentRating; // 작품 등급(스토리면 스토리 등급)
+    const sceneImages = state.images.filter((image) => canUseImageForRating(image.contentRating, workRating) && (image.contentRating !== "mature" || canViewMatureContent(state, new Date()))).slice(0, 6); // 장면으로 쓸 수 있는 내 이미지
     return ( // 채팅 반환
-        <main className={styles.chat} data-layout={layout} data-mode={conversation.mode}> {/* 채팅 본문 */}
+        <main className={styles.chat} data-layout={layout} data-mode={conversation.mode} data-genre={getGenreKey(story?.tags ?? character.tags)} data-surface="light"> {/* 채팅 본문 */}
             <section className={styles.scene}> {/* 장면 영역 */}
                 <SceneViewer src={version.currentScene} name={title} /> {/* 현재 장면 */}
-                <button type="button" onClick={generateScene}>장면 이미지 생성 · 20</button> {/* 이미지 버튼 */}
+                <button type="button" className={styles.sceneButton} onClick={generateScene}>장면 이미지 생성 · 20</button> {/* 이미지 버튼 */}
             </section> {/* 장면 종료 */}
             <section className={styles.story}> {/* 대화 영역 */}
-                <header><div><span>{storyMode ? `스토리 모드 · 등장인물 ${conversation.storyCast.length}명` : version.relationshipStage}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? "AI 스토리" : "AI 캐릭터"}>AI</span></h1></div><div><span>{version.emotion}</span><strong>{snapshot.wallet.balance} 토큰</strong></div></header> {/* 대화 상태 */}
+                <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? `스토리 모드 · 등장인물 ${conversation.storyCast.length}명` : version.relationshipStage}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? "AI 스토리" : "AI 캐릭터"}>AI</span></h1></div><div className={styles.meta}><span>{version.emotion}</span><strong>{snapshot.wallet.balance} 토큰</strong></div></header> {/* 대화 상태 */}
                 <p className={styles.aiNotice} role="note" aria-label="AI 이용 안내">{storyMode ? "AI가 만든 허구의 대화입니다. 등장인물은 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요." : "AI가 만든 허구의 대화입니다. 캐릭터는 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요."}</p> {/* AI 이용 안내 */}
                 <MessageList messages={getVersionMessages(snapshot, conversation.id, version.id)} streamingMessageId={streamingMessageId} busy={busy} allowRegenerate={!busy && !retryAvailable} onRegenerate={regenerate} getVersionGroup={(message) => getMessageVersionGroup(snapshot, version.id, message.id)} onEdit={editMessage} onDelete={deleteMessage} onSelectVersion={selectVersion} onDeleteVersion={deleteVersion} storyCast={castEntries} /> {/* 메시지 목록 */}
-                <p role="status">{notice}</p> {/* 상태 안내 */}
+                <p role="status" className={styles.notice}>{notice}</p> {/* 상태 안내 */}
                 {retryAvailable ? <div className={styles.requestActions}><button type="button" onClick={regenerate}>다시 시도</button></div> : null} {/* 재시도 영역 */}
                 <ChatComposer busy={busy} onSend={send} onCancel={cancel} storyCast={storyMode ? conversation.storyCast : undefined} onContinue={storyMode ? continueStory : undefined} /> {/* 메시지 입력 */}
             </section> {/* 대화 종료 */}
@@ -326,7 +338,12 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                 )} {/* 등장인물 패널 판정 종료 */}
                 <h2>화면 배치</h2> {/* 설정 제목 */}
                 <LayoutSelector width={width} height={height} /> {/* 레이아웃 선택 */}
-                {storyMode ? null : <p>관계 {version.relationshipLevel}/100</p>} {/* 관계 수치(캐릭터 모드) */}
+                <section className={styles.myImages} aria-label="내 이미지로 장면 바꾸기"> {/* 내 이미지 장면 */}
+                    <h2>내 이미지</h2> {/* 제목 */}
+                    {sceneImages.length === 0 ? <p>이미지 스튜디오에서 만든 이미지를 장면으로 쓸 수 있어요.</p> : <div>{sceneImages.map((image) => <button key={image.id} type="button" aria-label={`${image.prompt} 장면으로`} title={image.prompt} disabled={busy} data-current={version.currentScene === image.src ? "true" : undefined} onClick={() => applyImage(image)}><Image src={image.src} alt="" width={96} height={72} unoptimized /></button>)}</div>} {/* 이미지 목록 */}
+                    <Link href={"/images" as Route}>이미지 스튜디오 열기</Link> {/* 스튜디오 링크 */}
+                </section> {/* 내 이미지 종료 */}
+                {storyMode ? null : <p className={styles.relation}>관계 {version.relationshipLevel}/100<span aria-hidden="true"><span style={{ width: `${version.relationshipLevel}%` }} /></span></p>} {/* 관계 수치(캐릭터 모드) */}
             </aside> {/* 설정 종료 */}
         </main> // 본문 종료
     ); // 반환 종료

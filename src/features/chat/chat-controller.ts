@@ -454,6 +454,23 @@ export class ChatController // 채팅 제어기
         } // 종료 끝
     } // 함수 종료
 
+    public applySceneImage(path: string): SceneResult // 내 이미지로 장면 바꾸기(토큰 없음)
+    { // 함수 시작
+        if (this.busy) // 응답 중 판정
+        { // 조건 시작
+            return { ok: false, reason: "busy" }; // 응답 중 거절
+        } // 조건 종료
+        const conversation = this.state.conversations.find((item) => item.id === this.options.conversationId); // 대화 조회
+        const version = conversation === undefined ? null : getConversationVersion(this.state, conversation.id); // 현재 버전 조회
+        if (version === null) // 대화·버전 부재 판정
+        { // 조건 시작
+            return { ok: false, reason: "missing-conversation" }; // 대화 오류
+        } // 조건 종료
+        const updatedVersion = { ...version, currentScene: path, updatedAt: new Date().toISOString() }; // 장면 갱신
+        this.state = { ...this.state, conversationVersions: this.state.conversationVersions.map((item) => item.id === version.id ? updatedVersion : item) }; // 상태 반영
+        return { ok: true, path }; // 성공 반환
+    } // 함수 종료
+
     public async generateManualScene(): Promise<SceneResult> // 수동 장면 생성
     { // 함수 시작
         if (this.busy) // 응답 중 판정

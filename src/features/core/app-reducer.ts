@@ -1,7 +1,7 @@
 import { removeMessageFromVersion, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 변경 함수
 import { CONVERSATION_PIN_LIMIT } from "@/features/conversation/conversation-list-model"; // 고정 한도
 import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
-import type { AdultVerification, AppSettings, AppState, Character, CharacterReport, Conversation, ConversationVersion, Message, PublicationStatus, Story, UserProfile } from "@/features/core/types"; // 상태 타입
+import type { AdultVerification, AppSettings, AppState, Character, CharacterReport, Conversation, ConversationVersion, GeneratedImage, Message, PublicationStatus, Story, TokenWallet, UserProfile } from "@/features/core/types"; // 상태 타입
 import { trySpend, type TokenAction } from "@/lib/story/token-policy"; // 토큰 정책
 
 export type AppAction = // 앱 동작
@@ -19,6 +19,9 @@ export type AppAction = // 앱 동작
     | { type: "delete-character"; characterId: string } // 캐릭터 삭제
     | { type: "upsert-story"; story: Story } // 스토리 저장
     | { type: "delete-story"; storyId: string } // 스토리 삭제
+    | { type: "add-image"; image: GeneratedImage; wallet: TokenWallet } // 생성 이미지 추가(토큰 차감 함께)
+    | { type: "toggle-image-favorite"; imageId: string } // 이미지 즐겨찾기 전환
+    | { type: "delete-image"; imageId: string } // 이미지 삭제
     | { type: "toggle-bookmark"; characterId: string } // 보관 전환
     | { type: "toggle-character-like"; characterId: string } // 좋아요 전환
     | { type: "toggle-creator-follow"; creatorId: string } // 제작자 팔로우 전환
@@ -119,6 +122,18 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
                 selectedConversationId: state.selectedConversationId !== null && conversationIds.includes(state.selectedConversationId) ? null : state.selectedConversationId, // 선택 대화 정리
             }); // 상태 종료
         } // 삭제 범위 종료
+        case "add-image": // 생성 이미지 추가
+        { // 추가 범위 시작
+            if (state.images.some((image) => image.id === action.image.id)) // 중복 판정
+            { // 조건 시작
+                return state; // 변경 없음
+            } // 조건 종료
+            return { ...state, images: [structuredClone(action.image), ...state.images], wallet: structuredClone(action.wallet) }; // 최근 순 추가와 지갑 반영
+        } // 추가 범위 종료
+        case "toggle-image-favorite": // 이미지 즐겨찾기 전환
+            return { ...state, images: state.images.map((image) => image.id === action.imageId ? { ...image, favorite: !image.favorite } : image) }; // 즐겨찾기 반영
+        case "delete-image": // 이미지 삭제(표지·장면에 쓴 사본은 그대로 남음)
+            return { ...state, images: state.images.filter((image) => image.id !== action.imageId) }; // 삭제 반영
         case "upsert-story": // 스토리 저장
         { // 저장 범위 시작
             const exists = state.stories.some((story) => story.id === action.story.id); // 기존 스토리 확인

@@ -1,6 +1,7 @@
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
 import { isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 그래프 검증
-import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, Message, Story, StoryCastMember, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
+import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, GeneratedImage, Message, Story, StoryCastMember, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
+import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { STORY_CAST_LIMIT } from "@/features/story/story-model"; // 등장인물 최대 수
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
 import { mockStories } from "@/mocks/story-fixtures"; // 예시 스토리
@@ -21,8 +22,11 @@ const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam
 const contentRatings = ["all", "teen", "mature"] as const; // 이용 등급 목록
 const adultVerificationMethods = ["mock"] as const; // 성인 인증 방식 목록
 const conversationSorts = ["recent", "relationship", "turns", "title"] as const; // 대화방 정렬 목록
-const backupReasons = ["manual", "import", "reset", "restore", "recovery", "message-delete", "version-delete", "conversation-delete", "character-delete", "story-delete"] as const; // 백업 사유 목록
+const backupReasons = ["manual", "import", "reset", "restore", "recovery", "message-delete", "version-delete", "conversation-delete", "character-delete", "story-delete", "image-delete"] as const; // 백업 사유 목록
 const conversationModes = ["character", "story"] as const; // 대화 종류 목록
+const imageStyles = ["anime", "illustration", "watercolor", "cinematic"] as const; // 그림체 목록
+const imageAspects = ["portrait", "square", "landscape"] as const; // 비율 목록
+const imageExposures = ["none", "covered", "uncovered"] as const; // 가림 처리 목록
 
 export interface LoadResult // 읽기 결과 구조
 { // 구조 시작
@@ -387,6 +391,27 @@ function isStoryCastMember(value: unknown): value is StoryCastMember // 등장�
         && isString(value.firstLine); // 첫 대사 확인
 } // 함수 종료
 
+function isGeneratedImage(value: unknown): value is GeneratedImage // 생성 이미지 판정 함수
+{ // 함수 시작
+    return isRecord(value) // 객체 확인
+        && isString(value.id) && value.id.length > 0 // 식별자 확인
+        && isString(value.prompt) // 설명 확인
+        && isOneOf(value.style, imageStyles) // 그림체 확인
+        && isOneOf(value.aspect, imageAspects) // 비율 확인
+        && (value.referenceCharacterId === null || isString(value.referenceCharacterId)) // 참고 캐릭터 확인
+        && isOneOf(value.contentRating, ["all", "teen", "mature"] as const) // 등급 확인
+        && isOneOf(value.exposure, imageExposures) // 가림 처리 확인
+        && (value.contentRating === "mature" ? value.exposure !== "none" : value.exposure === "none") // 19세만 가림 처리 값
+        && isString(value.src) && isGeneratedImageSource(value.src) // 이미지 형식 확인
+        && typeof value.favorite === "boolean" // 즐겨찾기 확인
+        && isString(value.createdAt); // 생성 시각 확인
+} // 함수 종료
+
+function hasSchemaElevenFields(value: Record<string, unknown>): boolean // 스키마 11 필드 판정 함수
+{ // 함수 시작
+    return Array.isArray(value.images) && value.images.every(isGeneratedImage) && new Set((value.images as GeneratedImage[]).map((image) => image.id)).size === value.images.length; // 생성 이미지 목록 확인
+} // 함수 종료
+
 function isStory(value: unknown): value is Story // 스토리 판정 함수
 { // 함수 시작
     return isRecord(value) // 객체 확인
@@ -430,6 +455,11 @@ function hasSchemaTenFields(value: Record<string, unknown>): boolean // 스키�
 
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
+    return hasVersionedGraph(value, 11) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value); // 버전 11 상태 반환
+} // 함수 종료
+
+function isVersionTenState(value: unknown): value is Record<string, unknown> // 버전 10 상태 판정 함수
+{ // 함수 시작
     return hasVersionedGraph(value, 10) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value); // 버전 10 상태 반환
 } // 함수 종료
 
@@ -448,7 +478,7 @@ function isVersionSevenState(value: unknown): value is VersionSevenState // 버�
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인
@@ -581,6 +611,16 @@ export function migrateVersionNine(value: Record<string, unknown>): AppState | n
     const characterIds = new Set((value.characters as Character[]).map((character) => character.id)); // 남아 있는 캐릭터
     const stories = structuredClone(mockStories).filter((story) => story.cast.every((member) => characterIds.has(member.characterId))); // 등장인물이 모두 있는 예시 스토리
     const candidate: unknown = { ...value, schemaVersion: 10, conversations, stories }; // 버전 10 후보
+    return isVersionTenState(candidate) ? migrateVersionTen(candidate) : null; // 연속 변환 반환
+} // 함수 종료
+
+export function migrateVersionTen(value: Record<string, unknown>): AppState | null // 버전 10 변환 함수
+{ // 함수 시작
+    if (!isVersionTenState(value)) // 버전 10 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const candidate: unknown = { ...value, schemaVersion: 11, images: [] }; // 버전 11 후보(빈 이미지 갤러리)
     return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
@@ -771,8 +811,12 @@ function migrateParsedState(parsed: unknown): AppState | null // 분석 상태 �
     } // 버전 8 종료
     if (parsed.schemaVersion === 9) // 버전 9 판정
     { // 버전 9 시작
-        return migrateVersionNine(parsed); // 버전 10 변환
+        return migrateVersionNine(parsed); // 버전 11 변환
     } // 버전 9 종료
+    if (parsed.schemaVersion === 10) // 버전 10 판정
+    { // 버전 10 시작
+        return migrateVersionTen(parsed); // 버전 11 변환
+    } // 버전 10 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 
@@ -787,7 +831,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     { // 실패 시작
         throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
     } // 실패 종료
-    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 10) // 미래 버전 판정
+    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 11) // 미래 버전 판정
     { // 미래 버전 시작
         throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
     } // 미래 버전 종료
@@ -881,6 +925,14 @@ function recoverState(raw: string, storage: Storage): LoadResult // 손상 복�
     return { state, recovered: true, warning: "손상된 저장 데이터를 백업하고 초기 상태로 복구했습니다." }; // 복구 결과 반환
 } // 함수 종료
 
+export function addMissingBuiltInStories(state: AppState): AppState // 빠진 기본 예시 스토리 보충
+{ // 함수 시작
+    const storyIds = new Set(state.stories.map((story) => story.id)); // 이미 있는 스토리
+    const characterIds = new Set(state.characters.map((character) => character.id)); // 남아 있는 캐릭터
+    const missing = mockStories.filter((story) => !storyIds.has(story.id) && story.cast.every((member) => characterIds.has(member.characterId))); // 등장인물이 모두 있는 빠진 예시 스토리
+    return missing.length === 0 ? state : { ...state, stories: [...state.stories, ...structuredClone(missing)] }; // 보충 상태 반환
+} // 함수 종료
+
 function parseAndMigrate(raw: string, storage: Storage): LoadResult // 분석 변환 함수
 { // 함수 시작
     let parsed: unknown; // 분석 결과
@@ -892,11 +944,12 @@ function parseAndMigrate(raw: string, storage: Storage): LoadResult // 분석 �
     { // 실패 시작
         return recoverState(raw, storage); // 손상 복구 반환
     } // 실패 종료
-    const migrated = migrateParsedState(parsed); // 상태 변환
-    if (migrated !== null) // 변환 성공 판정
+    const converted = migrateParsedState(parsed); // 상태 변환
+    if (converted !== null) // 변환 성공 판정
     { // 변환 성공 시작
+        const migrated = addMissingBuiltInStories(converted); // 새로 추가된 기본 예시 스토리 보충
         const changed = !isAppState(parsed); // 버전 변경 판정
-        if (changed) // 저장 필요 판정
+        if (changed || migrated !== converted) // 저장 필요 판정
         { // 저장 필요 시작
             writeItem(storage, stateKey, JSON.stringify(migrated)); // 변환 상태 저장
         } // 저장 필요 종료

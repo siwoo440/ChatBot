@@ -1,4 +1,5 @@
 import type { CharacterDraft } from "@/features/core/types"; // 초안 타입
+import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 
 export interface CharacterValidationResult // 검증 결과
 { // 구조 시작
@@ -80,7 +81,7 @@ export function validateCharacterDraft(draft: CharacterDraft): CharacterValidati
     { // 조건 시작
         errors.tags = "각 태그는 12자 이하여야 합니다."; // 태그 길이 오류
     } // 조건 종료
-    if (!localCharacterImagePattern.test(normalized.coverImage)) // 이미지 경로 판정
+    if (!localCharacterImagePattern.test(normalized.coverImage) && !isGeneratedImageSource(normalized.coverImage)) // 이미지 경로 판정(프로젝트 이미지 또는 내 이미지)
     { // 조건 시작
         errors.coverImage = "프로젝트에 포함된 캐릭터 이미지를 선택해 주세요."; // 이미지 오류
     } // 조건 종료

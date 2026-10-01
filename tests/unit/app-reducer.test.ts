@@ -3,6 +3,26 @@ import { appReducer } from "@/features/core/app-reducer"; // 상태 리듀서
 import { createVersionFork } from "@/features/conversation/conversation-versioning"; // 버전 분기 함수
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import { createStoryConversation } from "@/features/story/story-model"; // 스토리 대화 생성
+import { createGeneratedImage } from "@/features/images/image-model"; // 생성 이미지 만들기
+
+describe("이미지 스튜디오 리듀서", () => // 이미지 리듀서 묶음
+{ // 묶음 시작
+    it("이미지를 최근 순으로 추가하면서 토큰 지갑을 함께 바꾸고 즐겨찾기·삭제한다", () => // 이미지 동작 검증
+    { // 검증 시작
+        const state = createInitialState(); // 초기 상태
+        const first = createGeneratedImage({ prompt: "비 오는 밤", style: "anime", aspect: "square", referenceCharacterId: null, contentRating: "all" }, "kr", "2026-10-01T00:00:00.000Z", "image-1"); // 첫 이미지
+        const second = createGeneratedImage({ prompt: "숲속 정원", style: "watercolor", aspect: "portrait", referenceCharacterId: "miel", contentRating: "all" }, "kr", "2026-10-01T00:01:00.000Z", "image-2"); // 둘째 이미지
+        const wallet = { ...state.wallet, balance: state.wallet.balance - 20 }; // 차감 지갑
+        const added = appReducer(appReducer(state, { type: "add-image", image: first, wallet }), { type: "add-image", image: second, wallet: { ...wallet, balance: wallet.balance - 20 } }); // 두 장 추가
+        expect(added.images.map((image) => image.id)).toEqual(["image-2", "image-1"]); // 최근 순 확인
+        expect(added.wallet.balance).toBe(state.wallet.balance - 40); // 지갑 반영 확인
+        const favored = appReducer(added, { type: "toggle-image-favorite", imageId: "image-1" }); // 즐겨찾기
+        expect(favored.images.find((image) => image.id === "image-1")?.favorite).toBe(true); // 즐겨찾기 확인
+        const removed = appReducer(favored, { type: "delete-image", imageId: "image-2" }); // 삭제
+        expect(removed.images.map((image) => image.id)).toEqual(["image-1"]); // 삭제 확인
+        expect(appReducer(removed, { type: "add-image", image: first, wallet })).toBe(removed); // 같은 식별자 중복 추가 무시
+    }); // 검증 종료
+}); // 묶음 종료
 
 describe("스토리 모드 리듀서", () => // 스토리 리듀서 묶음
 { // 묶음 시작

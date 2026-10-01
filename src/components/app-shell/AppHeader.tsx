@@ -52,7 +52,8 @@ export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, on
                 <Link href="/" className="app-navigation-link" data-accent="home" aria-current={current(pathname === "/")} onClick={onNavigate}>메뉴</Link> {/* 메인 메뉴 링크 */}
                 <Link href={"/explore" as Route} className="app-navigation-link" data-accent="explore" aria-current={current(pathname.startsWith("/explore"))} onClick={onNavigate}>탐색</Link> {/* 탐색 링크 */}
                 <Link href="/library" className="app-navigation-link" data-accent="library" aria-current={current(pathname.startsWith("/library"))} onClick={onNavigate}>내 작품</Link> {/* 작품 링크 */}
-                <Link href="/text-play" className="app-navigation-link" data-accent="textplay" aria-current={current(pathname.startsWith("/text-play"))} onClick={onNavigate}>Text-Play 다운로드</Link> {/* Text-Play 링크 */}
+                <Link href={"/images" as Route} className="app-navigation-link" data-accent="images" aria-current={current(pathname.startsWith("/images"))} onClick={onNavigate}>이미지</Link> {/* 이미지 스튜디오 링크 */}
+                <Link href="/text-play" className="app-navigation-link" data-accent="textplay" aria-label="Text-Play 다운로드" aria-current={current(pathname.startsWith("/text-play"))} onClick={onNavigate}>Text-Play<span className="app-navigation-extra"> 다운로드</span></Link> {/* Text-Play 링크(태블릿은 화면에서 '다운로드' 생략) */}
             </nav> {/* 메뉴 종료 */}
             <AdultContentSwitch /> {/* 19+ 스위치 */}
             <button ref={rightButtonRef} type="button" aria-label="사용자 패널 열기와 닫기" aria-expanded={rightOpen} aria-controls="user-panel" onClick={onToggleRight}> {/* 오른쪽 버튼 */}

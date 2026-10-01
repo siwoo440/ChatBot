@@ -1,7 +1,7 @@
 .shell /* 전체 셸 */
 { /* 셸 시작 */
     min-height: 100vh; /* 최소 높이 */
-    background: #090b10; /* 미전환 화면 기본 배경 */
+    background: var(--mv-canvas); /* 밝은 기본 바탕 */
 } /* 셸 종료 */
 
 .shell:has([data-surface="light"]) /* 밝은 화면을 연 셸 */
@@ -38,6 +38,12 @@
     --accent: var(--page-library); /* 보관함 채움 */
     --accent-soft: #e1f5f2; /* 보관함 연한 배경 */
 } /* 보관함 종료 */
+
+.shell :global([data-accent="images"]) /* 이미지 스튜디오 강조색 */
+{ /* 이미지 시작 */
+    --accent: #4338ca; /* 이미지 채움 */
+    --accent-soft: #e0e7ff; /* 이미지 연한 배경 */
+} /* 이미지 종료 */
 
 .shell :global([data-accent="textplay"]) /* Text-Play 강조색 */
 { /* Text-Play 시작 */
@@ -136,8 +142,8 @@
     align-items: center; /* 세로 정렬 */
     min-height: 64px; /* 헤더 높이 */
     padding: 0 20px; /* 내부 여백 */
-    border-bottom: 1px solid var(--mv-line); /* 하단 선 */
-    background: rgb(255 255 255 / 97%); /* 헤더 배경 */
+    border-bottom: 1px solid #dcdae3; /* 하단 선 */
+    background: rgb(236 235 240 / 97%); /* 헤더 배경(연한 회색) */
     color: var(--mv-ink); /* 헤더 글자 */
     backdrop-filter: blur(16px); /* 배경 흐림 */
 } /* 헤더 종료 */
@@ -178,6 +184,7 @@
     background: var(--mv-surface); /* 버튼 배경 */
     font-weight: 750; /* 굵은 글자 */
     text-decoration: none; /* 밑줄 제거 */
+    white-space: nowrap; /* 메뉴 이름 줄바꿈 방지 */
     transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease; /* 메뉴 전환 */
 } /* 메뉴 버튼 종료 */
 
@@ -1362,9 +1369,20 @@
 
     .shell :global(.app-navigation-link) /* 태블릿 메뉴 버튼 */
     { /* 메뉴 버튼 시작 */
+        gap: 6px; /* 점 간격 */
         padding: 0 10px; /* 내부 여백 */
         font-size: .85rem; /* 글자 크기 */
     } /* 메뉴 버튼 종료 */
+
+    .shell :global(.app-navigation-extra) /* 태블릿에서 줄이는 글자 */
+    { /* 줄임 시작 */
+        position: absolute; /* 배치 제외(읽기 프로그램에는 남김) */
+        width: 1px; /* 최소 너비 */
+        height: 1px; /* 최소 높이 */
+        overflow: hidden; /* 넘침 숨김 */
+        clip-path: inset(50%); /* 시각 숨김 */
+        white-space: nowrap; /* 줄바꿈 방지 */
+    } /* 줄임 종료 */
 } /* 태블릿 종료 */
 
 @media (max-width: 760px) /* 모바일 */
