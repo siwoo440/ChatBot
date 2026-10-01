@@ -4,10 +4,16 @@
     background: #090b10; /* 미전환 화면 기본 배경 */
 } /* 셸 종료 */
 
+.shell :global([data-accent="home"]) /* 메인 메뉴 강조색 */
+{ /* 메인 시작 */
+    --accent: var(--page-home); /* 메인 채움 */
+    --accent-soft: #f3edff; /* 메인 연한 배경 */
+} /* 메인 종료 */
+
 .shell :global([data-accent="explore"]) /* 탐색 강조색 */
 { /* 탐색 시작 */
     --accent: var(--page-explore); /* 탐색 채움 */
-    --accent-soft: #f3edff; /* 탐색 연한 배경 */
+    --accent-soft: #e0f2fe; /* 탐색 연한 배경 */
 } /* 탐색 종료 */
 
 .shell :global([data-accent="ranking"]) /* 랭킹 강조색 */
@@ -809,9 +815,9 @@
         left: 0; /* 왼쪽 위치 */
         z-index: 30; /* 표시 순서 */
         display: grid; /* 그리드 배치 */
-        grid-template-columns: repeat(5, 1fr); /* 다섯 메뉴 */
-        gap: 4px; /* 메뉴 간격 */
-        padding: 6px 8px max(6px, env(safe-area-inset-bottom)); /* 안전 영역 여백 */
+        grid-template-columns: repeat(6, minmax(0, 1fr)); /* 여섯 메뉴 */
+        gap: 2px; /* 메뉴 간격 */
+        padding: 6px 4px max(6px, env(safe-area-inset-bottom)); /* 안전 영역 여백 */
         border-top: 1px solid var(--mv-line); /* 상단 선 */
         background: rgb(255 255 255 / 96%); /* 메뉴 배경 */
         box-shadow: 0 -10px 30px rgb(76 29 149 / 8%); /* 메뉴 그림자 */
@@ -825,8 +831,10 @@
         min-height: 44px; /* 터치 높이 */
         border-radius: 12px; /* 선택 모양 */
         color: var(--mv-muted); /* 기본 글자 */
-        font-size: .86rem; /* 글자 크기 */
+        font-size: .8rem; /* 글자 크기 */
         font-weight: 650; /* 글자 굵기 */
+        letter-spacing: -.02em; /* 좁은 자간 */
+        white-space: nowrap; /* 줄바꿈 방지 */
         place-items: center; /* 중앙 정렬 */
         text-decoration: none; /* 밑줄 제거 */
     } /* 링크 종료 */

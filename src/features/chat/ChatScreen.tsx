@@ -38,7 +38,7 @@ export function ChatScreen(props: ChatScreenProps) // 채팅 화면
     { // 조건 시작
         return ( // 부재 화면 반환
             <StatusScreen tone="not-found" label="CHARACTER NOT FOUND" title="대화할 캐릭터를 찾을 수 없습니다" description="주소가 잘못되었거나 이 브라우저에서 삭제된 캐릭터입니다. 탐색 화면에서 다른 캐릭터를 골라 주세요."> {/* 부재 안내 */}
-                <Link href="/">탐색으로 이동</Link> {/* 탐색 링크 */}
+                <Link href="/">메인으로 이동</Link> {/* 메인 링크 */}
                 <Link href={"/library" as Route}>보관함 열기</Link> {/* 보관함 링크 */}
             </StatusScreen> // 부재 안내 종료
         ); // 반환 종료
@@ -79,7 +79,7 @@ function ChatConversationScreen({ characterId, initialConversationId, initialVer
         return ( // 부재 화면 반환
             <StatusScreen tone="not-found" label="CONVERSATION NOT FOUND" title="대화를 찾을 수 없습니다" description="삭제되었거나 더 이상 열 수 없는 대화입니다. 보관함에서 다른 대화를 이어가 주세요."> {/* 부재 안내 */}
                 <Link href={"/library" as Route}>보관함 열기</Link> {/* 보관함 링크 */}
-                <Link href="/">탐색으로 이동</Link> {/* 탐색 링크 */}
+                <Link href="/">메인으로 이동</Link> {/* 메인 링크 */}
             </StatusScreen> // 부재 안내 종료
         ); // 반환 종료
     } // 조건 종료

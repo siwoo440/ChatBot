@@ -165,7 +165,7 @@
 } /* 선택 점 종료 */
 
 .home [role="group"] button:focus-visible, /* 필터 초점 */
-.featured a:focus-visible, /* 추천 링크 초점 */
+.detailLink:focus-visible, /* 추천 링크 초점 */
 .card:focus-visible, /* 카드 초점 */
 .loadMore:focus-visible /* 더 보기 초점 */
 { /* 초점 시작 */
@@ -229,9 +229,12 @@
     list-style: none; /* 점 제거 */
 } /* 목록 종료 */
 
-.tagList li /* 태그 항목 */
+.tagList a /* 태그 탐색 링크 */
 { /* 태그 시작 */
+    display: inline-flex; /* 알약 배치 */
     padding: 6px 12px; /* 태그 여백 */
+    text-decoration: none; /* 밑줄 제거 */
+    transition: background 150ms ease, color 150ms ease; /* 태그 전환 */
     border: 1px solid color-mix(in srgb, var(--genre) 24%, white); /* 태그 테두리 */
     border-radius: 999px; /* 알약 모양 */
     background: #ffffff; /* 태그 배경 */
@@ -240,7 +243,18 @@
     font-weight: 700; /* 태그 굵기 */
 } /* 태그 종료 */
 
-.featured a /* 추천 링크 */
+.tagList a:hover /* 태그 올림 */
+{ /* 올림 시작 */
+    background: var(--genre-soft); /* 연한 장르 배경 */
+} /* 올림 종료 */
+
+.tagList a:focus-visible /* 태그 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 2px; /* 외곽선 간격 */
+} /* 초점 종료 */
+
+.detailLink /* 추천 링크 */
 { /* 링크 시작 */
     display: inline-flex; /* 버튼 배치 */
     align-items: center; /* 세로 중앙 */
@@ -256,7 +270,7 @@
     transition: filter 150ms ease, transform 150ms ease; /* 버튼 전환 */
 } /* 링크 종료 */
 
-.featured a:hover /* 추천 링크 올림 */
+.detailLink:hover /* 추천 링크 올림 */
 { /* 올림 시작 */
     filter: brightness(1.08); /* 밝기 강조 */
     transform: translateY(-2px); /* 위쪽 이동 */
@@ -568,7 +582,7 @@
 @media (prefers-reduced-motion: reduce) /* 동작 축소 환경 */
 { /* 동작 축소 시작 */
     .home [role="group"] button, /* 필터 버튼 */
-    .featured a, /* 추천 링크 */
+    .detailLink, /* 추천 링크 */
     .card, /* 캐릭터 카드 */
     .loadMore /* 더 보기 */
     { /* 전환 대상 시작 */

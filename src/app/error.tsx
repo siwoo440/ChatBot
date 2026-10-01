@@ -19,7 +19,7 @@ export default function ErrorPage({ error, retry }: ErrorPageProps) // 화면 �
     return ( // 화면 반환
         <StatusScreen tone="error" label="ERROR" title="화면을 표시하지 못했습니다" description="일시적인 문제로 이 화면을 그리지 못했습니다. 브라우저에 저장된 캐릭터와 대화는 그대로 남아 있습니다."> {/* 오류 화면 */}
             <button type="button" onClick={() => retry()}>다시 시도</button> {/* 재시도 버튼 */}
-            <Link href="/">탐색으로 이동</Link> {/* 탐색 링크 */}
+            <Link href="/">메인으로 이동</Link> {/* 메인 링크 */}
         </StatusScreen> // 오류 화면 종료
     ); // 반환 종료
 } // 함수 종료

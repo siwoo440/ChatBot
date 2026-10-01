@@ -36,13 +36,18 @@ describe("앱 셸 패널", () => // 패널 묶음
         expect(screen.queryByRole("button", { name: "열린 패널 닫기" })).not.toBeInTheDocument(); // 배경 제거 확인
     }); // 검증 종료
 
-    it("헤더 탐색 링크를 버튼형 항목으로 표시한다", () => // 메뉴 디자인 검증
+    it("헤더 메뉴와 탐색 링크를 버튼형 항목으로 순서대로 표시한다", () => // 메뉴 디자인 검증
     { // 검증 시작
         renderWithApp(<AppShell><main>본문</main></AppShell>); // 화면 렌더
-        const discoveryLink = screen.getByRole("link", { name: "탐색" }); // 탐색 링크
-        const libraryLink = screen.getByRole("link", { name: "내 작품" }); // 작품 링크
-        expect(discoveryLink).toHaveClass("app-navigation-link"); // 탐색 버튼 확인
-        expect(libraryLink).toHaveClass("app-navigation-link"); // 작품 버튼 확인
+        const navigation = screen.getByRole("navigation", { name: "주요 메뉴" }); // 주요 메뉴 조회
+        const links = within(navigation).getAllByRole("link"); // 헤더 링크 목록
+        expect(links.map((link) => link.textContent)).toEqual(["메뉴", "탐색", "내 작품", "Text-Play 다운로드"]); // 메뉴 순서 확인
+        expect(within(navigation).getByRole("link", { name: "메뉴" })).toHaveAttribute("href", "/"); // 메인 경로 확인
+        expect(within(navigation).getByRole("link", { name: "탐색" })).toHaveAttribute("href", "/explore"); // 탐색 경로 확인
+        for (const link of links) // 링크 순회
+        { // 순회 시작
+            expect(link).toHaveClass("app-navigation-link"); // 버튼형 확인
+        } // 순회 종료
     }); // 검증 종료
 
     it("내부 화면 이동을 선택하면 열린 양쪽 패널을 즉시 닫는다", async () => // 이동 닫기 검증

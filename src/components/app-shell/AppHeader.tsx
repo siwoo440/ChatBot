@@ -1,5 +1,6 @@
 "use client"; // 클라이언트 컴포넌트
 
+import type { Route } from "next"; // 경로 타입
 import Image from "next/image"; // 이미지 최적화
 import Link from "next/link"; // 내부 경로 링크
 import { usePathname } from "next/navigation"; // 현재 경로 도구
@@ -47,7 +48,8 @@ export function AppHeader({ leftOpen, rightOpen, onToggleLeft, onToggleRight, on
                 <Image src="/images/brand/mate-verse-logo-v3.png" alt="Mate Verse" width={2172} height={724} priority /> {/* 브랜드 로고 */}
             </Link> {/* 브랜드 링크 종료 */}
             <nav aria-label="주요 메뉴"> {/* 주요 메뉴 */}
-                <Link href="/" className="app-navigation-link" data-accent="explore" aria-current={current(pathname === "/")} onClick={onNavigate}>탐색</Link> {/* 탐색 링크 */}
+                <Link href="/" className="app-navigation-link" data-accent="home" aria-current={current(pathname === "/")} onClick={onNavigate}>메뉴</Link> {/* 메인 메뉴 링크 */}
+                <Link href={"/explore" as Route} className="app-navigation-link" data-accent="explore" aria-current={current(pathname.startsWith("/explore"))} onClick={onNavigate}>탐색</Link> {/* 탐색 링크 */}
                 <Link href="/library" className="app-navigation-link" data-accent="library" aria-current={current(pathname.startsWith("/library"))} onClick={onNavigate}>내 작품</Link> {/* 작품 링크 */}
                 <Link href="/text-play" className="app-navigation-link" data-accent="textplay" aria-current={current(pathname.startsWith("/text-play"))} onClick={onNavigate}>Text-Play 다운로드</Link> {/* Text-Play 링크 */}
             </nav> {/* 메뉴 종료 */}

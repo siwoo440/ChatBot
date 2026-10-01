@@ -16,7 +16,7 @@ test("없는 페이지는 앱 헤더를 유지한 채 404 안내를 보여 준�
     await expect(page.getByRole("heading", { level: 1, name: "페이지를 찾을 수 없습니다" })).toBeVisible(); // 안내 제목 확인
     await expect(page.getByRole("navigation", { name: "주요 메뉴" })).toBeVisible(); // 앱 헤더 유지 확인
     await closeOpenPanels(page); // 기본 패널 닫기
-    await page.getByRole("main").getByRole("link", { name: "탐색으로 이동" }).click(); // 탐색 이동
+    await page.getByRole("main").getByRole("link", { name: "메인으로 이동" }).click(); // 메인 이동
     await expect(page).toHaveURL(/\/$/); // 홈 주소 확인
 }); // 테스트 종료
 

@@ -35,7 +35,7 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
     { // 조건 시작
         return ( // 부재 화면 반환
             <StatusScreen tone="not-found" label="CHARACTER NOT FOUND" title="캐릭터를 찾을 수 없습니다" description="주소가 잘못되었거나 이 브라우저에서 삭제된 캐릭터입니다."> {/* 부재 안내 */}
-                <Link href="/">탐색으로 돌아가기</Link> {/* 탐색 링크 */}
+                <Link href="/">메인으로 돌아가기</Link> {/* 메인 링크 */}
                 <Link href={"/library" as Route}>보관함 열기</Link> {/* 보관함 링크 */}
             </StatusScreen> // 부재 안내 종료
         ); // 반환 종료

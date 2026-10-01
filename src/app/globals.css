@@ -10,7 +10,8 @@
     --mv-surface: #ffffff; /* 밝은 화면 카드 */
     --mv-canvas: #fbf9ff; /* 밝은 화면 바탕 */
     --mv-focus: #1d4ed8; /* 초점 외곽선 */
-    --page-explore: #7c3aed; /* 탐색 대표색 */
+    --page-home: #7c3aed; /* 메인 메뉴 대표색 */
+    --page-explore: #0369a1; /* 탐색 대표색 */
     --page-ranking: #be185d; /* 랭킹 대표색 */
     --page-create: #15803d; /* 만들기 대표색 */
     --page-library: #0f766e; /* 보관함 대표색 */

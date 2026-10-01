@@ -53,7 +53,7 @@ describe("라우트 오류 화면", () => // 라우트 묶음
     { // 검증 시작
         render(<NotFound />); // 404 화면 렌더
         expect(screen.getByRole("heading", { level: 1, name: "페이지를 찾을 수 없습니다" })).toBeInTheDocument(); // 제목 확인
-        expect(screen.getByRole("link", { name: "탐색으로 이동" })).toHaveAttribute("href", "/"); // 탐색 링크 확인
+        expect(screen.getByRole("link", { name: "메인으로 이동" })).toHaveAttribute("href", "/"); // 탐색 링크 확인
         expect(screen.getByRole("link", { name: "보관함 열기" })).toHaveAttribute("href", "/library"); // 보관함 링크 확인
     }); // 검증 종료
 
@@ -85,7 +85,7 @@ describe("없는 캐릭터 주소", () => // 부재 주소 묶음
     { // 검증 시작
         renderWithApp(<ChatScreen characterId="unknown-character" />); // 없는 캐릭터 대화 렌더
         expect(screen.getByRole("heading", { level: 1, name: "대화할 캐릭터를 찾을 수 없습니다" })).toBeInTheDocument(); // 안내 제목 확인
-        expect(screen.getByRole("link", { name: "탐색으로 이동" })).toHaveAttribute("href", "/"); // 탐색 링크 확인
+        expect(screen.getByRole("link", { name: "메인으로 이동" })).toHaveAttribute("href", "/"); // 탐색 링크 확인
     }); // 검증 종료
 
     it("상세 화면도 같은 안내 화면을 사용한다", () => // 상세 부재 검증
