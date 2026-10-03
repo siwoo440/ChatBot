@@ -1,3 +1,4 @@
+import { normalizeEvents, pruneEvents, validateEvents } from "@/features/chat/event-model"; // 이벤트 정리·검증
 import { normalizeRelationStatId } from "@/features/chat/relation-model"; // 관계 스탯 지정 정리
 import { normalizeStats, validateStats } from "@/features/chat/stat-model"; // 스탯 정리·검증
 import type { WorkExtras } from "@/features/core/defaults"; // 작품 추가 필드
@@ -12,7 +13,7 @@ export type WorkExtrasErrors = Partial<Record<keyof WorkExtras, string>>; // 추
 
 export function normalizeWorkExtras<T extends WorkExtras>(draft: T): T // 추가 필드 정리
 { // 함수 시작
-    return { ...draft, playGuide: draft.playGuide.trim(), statusTemplate: { ...draft.statusTemplate, customLabels: draft.statusTemplate.customLabels.map((label) => label.trim()).filter(Boolean).slice(0, 2), stats: normalizeStats(draft.statusTemplate.stats), relationStatId: normalizeRelationStatId(draft.statusTemplate) }, updates: draft.updates.map((update) => ({ ...update, version: update.version.trim(), note: update.note.trim() })) }; // 정리 반환
+    return { ...draft, events: normalizeEvents(pruneEvents(draft.events, draft.statusTemplate.stats)), playGuide: draft.playGuide.trim(), statusTemplate: { ...draft.statusTemplate, customLabels: draft.statusTemplate.customLabels.map((label) => label.trim()).filter(Boolean).slice(0, 2), stats: normalizeStats(draft.statusTemplate.stats), relationStatId: normalizeRelationStatId(draft.statusTemplate) }, updates: draft.updates.map((update) => ({ ...update, version: update.version.trim(), note: update.note.trim() })) }; // 정리 반환
 } // 함수 종료
 
 export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추가 필드 검증
@@ -38,6 +39,11 @@ export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추�
     else if (draft.updates.some((update) => update.version.trim().length === 0 || update.version.trim().length > 20 || update.note.trim().length === 0 || update.note.trim().length > UPDATE_NOTE_LIMIT)) // 기록 내용 판정
     { // 조건 시작
         errors.updates = `업데이트 기록은 버전(1~20자)과 내용(1~${UPDATE_NOTE_LIMIT}자)이 필요합니다.`; // 내용 오류
+    } // 조건 종료
+    const eventError = validateEvents(draft.events, draft.statusTemplate.stats); // 이벤트 검증
+    if (eventError !== null) // 이벤트 오류
+    { // 조건 시작
+        errors.events = eventError; // 이벤트 오류 문구
     } // 조건 종료
     return errors; // 오류 반환
 } // 함수 종료

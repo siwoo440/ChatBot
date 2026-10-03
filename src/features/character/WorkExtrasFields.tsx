@@ -3,7 +3,9 @@
 import { useState } from "react"; // 리액트 상태
 import type { WorkExtras } from "@/features/core/defaults"; // 작품 추가 필드
 import type { StatusTemplate } from "@/features/core/types"; // 상태창 형식
+import { EventEditor } from "@/features/character/EventEditor"; // 이벤트 편집
 import { StatEditor } from "@/features/character/StatEditor"; // 스탯 편집
+import { pruneEvents } from "@/features/chat/event-model"; // 지운 스탯의 이벤트 정리
 import { normalizeRelationStatId } from "@/features/chat/relation-model"; // 관계 스탯 지정 정리
 import { createWorkUpdate, CUSTOM_LABEL_LIMIT, PLAY_GUIDE_LIMIT, UPDATE_NOTE_LIMIT, type WorkExtrasErrors } from "@/features/character/work-extras"; // 추가 필드 규칙
 import { getDateKey } from "@/lib/time/date-key"; // 날짜 키
@@ -39,10 +41,15 @@ export function WorkExtrasFields({ value, errors, onChange }: { value: WorkExtra
                 <div className={styles.inlineFields}>{labels.map((label, index) => <label key={index}>직접 항목 {index + 1}<input value={label} maxLength={CUSTOM_LABEL_LIMIT + 1} disabled={!template.enabled} placeholder={index === 0 ? "예: 단서" : "예: 체력"} onChange={(event) => { const next = [...labels]; next[index] = event.target.value; setTemplate({ customLabels: next }); }} /></label>)}</div> {/* 직접 항목 */}
                 <fieldset className={styles.optionGroup}> {/* 스탯 */}
                     <legend>스탯</legend> {/* 제목 */}
-                    <StatEditor stats={template.stats} relationStatId={template.relationStatId} disabled={!template.enabled} onChange={(stats) => setTemplate({ stats, relationStatId: normalizeRelationStatId({ stats, relationStatId: template.relationStatId }) })} onRelationChange={(relationStatId) => setTemplate({ relationStatId })} /> {/* 스탯 편집(지운 스탯·공통 스탯은 관계 지정 해제) */}
+                    <StatEditor stats={template.stats} relationStatId={template.relationStatId} disabled={!template.enabled} onChange={(stats) => onChange({ statusTemplate: { ...template, stats, relationStatId: normalizeRelationStatId({ stats, relationStatId: template.relationStatId }) }, events: pruneEvents(value.events, stats) })} onRelationChange={(relationStatId) => setTemplate({ relationStatId })} /> {/* 스탯 편집(지운 스탯·공통 스탯은 관계 지정 해제, 지운 스탯을 쓰던 이벤트도 함께 지움) */}
                 </fieldset> {/* 스탯 종료 */}
+                <fieldset className={styles.optionGroup}> {/* 이벤트 */}
+                    <legend>이벤트</legend> {/* 제목 */}
+                    <EventEditor events={value.events} stats={template.stats} disabled={!template.enabled} onChange={(events) => onChange({ events })} /> {/* 이벤트 편집 */}
+                </fieldset> {/* 이벤트 종료 */}
             </fieldset> {/* 상태창 종료 */}
             {errors.statusTemplate === undefined ? null : <span role="alert" className={styles.error}>{errors.statusTemplate}</span>} {/* 상태창 오류 */}
+            {errors.events === undefined ? null : <span role="alert" className={styles.error}>{errors.events}</span>} {/* 이벤트 오류 */}
             <fieldset className={styles.optionGroup}> {/* 업데이트 기록 */}
                 <legend>업데이트 기록</legend> {/* 제목 */}
                 <div className={styles.inlineFields}> {/* 새 기록 */}

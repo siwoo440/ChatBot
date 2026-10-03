@@ -5,7 +5,7 @@ import { createStat, STAT_ICON_LIMIT, STAT_KEYWORD_LIMIT, STAT_LIMIT, STAT_NAME_
 import type { StatDefinition, StatScope } from "@/features/core/types"; // 스탯 타입
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
 
-function NumberField({ label, value, onChange, className }: { label: string; value: number; onChange(value: number): void; className?: string }) // 정수 입력(빈 칸·빼기 기호를 입력하는 중에도 글자 유지)
+export function NumberField({ label, value, onChange, className }: { label: string; value: number; onChange(value: number): void; className?: string }) // 정수 입력(빈 칸·빼기 기호를 입력하는 중에도 글자 유지)
 { // 함수 시작
     const [text, setText] = useState(Number.isFinite(value) ? String(value) : ""); // 입력 글자
     const [last, setLast] = useState(value); // 마지막으로 알린 값

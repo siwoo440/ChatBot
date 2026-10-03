@@ -1,5 +1,5 @@
 import { contentRatingLabels } from "@/features/adult/adult-access"; // 등급 문구
-import type { AppState, Character, GeneratedImage, CharacterVisibility, ContentRating, StatusTemplate, Story, StoryCastMember, WorkUpdate } from "@/features/core/types"; // 도메인 타입
+import type { AppState, Character, CharacterVisibility, ContentRating, GeneratedImage, StatusTemplate, Story, StoryCastMember, StoryEvent, WorkUpdate } from "@/features/core/types"; // 도메인 타입
 import { normalizeWorkExtras, validateWorkExtras } from "@/features/character/work-extras"; // 플레이 가이드·상태창·업데이트 규칙
 import { createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본 상태창
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
@@ -21,6 +21,7 @@ export interface StoryDraft // 스토리 편집 초안
     playGuide: string; // 플레이 가이드
     statusTemplate: StatusTemplate; // 상태창 형식
     updates: WorkUpdate[]; // 업데이트 기록
+    events: StoryEvent[]; // 스탯 조건 이벤트
 } // 구조 종료
 
 export interface StoryValidationResult // 검증 결과
@@ -55,12 +56,12 @@ const ratingOrder: Record<ContentRating, number> = { all: 0, teen: 1, mature: 2 
 
 export function createEmptyStoryDraft(): StoryDraft // 빈 초안
 { // 함수 시작
-    return { title: "", summary: "", synopsis: "", opening: "", userRole: "", cast: [], tags: [], coverImage: storyCoverOptions[0], visibility: "private", contentRating: "all", playGuide: "", statusTemplate: createDefaultStatusTemplate(true), updates: [] }; // 초안 반환
+    return { title: "", summary: "", synopsis: "", opening: "", userRole: "", cast: [], tags: [], coverImage: storyCoverOptions[0], visibility: "private", contentRating: "all", playGuide: "", statusTemplate: createDefaultStatusTemplate(true), updates: [], events: [] }; // 초안 반환
 } // 함수 종료
 
 export function toStoryDraft(story: Story): StoryDraft // 기존 스토리를 초안으로
 { // 함수 시작
-    return { title: story.title, summary: story.summary, synopsis: story.synopsis, opening: story.opening, userRole: story.userRole, cast: story.cast.map((member) => ({ ...member })), tags: [...story.tags], coverImage: story.coverImage, visibility: story.visibility, contentRating: story.contentRating, playGuide: story.playGuide, statusTemplate: structuredClone(story.statusTemplate), updates: structuredClone(story.updates) }; // 복사 초안 반환
+    return { title: story.title, summary: story.summary, synopsis: story.synopsis, opening: story.opening, userRole: story.userRole, cast: story.cast.map((member) => ({ ...member })), tags: [...story.tags], coverImage: story.coverImage, visibility: story.visibility, contentRating: story.contentRating, playGuide: story.playGuide, statusTemplate: structuredClone(story.statusTemplate), updates: structuredClone(story.updates), events: structuredClone(story.events) }; // 복사 초안 반환
 } // 함수 종료
 
 export function createStoryCastMember(character: Pick<Character, "id" | "name">): StoryCastMember // 새 등장인물

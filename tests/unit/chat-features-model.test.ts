@@ -146,7 +146,7 @@ describe("추천 답변·문체·작품 추가 필드", () => // 기타 묶음
 
     it("플레이 가이드 길이, 직접 항목 길이, 업데이트 기록 형식을 검증한다", () => // 추가 필드 검증
     { // 검증 시작
-        const ok = { playGuide: "가이드", statusTemplate: createDefaultStatusTemplate(true), updates: [{ id: "u", version: "V2", date: "2026-10-01", note: "새 장면" }] }; // 정상
+        const ok = { playGuide: "가이드", statusTemplate: createDefaultStatusTemplate(true), updates: [{ id: "u", version: "V2", date: "2026-10-01", note: "새 장면" }], events: [] }; // 정상
         expect(validateWorkExtras(ok)).toEqual({}); // 통과
         expect(validateWorkExtras({ ...ok, playGuide: "가".repeat(2001) }).playGuide).toBeDefined(); // 가이드 길이
         expect(validateWorkExtras({ ...ok, statusTemplate: { ...ok.statusTemplate, customLabels: ["가".repeat(11)] } }).statusTemplate).toBeDefined(); // 항목 길이

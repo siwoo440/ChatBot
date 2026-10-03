@@ -141,6 +141,13 @@ export function MessageItem({ message, streaming, busy, allowRegenerate, version
             <strong>{message.role === "user" ? "나" : storyCast === undefined ? "캐릭터" : "스토리"}</strong> {/* 메시지 작성자 */}
             {editing ? <form className={styles.editForm} onSubmit={submit}><label><span className="sr-only">메시지 수정</span><textarea aria-label="메시지 수정" value={draft} maxLength={CHAT_MESSAGE_MAX_LENGTH} disabled={busy} onChange={(event) => setDraft(event.target.value)} /></label><div><button type="submit" disabled={busy}>수정 전송</button><button type="button" disabled={busy} onClick={() => setEditing(false)}>취소</button></div></form> : storyCast !== undefined && message.role === "assistant" ? <StoryAssistantBody content={message.content} streaming={streaming} cast={storyCast} /> : storyCast !== undefined && message.role === "user" ? <StoryUserBody content={message.content} cast={storyCast} /> : <p data-stream-tail="">{message.content.length === 0 && streaming ? "응답 작성 중…" : renderEmphasis(message.content)}</p>} {/* 메시지 내용 */}
             {showSceneImage && message.role === "assistant" && typeof message.sceneImage === "string" && message.sceneImage.length > 0 ? <figure className={styles.sceneImage}><Image src={message.sceneImage} alt="이 장면의 상황 이미지" width={640} height={400} unoptimized={message.sceneImage.startsWith("data:")} /></figure> : null} {/* 상황 이미지 */}
+            {message.role !== "assistant" ? null : (message.status?.events ?? []).map((item) => ( // 이 턴에 일어난 이벤트
+                <div key={`${item.eventId}-${item.target ?? ""}`} className={styles.eventCard} role="note" aria-label={`이벤트: ${item.name}`} data-ending={item.ending ? "true" : undefined}> {/* 이벤트 카드 */}
+                    <b><span aria-hidden="true">✨ </span>{item.name}{item.target === null ? "" : ` · ${item.target}`}</b> {/* 이벤트 이름과 인물 */}
+                    {item.narration.length === 0 ? null : <em>{item.narration}</em>} {/* 내레이션 */}
+                    {item.title.length === 0 && !item.ending ? null : <span className={styles.eventBadges}>{item.title.length === 0 ? null : <span>🏅 칭호 ‘{item.title}’</span>}{item.ending ? <span data-ending="true">🎬 엔딩</span> : null}</span>} {/* 칭호·엔딩 */}
+                </div> // 이벤트 카드 종료
+            ))} {/* 이벤트 종료 */}
             <div className={styles.actions}> {/* 메시지 동작 */}
                 <button type="button" disabled={busy} onClick={() => void copy()}>복사</button> {/* 복사 버튼 */}
                 {message.role === "user" && onEdit !== undefined ? <button type="button" disabled={busy} onClick={() => { setDraft(message.content); setEditing(true); setStatus(""); }}>수정</button> : null} {/* 수정 버튼 */}

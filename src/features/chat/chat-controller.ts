@@ -1,10 +1,11 @@
 import { CHAT_MESSAGE_MAX_LENGTH, CHAT_VERSION_LIMIT, createVersionFork, getConversationVersion, getMessageVersionGroup, getVersionMessages, type VersionStateInput } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
-import type { AppState, Character, Conversation, ConversationVersion, Message, StatusSnapshot, StatusTemplate, TokenWallet } from "@/features/core/types"; // 앱 타입
+import type { AppState, Character, Conversation, ConversationVersion, Message, StatusSnapshot, StatusTemplate, TokenWallet, TriggeredEvent } from "@/features/core/types"; // 앱 타입
 import type { ImageGenerationAdapter } from "@/lib/adapters/image-generation-adapter"; // 이미지 계약
 import type { LLMAdapter, LLMInput } from "@/lib/adapters/llm-adapter"; // 대화 계약
 import { evaluateStory, resolveRelationshipStage } from "@/lib/story/story-engine"; // 스토리 판정·관계 단계
 import { trySpend, trySpendAmount } from "@/lib/story/token-policy"; // 토큰 정책
 import { buildChatContext, type ChatContext } from "@/features/chat/chat-context"; // 대화 맥락
+import { evaluateEvents, getFiredKeys } from "@/features/chat/event-model"; // 스탯 조건 이벤트
 import { getMessageCost } from "@/features/chat/chat-tiers"; // 메시지 비용
 import { fromRelationLevel, getRelationStat, readRelationLevel, toRelationLevel, type RelationBinding } from "@/features/chat/relation-model"; // 관계 스탯
 import { buildStatJudgeInput, currentStatValues, type StatBaseline, type StatChange } from "@/features/chat/stat-model"; // 스탯 계산
@@ -150,6 +151,19 @@ export class ChatController // 채팅 제어기
         const people = getStatusPeople(conversation, deriveDisplayName(character.name)); // 인물
         const turn = messages.filter((message) => message.role === "user").length; // 턴 번호
         return composeStatus({ template, people, previous: this.previousStatus(messages), turn, userMessage, aiChanges, baselines, emotion, tags: story?.tags ?? character.tags, startedAt: conversation.createdAt, seed: conversation.id }); // 상태창 반환
+    } // 함수 종료
+
+    private withTurnEvents(conversation: Conversation, character: Character, messages: Message[], status: StatusSnapshot | null): { status: StatusSnapshot | null; events: TriggeredEvent[] } // 이번 턴에 일어난 이벤트를 상태창에 기록(조건이 처음 맞는 턴에 한 번)
+    { // 함수 시작
+        if (status === null) // 상태창 없음
+        { // 조건 시작
+            return { status, events: [] }; // 이벤트 없음
+        } // 조건 종료
+        const story = conversation.mode === "story" ? this.state.stories.find((item) => item.id === conversation.storyId) : undefined; // 연결 스토리
+        const people = getStatusPeople(conversation, deriveDisplayName(character.name)); // 인물
+        const fired = getFiredKeys(messages.flatMap((message) => message.role === "assistant" && message.status !== undefined && message.status !== null ? [message.status] : [])); // 이 버전에서 이미 일어난 이벤트
+        const events = evaluateEvents({ events: (story ?? character).events, stats: this.statusTemplateFor(conversation, character)?.stats ?? [], values: status.stats, turn: status.turn, fired, lead: people[0] ?? deriveDisplayName(character.name) }); // 이벤트 판정
+        return { status: events.length === 0 ? status : { ...status, events }, events }; // 기록한 상태창
     } // 함수 종료
 
     private attachSceneToLatestReply(versionId: string, path: string): void // 현재 버전 마지막 응답에 상황 이미지 붙이기
@@ -317,24 +331,6 @@ export class ChatController // 채팅 제어기
             relationshipLevel = story.relationshipLevel; // 관계 수치 반영
             relationshipStage = story.relationshipStage; // 관계 단계 반영
             emotion = story.emotion; // 감정 반영
-            sceneEvent = null; // 장면 사건 초기화
-            if (story.importantEvent) // 중요 사건 판정
-            { // 중요 사건 시작
-                const imageSpending = trySpend(this.state.wallet, "auto-image"); // 이미지 토큰 차감
-                if (imageSpending.ok) // 이미지 생성 가능
-                { // 가능 시작
-                    const scene = await this.options.images.generateScene({ sceneId: story.sceneId }); // Mock 장면 생성
-                    if (abortController.signal.aborted) // 이미지 생성 중 중단 판정
-                    { // 조건 시작
-                        this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "cancelled" }; // 중단 상태 기록
-                        return { ok: false, reason: "cancelled" }; // 중단 결과 반환
-                    } // 조건 종료
-                    this.state = { ...this.state, wallet: imageSpending.wallet }; // 이미지 토큰 반영
-                    currentScene = scene.path; // 장면 경로 반영
-                    sceneEvent = story.sceneId; // 사건 기록
-                    sceneImage = scene.path; // 응답 아래 상황 이미지
-                } // 가능 종료
-            } // 중요 사건 종료
         } // 조건 종료
         const createdAt = new Date().toISOString(); // 완료 시각
         const relation = this.relationBinding(conversation, character); // 관계 스탯 연결
@@ -347,7 +343,19 @@ export class ChatController // 채팅 제어기
             this.lastAttempt = { userMessageId: userMessage.id, assistantMessageId, status: "cancelled" }; // 중단 상태 기록
             return { ok: false, reason: "cancelled" }; // 중단 결과 반환
         } // 조건 종료
-        const status = this.composeTurnStatus(conversation, character, promptMessages, userMessage.content, aiChanges, emotion, baselines); // 이번 턴 상태창
+        const turn = this.withTurnEvents(conversation, character, promptMessages, this.composeTurnStatus(conversation, character, promptMessages, userMessage.content, aiChanges, emotion, baselines)); // 이번 턴 상태창과 이벤트
+        const status = turn.status; // 이벤트를 기록한 상태창
+        const eventScene = turn.events.find((item) => item.scene !== null)?.scene ?? null; // 이벤트의 특별 장면 그림(토큰 없음)
+        if (eventScene !== null) // 특별 장면 판정
+        { // 조건 시작
+            currentScene = eventScene; // 장면 반영
+            sceneImage = eventScene; // 응답 아래 그림
+        } // 조건 종료
+        else if (previousAssistant?.status?.events?.some((item) => item.scene !== null && item.scene === sceneImage) === true) // 다시 생성으로 이벤트가 사라짐
+        { // 조건 시작
+            sceneImage = null; // 그 이벤트의 그림도 뗌
+        } // 조건 종료
+        sceneEvent = turn.events[0]?.eventId ?? null; // 이 턴의 첫 이벤트
         const relationLevel = relation === null ? null : readRelationLevel(status, relation.stat, relation.lead); // 대표 인물의 관계 스탯 값
         if (relationLevel !== null) // 관계 스탯 판정
         { // 조건 시작
@@ -456,11 +464,13 @@ export class ChatController // 채팅 제어기
             { // 조건 시작
                 return { ok: false, reason: "cancelled" }; // 중단 결과 반환
             } // 조건 종료
-            const forkStatus = this.composeTurnStatus(conversation, character, promptMessages, content, forkChanges, story.emotion, forkBaselines); // 수정 턴 상태창
+            const forkTurn = this.withTurnEvents(conversation, character, promptMessages, this.composeTurnStatus(conversation, character, promptMessages, content, forkChanges, story.emotion, forkBaselines)); // 수정 턴 상태창과 이벤트
+            const forkStatus = forkTurn.status; // 이벤트를 기록한 상태창
+            const forkScene = forkTurn.events.find((item) => item.scene !== null)?.scene ?? null; // 이벤트의 특별 장면 그림
             const forkRelationLevel = relation === null ? null : readRelationLevel(forkStatus, relation.stat, relation.lead); // 분기 응답의 관계 스탯 값
             const forkLevel = forkRelationLevel ?? story.relationshipLevel; // 관계 스탯이 있으면 그 값
             const forkStage = forkRelationLevel === null ? story.relationshipStage : resolveRelationshipStage(forkRelationLevel); // 관계 단계
-            const fork = createVersionFork(originalState, { conversationId: conversation.id, baseVersionId: version.id, targetMessageId: target.id, content, assistantMessage: { id: assistantMessageId, role: "assistant", content: reply, emotion: story.emotion, sceneEvent: null, scenePath: forkBaseState.currentScene, status: forkStatus, sceneImage: null, createdAt: now }, versionState: { relationshipLevel: forkLevel, relationshipStage: forkStage, emotion: story.emotion, currentScene: forkBaseState.currentScene, lastMessage: reply }, now }); // 최종 분기 생성
+            const fork = createVersionFork(originalState, { conversationId: conversation.id, baseVersionId: version.id, targetMessageId: target.id, content, assistantMessage: { id: assistantMessageId, role: "assistant", content: reply, emotion: story.emotion, sceneEvent: forkTurn.events[0]?.eventId ?? null, scenePath: forkScene ?? forkBaseState.currentScene, status: forkStatus, sceneImage: forkScene, createdAt: now }, versionState: { relationshipLevel: forkLevel, relationshipStage: forkStage, emotion: story.emotion, currentScene: forkScene ?? forkBaseState.currentScene, lastMessage: reply }, now }); // 최종 분기 생성
             this.state = { ...fork.state, wallet: spending.wallet }; // 원자적 수정 확정
             this.reportProgress(onProgress, "complete", assistantMessageId); // 완료 상태 전달
             return { ok: true, versionId: fork.version.id }; // 성공 결과 반환

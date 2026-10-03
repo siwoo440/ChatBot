@@ -1,6 +1,7 @@
 // 저장 데이터 검사: 앱 상태와 이전 버전 상태가 올바른 모양인지 판정한다(읽기 전용, 저장소·버전 변환과 분리).
 import { isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 그래프 검증
 import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, GeneratedImage, Message, Story, StoryCastMember, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
+import { EVENT_LIMIT } from "@/features/chat/event-model"; // 이벤트 개수 한도
 import { STAT_LIMIT } from "@/features/chat/stat-model"; // 스탯 개수 한도
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { INVITE_QUALIFY_MESSAGES, isInviteCode } from "@/features/rewards/referral-model"; // 초대 코드 형식
@@ -27,7 +28,8 @@ export const colorThemes = ["light", "dark"] as const; // 색 테마(버전 12�
 export const statModes = ["rule", "ai", "both"] as const; // 스탯 정하는 방법
 export const statScopes = ["each", "shared"] as const; // 스탯 적용 대상
 export const conversationFilters = ["all", "character", "story"] as const; // 대화 종류 탭
-export const notificationKinds = ["notice", "image", "memory", "reward"] as const; // 알림 종류
+export const notificationKinds = ["notice", "image", "memory", "reward", "event"] as const; // 알림 종류
+export const storyEventConditions = ["stat-min", "stat-max", "turn"] as const; // 이벤트 조건 종류
 export const tokenRecordSources = ["attendance", "mission", "mission-bonus", "invite-welcome", "invite-friend"] as const; // 토큰 기록 출처
 export const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam", "other"] as const; // 신고 사유 목록
 export const contentRatings = ["all", "teen", "mature"] as const; // 이용 등급 목록
@@ -421,9 +423,34 @@ export function hasStatusSnapshotBase(value: unknown): value is Record<string, u
         && Array.isArray(value.custom) && value.custom.every((item) => isRecord(item) && isString(item.label) && isString(item.value)); // 직접 항목 확인
 } // 함수 종료
 
+function hasEventResult(value: Record<string, unknown>): boolean // 이벤트 결과 필드 판정 함수
+{ // 함수 시작
+    return isString(value.name) && isString(value.narration) && (value.scene === null || isString(value.scene)) && isString(value.title) && isBoolean(value.ending) && isBoolean(value.notify); // 결과 필드 반환
+} // 함수 종료
+
+export function isStoryEvent(value: unknown): boolean // 스탯 조건 이벤트 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.id) && value.id.length > 0 && isOneOf(value.condition, storyEventConditions) && (value.statId === null || isString(value.statId)) && isFiniteNumber(value.value) && hasEventResult(value); // 이벤트 반환
+} // 함수 종료
+
+export function isTriggeredEvent(value: unknown): boolean // 일어난 이벤트 기록 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.eventId) && (value.target === null || isString(value.target)) && hasEventResult(value); // 기록 반환
+} // 함수 종료
+
+export function hasWorkEvents(value: unknown): boolean // 작품의 이벤트 판정 함수(개수, 식별자 중복, 조건 스탯이 작품에 있는지)
+{ // 함수 시작
+    if (!isRecord(value) || !Array.isArray(value.events) || value.events.length > EVENT_LIMIT || !value.events.every(isStoryEvent) || !hasUniqueIds(value.events) || !isRecord(value.statusTemplate) || !Array.isArray(value.statusTemplate.stats)) // 모양 확인
+    { // 조건 시작
+        return false; // 거부
+    } // 조건 종료
+    const statIds = new Set((value.statusTemplate.stats as Array<{ id: string }>).map((stat) => stat.id)); // 작품의 스탯
+    return (value.events as Array<{ condition: string; statId: string | null }>).every((event) => event.condition === "turn" || (event.statId !== null && statIds.has(event.statId))); // 조건 스탯 확인
+} // 함수 종료
+
 export function isStatusSnapshot(value: unknown): boolean // 상태창 값 판정 함수(버전 13: 스탯)
 { // 함수 시작
-    return hasStatusSnapshotBase(value) && Array.isArray(value.stats) && value.stats.every(isStatValue); // 스탯 값 확인
+    return hasStatusSnapshotBase(value) && Array.isArray(value.stats) && value.stats.every(isStatValue) && (value.events === undefined || (Array.isArray(value.events) && value.events.every(isTriggeredEvent))); // 스탯 값·이벤트 기록 확인
 } // 함수 종료
 
 export function isVersionTwelveStatusSnapshot(value: unknown): boolean // 버전 12 상태창 값 판정 함수(호감도)
@@ -573,6 +600,11 @@ export function isReferralState(value: unknown): boolean // 친구 초대 판정
 
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
+    return hasVersionedGraph(value, 17) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14) && hasSchemaFifteenFields(value) && isReferralState(value.referral) && (value.characters as unknown[]).every(hasWorkEvents) && (value.stories as unknown[]).every(hasWorkEvents); // 버전 17 상태 반환
+} // 함수 종료
+
+export function isVersionSixteenState(value: unknown): value is Record<string, unknown> // 버전 16 상태 판정 함수
+{ // 함수 시작
     return hasVersionedGraph(value, 16) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14) && hasSchemaFifteenFields(value) && isReferralState(value.referral); // 버전 16 상태 반환
 } // 함수 종료
 
@@ -621,7 +653,7 @@ export function isVersionSevenState(value: unknown): value is VersionSevenState 
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인

@@ -7,7 +7,7 @@ import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페�
 import { getDailyUsage, tokenActionLabels, tokenCosts, type TokenAction } from "@/lib/story/token-policy"; // 토큰 비용표
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 
-const costOrder: TokenAction[] = ["chat", "advanced-chat", "auto-image", "manual-image", "regenerate-image", "studio-image"]; // 비용 표시 순서
+const costOrder: TokenAction[] = ["chat", "advanced-chat", "manual-image", "regenerate-image", "studio-image"]; // 비용 표시 순서
 
 function formatDateTime(value: string): string // 시각 표시
 { // 함수 시작

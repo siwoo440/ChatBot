@@ -457,6 +457,12 @@
     color: light-dark(#be185d, #f08bb6); /* 분홍 글자 */
 } /* 보상 종료 */
 
+.shell :global(.app-notifications-kind[data-kind="event"]) /* 이벤트 알림 */
+{ /* 이벤트 시작 */
+    background: light-dark(#fef3c7, #3d3414); /* 노랑 */
+    color: light-dark(#92400e, #f6cf7f); /* 노랑 글자 */
+} /* 이벤트 종료 */
+
 .shell :global(.app-header button[data-reward="true"]) /* 받을 보상이 있는 메뉴 버튼 */
 { /* 버튼 시작 */
     position: relative; /* 점 기준 */

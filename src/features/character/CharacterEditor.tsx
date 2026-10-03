@@ -36,6 +36,7 @@ function createEmptyDraft(): CharacterDraft // 빈 초안 생성
         playGuide: "", // 플레이 가이드
         statusTemplate: createDefaultStatusTemplate(true), // 상태창 형식
         updates: [], // 업데이트 기록
+        events: [], // 스탯 조건 이벤트
     }); // 초안 종료
 } // 함수 종료
 
@@ -57,6 +58,7 @@ function toDraft(character: Character): CharacterDraft // 캐릭터 초안 변�
         playGuide: character.playGuide, // 플레이 가이드 복사
         statusTemplate: structuredClone(character.statusTemplate), // 상태창 형식 복사
         updates: structuredClone(character.updates), // 업데이트 기록 복사
+        events: structuredClone(character.events), // 이벤트 복사
     }); // 초안 종료
 } // 함수 종료
 

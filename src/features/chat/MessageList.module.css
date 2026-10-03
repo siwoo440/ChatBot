@@ -260,6 +260,60 @@
     color: rgb(255 255 255 / 82%); /* 흐린 흰 글자 */
 } /* 사용자 종료 */
 
+.eventCard /* 이 턴에 일어난 이벤트 */
+{ /* 카드 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 4px; /* 간격 */
+    max-width: 520px; /* 너비 제한 */
+    margin-top: 10px; /* 위 여백 */
+    padding: 10px 12px; /* 여백 */
+    border: 1px solid light-dark(#f5c26b, #7a5a1c); /* 금색 테두리 */
+    border-radius: 14px; /* 모서리 */
+    background: light-dark(#fffaf0, #26200f); /* 금색 배경 */
+    color: var(--mv-ink); /* 글자 */
+} /* 카드 종료 */
+
+.eventCard b /* 이벤트 이름 */
+{ /* 이름 시작 */
+    color: light-dark(#92400e, #f6cf7f); /* 금색 글자 */
+    font-size: .86rem; /* 크기 */
+} /* 이름 종료 */
+
+.eventCard em /* 내레이션 */
+{ /* 내레이션 시작 */
+    font-size: .92rem; /* 크기 */
+    line-height: 1.6; /* 행간 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+} /* 내레이션 종료 */
+
+.eventBadges /* 칭호·엔딩 */
+{ /* 묶음 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 */
+    gap: 6px; /* 간격 */
+} /* 묶음 종료 */
+
+.eventBadges span /* 배지 */
+{ /* 배지 시작 */
+    padding: 1px 9px; /* 여백 */
+    border-radius: 999px; /* 알약 */
+    background: var(--mv-surface); /* 배경 */
+    color: light-dark(#92400e, #f6cf7f); /* 금색 글자 */
+    font-size: .76rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+} /* 배지 종료 */
+
+.eventBadges span[data-ending="true"] /* 엔딩 배지 */
+{ /* 엔딩 시작 */
+    background: var(--genre); /* 장르 채움 */
+    color: #ffffff; /* 흰 글자 */
+} /* 엔딩 종료 */
+
+.eventCard[data-ending="true"] /* 엔딩 이벤트 */
+{ /* 엔딩 시작 */
+    border-width: 2px; /* 굵은 테두리 */
+} /* 엔딩 종료 */
+
 .sceneImage /* 대화 안 상황 이미지 */
 { /* 이미지 시작 */
     max-width: 320px; /* 너비 제한 */

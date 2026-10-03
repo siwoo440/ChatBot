@@ -19,7 +19,8 @@ export type ChatFont = "default" | "nanum-myeongjo" | "gowun-batang" | "noto-ser
 export type ChatFontSize = "small" | "medium" | "large"; // 채팅 글자 크기
 export type ColorTheme = "light" | "dark"; // 사이트 색 테마(밝게·어둡게)
 export type ConversationFilter = "all" | "character" | "story"; // 왼쪽 창 대화 종류 탭
-export type NotificationKind = "notice" | "image" | "memory" | "reward"; // 알림 종류(reward: 출석·미션 보상)
+export type NotificationKind = "notice" | "image" | "memory" | "reward" | "event"; // 알림 종류(reward: 출석·미션 보상, event: 스탯 조건 이벤트)
+export type StoryEventCondition = "stat-min" | "stat-max" | "turn"; // 이벤트 조건(스탯 이상·스탯 이하·턴)
 export type MissionId = "send-messages" | "start-conversation" | "favorite-work"; // 오늘의 미션 식별자
 export type TokenRecordSource = "attendance" | "mission" | "mission-bonus" | "invite-welcome" | "invite-friend"; // 토큰 기록 출처(출석·미션·친구 초대, 토큰 사용 내역 단계에서 사용 출처를 더함)
 export type StatMode = "rule" | "ai" | "both"; // 스탯 수치를 정하는 방법(규칙·AI 판단·둘 다)
@@ -75,6 +76,32 @@ export interface ConversationSettings // 대화방별 설정
     preventImpersonation: boolean; // 유저 사칭 방지
 } // 구조 종료
 
+export interface StoryEvent // 제작자가 정한 스탯 조건 이벤트
+{ // 구조 시작
+    id: string; // 이벤트 식별자
+    name: string; // 이벤트 이름
+    condition: StoryEventCondition; // 조건 종류
+    statId: string | null; // 조건 스탯(턴 조건이면 없음)
+    value: number; // 기준 값(스탯 값 또는 턴 번호)
+    narration: string; // 내레이션({이름}은 인물 이름으로 바뀜)
+    scene: string | null; // 특별 장면 그림(응답 아래에 표시, 토큰 없음)
+    title: string; // 칭호
+    ending: boolean; // 엔딩 표시(대화는 계속할 수 있음)
+    notify: boolean; // 알림함에 알리기
+} // 구조 종료
+
+export interface TriggeredEvent // 한 턴에 일어난 이벤트(그 응답의 상태창에 기록)
+{ // 구조 시작
+    eventId: string; // 이벤트 식별자
+    name: string; // 이벤트 이름
+    target: string | null; // 조건을 채운 인물(공통 스탯·턴 조건이면 없음)
+    narration: string; // 내레이션(이름을 넣은 문장)
+    scene: string | null; // 특별 장면 그림
+    title: string; // 칭호
+    ending: boolean; // 엔딩 표시
+    notify: boolean; // 알림함에 알리기
+} // 구조 종료
+
 export interface StatusTemplate // 상태창 형식
 { // 구조 시작
     enabled: boolean; // 상태창 사용
@@ -96,6 +123,7 @@ export interface StatusSnapshot // 한 턴의 상태창 값
     stats: StatValue[]; // 스탯 값과 변화
     thoughts: Array<{ name: string; text: string }>; // 인물별 속마음
     custom: Array<{ label: string; value: string }>; // 직접 정한 항목 값
+    events?: TriggeredEvent[]; // 이 턴에 일어난 이벤트(없으면 생략)
 } // 구조 종료
 
 export interface WorkUpdate // 작품 업데이트 기록
@@ -162,6 +190,7 @@ export interface Story // 스토리(여러 인물 또는 한 명과 펼치는 �
     playGuide: string; // 플레이 가이드
     statusTemplate: StatusTemplate; // 상태창 형식
     updates: WorkUpdate[]; // 업데이트 기록
+    events: StoryEvent[]; // 스탯 조건 이벤트
     createdAt: string; // 생성 시각
     updatedAt: string; // 수정 시각
 } // 구조 종료
@@ -204,6 +233,7 @@ export interface Character // 캐릭터 구조
     playGuide: string; // 플레이 가이드
     statusTemplate: StatusTemplate; // 상태창 형식
     updates: WorkUpdate[]; // 업데이트 기록
+    events: StoryEvent[]; // 스탯 조건 이벤트
     createdAt: string; // 생성 시각
     updatedAt: string; // 수정 시각
 } // 구조 종료
@@ -224,6 +254,7 @@ export interface CharacterDraft // 캐릭터 초안 구조
     playGuide: string; // 플레이 가이드
     statusTemplate: StatusTemplate; // 상태창 형식
     updates: WorkUpdate[]; // 업데이트 기록
+    events: StoryEvent[]; // 스탯 조건 이벤트
 } // 구조 종료
 
 export interface Conversation // 대화방 구조
@@ -467,7 +498,7 @@ export interface GeneratedImage // 이미지 스튜디오 생성 이미지
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 16; // 스키마 버전
+    schemaVersion: 17; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록

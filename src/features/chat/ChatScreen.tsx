@@ -257,6 +257,24 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
             dispatch({ type: "add-notification", notification: { id: `memory-${chat.id}-${turn}`, kind: "memory", title: "요약 메모리가 추가됐어요", body: `${chat.title} · ${turn}턴까지 요약`, href: createSessionHref(chat), read: false, createdAt: new Date().toISOString() } }); // 알림
         } // 조건 종료
     }; // 함수 종료
+    const notifyEvents = () => // 방금 일어난 이벤트 가운데 알림을 켠 것을 알림함에 추가
+    { // 함수 시작
+        const current = controller.snapshot(); // 제어 상태
+        const chat = current.conversations.find((item) => item.id === prepared.conversation.id); // 대화
+        const chatVersion = chat === undefined ? null : getConversationVersion(current, chat.id); // 현재 버전
+        if (chat === undefined || chatVersion === null) // 대상 부재
+        { // 조건 시작
+            return; // 생략
+        } // 조건 종료
+        const latest = getVersionMessages(current, chat.id, chatVersion.id).filter((message) => message.role === "assistant").at(-1); // 마지막 응답
+        for (const item of latest?.status?.events ?? []) // 이벤트 순회
+        { // 순회 시작
+            if (item.notify) // 알림을 켠 이벤트
+            { // 조건 시작
+                dispatch({ type: "add-notification", notification: { id: `event-${chat.id}-${chatVersion.id}-${item.eventId}-${item.target ?? ""}`, kind: "event", title: item.ending ? `엔딩: ${item.name}` : `이벤트: ${item.name}`, body: `${chat.title}${item.target === null ? "" : ` · ${item.target}`}${item.title.length === 0 ? "" : ` · 칭호 ‘${item.title}’`}`, href: createSessionHref(chat), read: false, createdAt: new Date().toISOString() } }); // 알림(같은 이벤트는 한 번)
+            } // 조건 종료
+        } // 순회 종료
+    }; // 함수 종료
     const runRequest = async (request: (onProgress: (progress: ChatProgress) => void) => Promise<SendResult>) => // 응답 요청 실행
     { // 함수 시작
         syncContext(); // 최신 설정 반영
@@ -275,6 +293,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
             setNotice(result.ok ? "" : result.reason === "cancelled" ? "응답을 중단했습니다." : result.reason === "insufficient-token" ? "토큰이 부족합니다." : "메시지를 전송하지 못했습니다."); // 안내 갱신
             if (result.ok) // 성공 판정
             { // 조건 시작
+                notifyEvents(); // 이벤트 알림
                 void summarizeIfNeeded().catch(() => undefined); // 요약 메모리(실패해도 대화는 유지)
             } // 조건 종료
         } // 시도 종료
@@ -328,6 +347,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                 } // 실패 종료
                 allowCreate.current = false; // 첫 저장 이후 재생성 차단
                 setSnapshot(nextState); // 확정 화면 반영
+                notifyEvents(); // 수정 분기에서 일어난 이벤트 알림
                 replaceRoute(createSessionHref(conversation, result.versionId) as Route, { scroll: false }); // 새 버전 주소 적용
             } // 조건 종료
             else // 수정 실패 판정

@@ -243,4 +243,5 @@ export const validCharacterDraft: CharacterDraft = // 유효 초안 기준값
     playGuide: "", // 플레이 가이드
     statusTemplate: createDefaultStatusTemplate(true), // 상태창 형식
     updates: [], // 업데이트 기록
+    events: [], // 스탯 조건 이벤트
 }; // 초안 종료
