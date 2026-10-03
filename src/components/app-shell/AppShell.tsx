@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react"; // 리액�
 import { AppHeader } from "@/components/app-shell/AppHeader"; // 앱 헤더
 import { ConversationPanel } from "@/components/app-shell/ConversationPanel"; // 대화 패널
 import { MobileBottomNavigation } from "@/components/app-shell/MobileBottomNavigation"; // 모바일 메뉴
-import { THEME_STORAGE_KEY } from "@/components/app-shell/ThemeToggle"; // 테마 저장 키
+import { THEME_STORAGE_KEY } from "@/lib/theme/stored-theme"; // 테마 저장 키
 import { UserPanel } from "@/components/app-shell/UserPanel"; // 사용자 패널
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import { formatUsageDuration } from "@/features/safety/usage-time"; // 이용 시간 표시

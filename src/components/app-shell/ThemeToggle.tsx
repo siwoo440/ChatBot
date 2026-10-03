@@ -2,8 +2,6 @@
 
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 
-export const THEME_STORAGE_KEY = "mateverse:theme"; // 첫 화면 깜빡임 방지용 테마 저장 키
-
 function SunIcon() // 해 아이콘(밝은 모드)
 { // 함수 시작
     return <svg data-icon="sun" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" /></svg>; // 해 반환

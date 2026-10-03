@@ -1,7 +1,7 @@
 import { CHAT_VERSION_LIMIT, isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 도메인 검증
 import { createDefaultConversationSettings } from "@/features/core/defaults"; // 대화방 기본 설정
 import type { AppState, Conversation, ConversationVersion, Message } from "@/features/core/types"; // 대화 타입
-import { isAppState } from "@/lib/repositories/local-storage-gateway"; // 앱 상태 검증
+import { isAppState } from "@/lib/repositories/state-validation"; // 앱 상태 검증
 import { upgradeStatusSnapshot } from "@/features/chat/stat-model"; // 상태창 형식 변환
 
 const relationshipStages = ["첫 만남", "아는 사이", "가까운 사이", "특별한 사이"] as const; // 관계 단계 목록

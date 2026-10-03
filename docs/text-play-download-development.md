@@ -1835,7 +1835,7 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 각 화면의 `color-scheme: light` 고정과 예전 `data-chat-theme` 규칙은 지웠다.
 - 로고: 다크 화면에서 `Verse`(검은 글자·흰 테두리)를 반전한 `mate-verse-logo-v3-dark.webp`(47KB, 보일 때만 불러옴)로 바꾼다.
 - 헤더 자리: 7열(왼쪽 버튼·로고·메뉴·다크 모드·19+·알림함·메뉴). 태블릿은 메뉴 색 점을 숨기고, 모바일은 간격 6px·여백 10px.
-- `global-error.tsx`(앱 전체 오류 화면)는 인라인 밝은 색 그대로다.
+- `global-error.tsx`(앱 전체 오류 화면)는 공통 스타일을 못 쓰므로 47장에서 저장된 테마를 직접 읽어 색을 고르게 했다.
 
 ### 46.5 저장 구조 (앱 상태 버전 13)
 
@@ -1852,5 +1852,33 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 통합·컴포넌트: `stat-editor`(3), `chat-room-features`(9: 시작 스탯과 턴별 변화·이전 턴 값), `chat-layout-panel`(4: 배치 적용, 넓은 화면 접기 저장, 모바일 서랍 Esc·초점, 중복 항목 없음), `theme-toggle`(2), 전체 단위 431개 통과
 - E2E: `chat-room-features.spec.ts`(설정 접기·등급·다크 모드 새로고침 유지와 다른 페이지 적용, 390px 서랍 위치·초점), 전체 39개 통과
 - 화면 점검: 18개 화면 × 390·820·1440px × 밝게·어둡게에서 가로 넘침 0, 콘솔 오류 없음(일부러 연 404 제외). 글자 대비 자동 점검(3 미만 찾기)으로 탐색 태그 개수·캐릭터 상세 소제목·토큰 칸 이름·Text-Play 보조 글자 등을 고쳤고, 남은 표시는 그라데이션 위 흰 글자(점검 도구가 그라데이션을 읽지 못함)뿐이다.
+
+## 47. 로드맵 0단계: 정리와 기반 다지기
+
+사용자와 합의한 단계별 로드맵(인수인계 문서 13절)의 첫 단계다. 화면 동작은 바꾸지 않고 뒤 단계(저장 형식을 계속 올리는 작업)가 안전하도록 바닥을 정리했다.
+
+### 47.1 저장소 파일 분리
+
+`local-storage-gateway.ts`(1,283줄)를 역할별 세 파일로 나눴다. 동작 변화는 없다.
+
+| 파일 | 줄 수 | 역할 |
+| --- | --- | --- |
+| `src/lib/repositories/state-validation.ts` | 620 | 허용 값 목록, 항목별 검사, `isAppState`, 이전 버전 상태 검사(`isVersionTwoState`~`isVersionTwelveState`) |
+| `src/lib/repositories/state-migrations.ts` | 313 | `migrateVersionZero`~`migrateVersionTwelve`, `migrateParsedState`(버전별 진입점), `addMissingBuiltInStories` |
+| `src/lib/repositories/local-storage-gateway.ts` | 363 | 저장 키, 읽기·쓰기, 가져오기·내보내기, 백업·복구, `LocalStorageGateway` |
+
+- 의존 방향: 저장 → 변환 → 검사(한 방향). 저장 파일은 `isAppState`와 `migrateVersion…`, `addMissingBuiltInStories`를 다시 내보내 기존 불러오기 이름을 유지한다. 대화 파일 가져오기(`conversation-export.ts`)는 검사 파일을 직접 쓴다.
+- 새 저장 버전을 추가할 때: ① `types.ts`의 `schemaVersion` ② `state-validation.ts`에 새 필드 검사와 이전 버전 검사 ③ `state-migrations.ts`에 `migrateVersion…`과 `migrateParsedState` 분기 ④ `local-storage-gateway.ts`의 미래 버전 판정 숫자 ⑤ 초기 상태와 테스트.
+
+### 47.2 비상 오류 화면 다크 모드
+
+- `src/lib/theme/stored-theme.ts`: `THEME_STORAGE_KEY`(`mateverse:theme`), `readStoredTheme()`(다크만 다크, 없거나 읽지 못하면 밝게), `getErrorScreenPalette(theme)`.
+- `global-error.tsx`는 `useSyncExternalStore`로 저장된 테마를 읽어(서버에서는 밝게) 인라인 색을 고른다. 헤더 스위치(`ThemeToggle`), `AppShell`, `layout.tsx`의 그리기 전 스크립트도 같은 키 상수를 쓴다.
+
+### 47.3 검증
+
+- 단위: `state-modules`(2: 나눈 모듈 단독 사용과 기존 이름 유지, 변환 진입점), `stored-theme`(2: 저장 테마 읽기, 밝게·어둡게 글자 대비 7·4.5 이상), 기존 `local-storage-gateway` 45개 그대로 통과
+- 통합: `error-states`(비상 화면이 서버에서는 밝게, 다크 저장 시 어두운 카드)
+- 전체 단위 테스트·타입 검사·린트·프로덕션 빌드·E2E 통과(숫자는 인수인계 문서 4절 명령으로 확인)
 
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.
