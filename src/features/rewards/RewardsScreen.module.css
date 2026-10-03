@@ -109,7 +109,7 @@
 .missionList li /* 미션 */
 { /* 미션 시작 */
     display: grid; /* 격자 */
-    grid-template-columns: minmax(0, 1.4fr) minmax(120px, 1fr) auto; /* 이름·진행·받기 */
+    grid-template-columns: minmax(0, 1.4fr) minmax(120px, 1fr) 152px; /* 이름·진행·받기(받기 칸 너비를 고정해 줄마다 막대와 버튼 위치가 같게) */
     gap: 10px 16px; /* 간격 */
     align-items: center; /* 세로 중앙 */
     padding: 14px 16px; /* 여백 */
@@ -117,6 +117,14 @@
     border-radius: 16px; /* 모서리 */
     background: light-dark(#fdfcff, #17131f); /* 배경 */
 } /* 미션 종료 */
+
+.missionList li > .claim, /* 미션 받기 버튼 */
+.missionList li > .go, /* 미션 하러 가기 */
+.missionList li > .claimed, /* 미션 받음 */
+.missionList li > .locked /* 미션 잠김 */
+{ /* 미션 동작 시작 */
+    width: 100%; /* 받기 칸을 가득 채워 줄마다 같은 길이 */
+} /* 미션 동작 종료 */
 
 .missionList li[data-state="ready"] /* 받을 수 있는 미션 */
 { /* 준비 시작 */
@@ -154,10 +162,11 @@
 .missionProgress /* 진행 */
 { /* 진행 시작 */
     display: grid; /* 격자 */
-    grid-template-columns: minmax(0, 1fr) auto; /* 막대·숫자 */
+    grid-template-columns: minmax(0, 1fr) 2.4em; /* 막대·숫자(숫자 칸 너비를 고정해 막대 길이가 같게) */
     gap: 10px; /* 간격 */
     align-items: center; /* 세로 중앙 */
     color: var(--mv-muted); /* 숫자 글자 */
+    font-variant-numeric: tabular-nums; /* 숫자 폭 고정 */
     font-size: .82rem; /* 크기 */
     font-weight: 800; /* 굵기 */
 } /* 진행 종료 */
@@ -495,7 +504,7 @@
 
     .missionList li /* 미션 */
     { /* 미션 시작 */
-        grid-template-columns: minmax(0, 1fr) auto; /* 이름·받기 */
+        grid-template-columns: minmax(0, 1fr) 132px; /* 이름·받기(받기 칸 너비 고정) */
     } /* 미션 종료 */
 
     .missionProgress /* 진행 */
