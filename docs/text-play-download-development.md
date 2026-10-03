@@ -1881,4 +1881,60 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 통합: `error-states`(비상 화면이 서버에서는 밝게, 다크 저장 시 어두운 카드)
 - 전체 단위 테스트·타입 검사·린트·프로덕션 빌드·E2E 통과(숫자는 인수인계 문서 4절 명령으로 확인)
 
+## 48. 로드맵 1단계: 관계 스탯과 장면 그림
+
+사용자 결정(2026-10-03): 스토리 모드는 대표 인물 한 명의 관계를 보여 주고, 시작값은 시작 설정에 값이 있으면 그 값·없으면 스탯 초기값, 관계 단계 기준은 고정으로 둔다. 같은 날 사용자가 GPT로 만든 장면 그림 4장을 가져왔다.
+
+### 48.1 관계 스탯 모델 (`src/features/chat/relation-model.ts`)
+
+| 함수 | 역할 |
+| --- | --- |
+| `getRelationStat(template)` | 상태창이 켜져 있고 `relationStatId`가 인물마다 따로인 스탯을 가리키면 그 스탯, 아니면 `null`(예전 방식) |
+| `toRelationLevel(stat, value)` / `fromRelationLevel(stat, level)` | 스탯 값 ↔ 관계 수치(0~100) 환산(범위 비율, 반올림, 범위 밖은 자름) |
+| `readRelationLevel(status, stat, lead)` | 상태창에서 대표 인물의 관계 수치 읽기 |
+| `resolveStartRelation(template, start)` | 시작 관계: 자동 시작 설정(`default`·`story-opening`)이고 관계 스탯이 있으면 스탯 초기값, 아니면 시작 설정 값 |
+| `normalizeRelationStatId(template)` | 지운 스탯·공통 스탯을 가리키면 지정 해제 |
+
+- 관계 단계는 `resolveRelationshipStage(level)`(`story-engine.ts`): 0~14 첫 만남, 15~49 아는 사이, 50~79 가까운 사이, 80~100 특별한 사이.
+- 대표 인물: `getStatusPeople(conversation, 캐릭터 짧은 이름)[0]`(캐릭터 대화는 그 캐릭터, 스토리는 첫 등장인물).
+
+### 48.2 턴 계산 (`chat-controller.ts`)
+
+1. 예전 엔진(`evaluateStory`)으로 감정·중요 사건을 구한다(관계 스탯이 없으면 관계 수치도 여기서).
+2. 관계 기준선(`relationBaselines`): 직전 상태창에 대표 인물의 관계 스탯 값이 없으면 `이번 턴 전 관계 수치`를 스탯 값으로 바꿔 시작 값으로 넘긴다.
+   - 새 메시지·실패 뒤 재시도: 대화 버전의 `relationshipLevel`
+   - 완료된 응답 다시 생성: 그 응답 상태창의 `값 − 변화`, 상태창이 없으면 그 시점까지 다시 계산(`replayForkState`)
+   - 메시지 수정 분기: 분기 시점 상태(`replayForkState`가 그 시점 상태창의 관계 스탯 값을 우선 사용)
+3. AI 판단과 상태창 계산에 같은 기준선을 쓴다(`buildStatJudgeInput`, `composeStatus`, 응답 입력의 `options.stats`).
+4. 상태창의 대표 인물 관계 스탯 값을 환산해 버전의 `relationshipLevel`·`relationshipStage`에 넣는다.
+
+- 스탯 계산의 직전 값 순서: 직전 상태창 값 → 기준선 → 스탯 초기값(`stat-model.ts`의 `StatBaseline`).
+- 메시지를 지워 마지막 상태창이 앞 턴으로 돌아가면 다음 턴은 그 값에서 이어 간다(지운 턴의 변화는 사라짐).
+
+### 48.3 화면
+
+- 편집기: 스탯 카드마다 `관계 스탯으로 쓰기`(인물마다 따로일 때만 보임, 하나만 지정, 공통으로 바꾸거나 지우면 해제).
+- 채팅 오른쪽: `관계 · 단계` 줄, 그 아래 `대표 인물(스토리만) 아이콘 스탯 이름 값`, 막대. 관계 스탯이 없으면 예전 `관계 N/100`(캐릭터 대화만).
+- INFO: 첫 응답 전 `시작 스탯`이 대화의 관계 수치를 반영한다.
+- 왼쪽 카드: 스토리는 `등장인물 N명 · 대표 인물 단계`와 `대표 인물 관계 수치` 막대(관계 스탯이 없는 스토리는 예전 표시).
+
+### 48.4 장면 그림
+
+- 파일: `public/images/scenes/dawn-letter.webp`·`rainy-classroom.webp`·`moon-library.webp`·`fallback-scene.webp`(1536×1024 원본을 1200×800 WebP 품질 84로 변환, 105~160KB).
+- `src/lib/assets/scene-paths.ts`: `scenePaths`와 `upgradeScenePath`(예전 `.svg` → `.webp`). Mock 이미지 어댑터, 스토리 표지 선택지(기본 장면 `노을 지는 방` 추가로 4장), 예시 데이터가 이 경로를 쓴다.
+- 채팅 장면 영역은 높이 고정·가운데 맞춤으로 잘라 보여 주므로 그림의 핵심은 가운데 3분의 1에 둔다(요청문 공통 조건).
+
+### 48.5 저장 구조 (앱 상태 버전 14)
+
+- `StatusTemplate.relationStatId: string | null`(검사: `null`이거나 인물마다 따로인 스탯의 식별자)
+- `migrateVersionThirteen`: ① 호감도(`affection`, 인물마다)가 있는 작품은 관계 스탯으로 지정, 없으면 `null` ② 캐릭터·스토리 표지, 시작 장면, 버전 현재 장면, 메시지 장면·상황 이미지의 예전 경로 변환 ③ 버전마다 마지막 상태창의 대표 인물 관계 스탯 값이 버전의 관계 수치와 다르면 관계 수치를 스탯 값으로 이어받음(변화량은 그대로)
+- 버전 12 → 13 → 14, 11 이하도 연쇄 변환. 미래 버전은 15 이상. 대화 파일 가져오기도 장면 경로를 바꾼다.
+
+### 48.6 검증
+
+- 단위: `relation-model`(5: 지정, 환산, 읽기, 시작값, 장면 경로), `relation-flow`(8: 따라가기·내려가기, 단계 변화, 범위 환산, 다시 생성, 수정 분기, 예전 방식, 시작값, 스토리 대표 인물), `local-storage-gateway`(46: 버전 13 → 14, 없는 관계 스탯 거부)
+- 통합: `stat-editor`(4: 관계 스탯 지정·해제), `chat-room-features`(시작 스탯과 오른쪽 관계 표시가 같은 값), `conversation-panel`(스토리 카드 대표 인물 막대), `chat-flow`(재시도·분기 테스트를 규칙 스탯 기준으로)
+- E2E: `chat-room-features.spec.ts`(INFO·오른쪽 관계·왼쪽 카드가 같은 값, 새 장면 그림). 전체 단위 451개·E2E 40개 통과
+- 화면: 채팅·스토리 목록·스토리 대화·편집기를 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

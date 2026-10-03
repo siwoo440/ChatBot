@@ -7,7 +7,7 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
 { // 함수 시작
     return ( // 초기 상태 반환
     { // 상태 시작
-        schemaVersion: 13, // 스키마 버전
+        schemaVersion: 14, // 스키마 버전
         providerMode: "mock", // Mock 공급자
         profile: structuredClone(mockProfile), // 사용자 복사본
         characters: structuredClone(mockCharacters), // 캐릭터 복사본

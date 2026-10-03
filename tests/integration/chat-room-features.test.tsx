@@ -171,13 +171,16 @@ describe("채팅방 설정과 고정 상태창", () => // 기능 묶음
     it("INFO는 첫 응답 전에 제작자 스탯 초기값을 보여 주고, 낱말 규칙과 AI 판단으로 매 턴 바뀐다", async () => // 스탯 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구
-        renderChat(); // 렌더(기본 호감도: 초기값 0, ‘선물’ +5, AI 최대 ±5)
+        renderChat(); // 렌더(기본 호감도: ‘선물’ +5, ‘고마워’ +2, AI 최대 ±5. 리안 대화는 관계 34에서 이어 감)
         const panel = screen.getByRole("region", { name: "상태창" }); // 상태창
-        expect(within(panel).getByLabelText("시작 스탯")).toHaveTextContent("리안 호감도 0/100"); // 초기값
+        expect(within(panel).getByLabelText("시작 스탯")).toHaveTextContent("리안 호감도 34/100"); // 대화의 관계 수치에서 시작
+        expect(screen.getByText("관계 · 아는 사이")).toBeVisible(); // 오른쪽 관계 단계
+        expect(screen.getByText("❤️ 호감도 34/100")).toBeVisible(); // 오른쪽 관계 표시도 같은 값
         await send(user, "선물 가져왔어, 고마워"); // 선물 +5, 고마워 +2, AI 판단 +
         const first = Number(within(panel).getByText(/\/100/).textContent?.split("/")[0]); // 1턴 호감도
-        expect(first).toBeGreaterThanOrEqual(7); // 규칙 7 이상
-        expect(first).toBeLessThanOrEqual(12); // AI는 최대 +5
+        expect(first).toBeGreaterThanOrEqual(41); // 34 + 규칙 7 이상
+        expect(first).toBeLessThanOrEqual(46); // AI는 최대 +5
+        expect(screen.getByText(`❤️ 호감도 ${first}/100`)).toBeVisible(); // 관계 표시가 스탯을 따라감
         await send(user, "짜증나, 꺼져"); // 거친 말
         const second = Number(within(panel).getByText(/\/100/).textContent?.split("/")[0]); // 2턴 호감도
         expect(second).toBeLessThan(first); // 내려감

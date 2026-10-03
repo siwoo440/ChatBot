@@ -4,6 +4,7 @@ import { normalizeWorkExtras, validateWorkExtras } from "@/features/character/wo
 import { createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본 상태창
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { deriveDisplayName, getRequiredStoryRating, STORY_CAST_LIMIT, STORY_NARRATOR_LABEL } from "@/features/story/story-model"; // 스토리 도구
+import { scenePaths } from "@/lib/assets/scene-paths"; // 장면 그림 경로
 
 export interface StoryDraft // 스토리 편집 초안
 { // 구조 시작
@@ -28,8 +29,8 @@ export interface StoryValidationResult // 검증 결과
     errors: Partial<Record<keyof StoryDraft, string>>; // 필드 오류
 } // 구조 종료
 
-export const storyCoverOptions = ["/images/scenes/moon-library.svg", "/images/scenes/rainy-classroom.svg", "/images/scenes/dawn-letter.svg"]; // 고를 수 있는 장면 표지
-const sceneCoverNames: Record<string, string> = { "/images/scenes/moon-library.svg": "달빛 도서관", "/images/scenes/rainy-classroom.svg": "비 오는 교실", "/images/scenes/dawn-letter.svg": "새벽 편지" }; // 장면 표지 이름
+export const storyCoverOptions: string[] = [scenePaths.library, scenePaths.rain, scenePaths.dawn, scenePaths.fallback]; // 고를 수 있는 장면 표지
+const sceneCoverNames: Record<string, string> = { [scenePaths.library]: "달빛 기록관", [scenePaths.rain]: "비 오는 교실", [scenePaths.dawn]: "새벽 편지", [scenePaths.fallback]: "노을 지는 방" }; // 장면 표지 이름
 const characterCoverPattern = /^\/images\/characters\/[a-z0-9-]+\.webp$/; // 프로젝트 캐릭터 이미지 규칙
 
 export interface StoryCoverChoice // 표지 선택지

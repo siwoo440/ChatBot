@@ -4,14 +4,14 @@
 
 - 공통 조건: 사람·글자·로고·워터마크 없음, 가로 3:2(1536×1024), 중요한 것은 가운데 3분의 1 안(화면에 따라 세로로 잘려 보임)
 - 그림체: 기존 캐릭터 그림과 맞는 반실사 애니메이션 일러스트(세밀한 채색, 부드러운 영화 같은 조명)
-- 받은 뒤 처리: 1200×720 WebP로 바꿔 `public/images/scenes/`에 넣고, 장면 경로(`src/lib/adapters/mock-image-adapter.ts`, `src/features/story/story-validation.ts`)와 기존 저장 데이터의 `.svg` 경로를 함께 바꾼다.
+- 받은 뒤 처리: 1200×800 WebP(품질 84)로 바꿔 `public/images/scenes/`에 넣는다. 경로는 `src/lib/assets/scene-paths.ts` 한 곳에서 관리하고, 경로가 바뀌면 `upgradeScenePath`에 예전 경로를 추가해 저장 데이터를 불러올 때 함께 바뀌게 한다.
 
 | 번호 | 쓰이는 곳 | 지금 파일 | 상태 |
 | --- | --- | --- | --- |
-| 1 | 리안 대화 장면 `새벽의 편지` | `public/images/scenes/dawn-letter.svg`(임시 도형 그림) | 요청문 전달(2026-10-03) |
-| 2 | 세라 대화 장면 `비 오는 교실` | `public/images/scenes/rainy-classroom.svg`(임시) | 요청문 전달(2026-10-03) |
-| 3 | 노아 대화 장면·스토리 표지 `달빛 기록관` | `public/images/scenes/moon-library.svg`(임시) | 요청문 전달(2026-10-03) |
-| 4 | 그 밖의 캐릭터 기본 장면 | `public/images/scenes/fallback-scene.svg`(임시) | 요청문 전달(2026-10-03) |
+| 1 | 리안 대화 장면 `새벽의 편지` | `public/images/scenes/dawn-letter.webp` | 적용 완료(2026-10-03, 1200×800 WebP) |
+| 2 | 세라 대화 장면 `비 오는 교실` | `public/images/scenes/rainy-classroom.webp` | 적용 완료(2026-10-03, 1200×800 WebP) |
+| 3 | 노아 대화 장면·스토리 표지 `달빛 기록관` | `public/images/scenes/moon-library.webp` | 적용 완료(2026-10-03, 1200×800 WebP) |
+| 4 | 그 밖의 캐릭터 기본 장면 | `public/images/scenes/fallback-scene.webp` | 적용 완료(2026-10-03, 1200×800 WebP) |
 
 ## 요청문
 

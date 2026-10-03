@@ -55,7 +55,7 @@ describe("Mock 어댑터", () => // 어댑터 묶음
     it("알려진 장면과 알 수 없는 장면의 경로를 구분한다", async () => // 이미지 검증
     { // 검증 시작
         const adapter = new MockImageAdapter(); // 이미지 어댑터 생성
-        await expect(adapter.generateScene({ sceneId: "dawn" })).resolves.toMatchObject({ path: "/images/scenes/dawn-letter.svg", fallback: false }); // 알려진 장면
-        await expect(adapter.generateScene({ sceneId: "unknown" })).resolves.toMatchObject({ path: "/images/scenes/fallback-scene.svg", fallback: true }); // 대체 장면
+        await expect(adapter.generateScene({ sceneId: "dawn" })).resolves.toMatchObject({ path: "/images/scenes/dawn-letter.webp", fallback: false }); // 알려진 장면
+        await expect(adapter.generateScene({ sceneId: "unknown" })).resolves.toMatchObject({ path: "/images/scenes/fallback-scene.webp", fallback: true }); // 대체 장면
     }); // 검증 종료
 }); // 묶음 종료

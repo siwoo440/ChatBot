@@ -1,3 +1,4 @@
+import { normalizeRelationStatId } from "@/features/chat/relation-model"; // 관계 스탯 지정 정리
 import { normalizeStats, validateStats } from "@/features/chat/stat-model"; // 스탯 정리·검증
 import type { WorkExtras } from "@/features/core/defaults"; // 작품 추가 필드
 import type { WorkUpdate } from "@/features/core/types"; // 업데이트 기록
@@ -11,7 +12,7 @@ export type WorkExtrasErrors = Partial<Record<keyof WorkExtras, string>>; // 추
 
 export function normalizeWorkExtras<T extends WorkExtras>(draft: T): T // 추가 필드 정리
 { // 함수 시작
-    return { ...draft, playGuide: draft.playGuide.trim(), statusTemplate: { ...draft.statusTemplate, customLabels: draft.statusTemplate.customLabels.map((label) => label.trim()).filter(Boolean).slice(0, 2), stats: normalizeStats(draft.statusTemplate.stats) }, updates: draft.updates.map((update) => ({ ...update, version: update.version.trim(), note: update.note.trim() })) }; // 정리 반환
+    return { ...draft, playGuide: draft.playGuide.trim(), statusTemplate: { ...draft.statusTemplate, customLabels: draft.statusTemplate.customLabels.map((label) => label.trim()).filter(Boolean).slice(0, 2), stats: normalizeStats(draft.statusTemplate.stats), relationStatId: normalizeRelationStatId(draft.statusTemplate) }, updates: draft.updates.map((update) => ({ ...update, version: update.version.trim(), note: update.note.trim() })) }; // 정리 반환
 } // 함수 종료
 
 export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추가 필드 검증

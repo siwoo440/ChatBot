@@ -339,6 +339,7 @@ describe("채팅 흐름", () => // 채팅 묶음
     it("실패와 재시도 비용을 각각 차감하고 스토리는 성공 시 한 번 반영한다", async () => // 재시도 비용 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 생성
+        state.characters[0].statusTemplate.stats[0] = { ...state.characters[0].statusTemplate.stats[0], mode: "rule", perTurn: 1, rules: [] }; // 관계 스탯(호감도)을 매 턴 +1 규칙으로
         const initialBalance = state.wallet.balance; // 초기 잔액 저장
         const conversation = state.conversations.find((item) => item.id === "conversation-rian"); // 초기 대화 조회
         const initialRelationship = state.conversationVersions.find((item) => item.id === conversation?.currentVersionId)?.relationshipLevel ?? 0; // 초기 관계 저장
@@ -420,6 +421,7 @@ describe("채팅 흐름", () => // 채팅 묶음
     it("과거 메시지 수정은 시작 상태부터 분기 시점 관계와 장면을 복원한다", async () => // 분기 시점 검증
     { // 검증 시작
         const state = createInitialState(); // 초기 상태 생성
+        state.characters[0].statusTemplate.stats[0] = { ...state.characters[0].statusTemplate.stats[0], mode: "rule", perTurn: 1, rules: [] }; // 관계 스탯(호감도)을 매 턴 +1 규칙으로
         const conversation = state.conversations[0]; // 기준 대화 조회
         const version = state.conversationVersions.find((item) => item.id === conversation.currentVersionId)!; // 기준 버전 조회
         version.relationshipLevel = 90; // 이후 관계 상태 적용

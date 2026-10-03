@@ -464,6 +464,50 @@
     font-weight: 600; /* 굵기 */
 } /* 설명 종료 */
 
+.relationRow /* 관계 스탯 지정 */
+{ /* 지정 시작 */
+    display: flex; /* 가로 */
+    align-items: flex-start; /* 위 */
+    gap: 8px; /* 간격 */
+    padding: 10px 12px; /* 여백 */
+    border: 1.5px dashed color-mix(in srgb, var(--tone) 35%, var(--mv-line)); /* 점선 */
+    border-radius: 12px; /* 모서리 */
+    cursor: pointer; /* 커서 */
+} /* 지정 종료 */
+
+.relationRow:has(input:checked) /* 지정됨 */
+{ /* 지정됨 시작 */
+    border-style: solid; /* 실선 */
+    border-color: var(--tone); /* 대표색 */
+    background: color-mix(in srgb, var(--tone) 8%, var(--mv-surface)); /* 연한 배경 */
+} /* 지정됨 종료 */
+
+.relationRow input /* 지정 상자 */
+{ /* 상자 시작 */
+    width: 18px; /* 너비 */
+    min-height: 18px; /* 높이 */
+    height: 18px; /* 높이 */
+    margin-top: 2px; /* 위 */
+    padding: 0; /* 여백 */
+    accent-color: var(--tone); /* 대표색 */
+} /* 상자 종료 */
+
+.relationRow span /* 지정 글자 */
+{ /* 글자 시작 */
+    display: grid; /* 세로 */
+    gap: 2px; /* 간격 */
+    font-size: 14px; /* 크기 */
+} /* 글자 종료 */
+
+.relationRow small /* 지정 설명 */
+{ /* 설명 시작 */
+    color: var(--mv-muted); /* 보조 */
+    font-size: 12px; /* 크기 */
+    font-weight: 500; /* 굵기 */
+    line-height: 1.5; /* 행간 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+} /* 설명 종료 */
+
 .dangerButton /* 스탯 삭제 */
 { /* 삭제 시작 */
     justify-self: end; /* 오른쪽 */

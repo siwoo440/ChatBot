@@ -1,4 +1,4 @@
-import { computeStats, formatStatDelta, formatStatValue, type StatChange } from "@/features/chat/stat-model"; // 스탯 계산
+import { computeStats, formatStatDelta, formatStatValue, type StatBaseline, type StatChange } from "@/features/chat/stat-model"; // 스탯 계산
 import type { Conversation, StatusSnapshot, StatusTemplate, StatValue } from "@/features/core/types"; // 도메인 타입
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 판정
 import { getDateParts } from "@/lib/time/date-key"; // 서울 날짜
@@ -11,6 +11,7 @@ export interface StatusContext // 상태창 계산 입력
     turn: number; // 이번 턴 번호
     userMessage: string; // 이번 사용자 메시지(낱말 규칙)
     aiChanges: StatChange[]; // AI가 정한 스탯 변화
+    baselines?: StatBaseline[]; // 직전 상태창에 값이 없을 때의 시작 값(관계 스탯 이어받기)
     emotion: string; // 이번 턴 감정
     tags: string[]; // 작품 태그
     startedAt: string; // 대화 시작 시각(요일 기준)
@@ -74,7 +75,7 @@ export function composeStatus(context: StatusContext): StatusSnapshot // 한 턴
     const time = template.time ? formatStoryTime(context.startedAt, turn) : null; // 작품 속 시간
     const lead = context.people[0] ?? "상대"; // 대표 인물
     const tip = template.tip ? `${lead}의 ${tips[hash(`${seed}|${turn}`) % tips.length]}`.replace(`${lead}의 지금은`, "지금은").replace(`${lead}의 잠시`, "잠시").replace(`${lead}의 약속`, "약속") : null; // 진행 팁
-    const stats = computeStats({ stats: template.stats, people: context.people, previous: context.previous, userMessage: context.userMessage, aiChanges: context.aiChanges }); // 스탯(규칙 + AI)
+    const stats = computeStats({ stats: template.stats, people: context.people, previous: context.previous, userMessage: context.userMessage, aiChanges: context.aiChanges, baselines: context.baselines }); // 스탯(규칙 + AI)
     const thoughts = template.thought ? context.people.map((person) => // 속마음
     { // 변환 시작
         const lines = thoughtPools[emotionGroup(context.emotion)]; // 감정별 문장

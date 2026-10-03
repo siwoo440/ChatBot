@@ -17,7 +17,7 @@ export interface StoryUpdate // 스토리 결과
     sceneId: string; // 장면 식별자
 } // 구조 종료
 
-function resolveStage(level: number): RelationshipStage // 관계 단계 계산
+export function resolveRelationshipStage(level: number): RelationshipStage // 관계 단계 계산(15·50·80 기준)
 { // 함수 시작
     if (level >= 80) // 특별 단계 판정
     { // 조건 시작
@@ -56,5 +56,5 @@ export function evaluateStory(input: StoryInput): StoryUpdate // 스토리 판�
     const positive = /고마|좋아|행복|반가/.test(input.userMessage); // 긍정 표현
     const relationshipLevel = Math.min(100, input.version.relationshipLevel + (positive ? 3 : 1)); // 관계 증가
     const importantEvent = input.userMessageCount > 0 && input.userMessageCount % 3 === 0; // 중요 사건 판정
-    return { relationshipLevel, relationshipStage: resolveStage(relationshipLevel), emotion: positive ? "기쁨" : "관심", importantEvent, sceneId: resolveScene(input.conversation.characterId) }; // 결과 반환
+    return { relationshipLevel, relationshipStage: resolveRelationshipStage(relationshipLevel), emotion: positive ? "기쁨" : "관심", importantEvent, sceneId: resolveScene(input.conversation.characterId) }; // 결과 반환
 } // 함수 종료

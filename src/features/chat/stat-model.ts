@@ -25,6 +25,13 @@ export interface StatChange // 스탯 변화(AI 판단 결과)
     delta: number; // 변화
 } // 구조 종료
 
+export interface StatBaseline // 직전 상태창에 값이 없을 때의 시작 값(관계 스탯은 대화의 관계 수치에서 이어받음)
+{ // 구조 시작
+    statId: string; // 스탯 식별자
+    target: string | null; // 인물(공통이면 null)
+    value: number; // 시작 값
+} // 구조 종료
+
 export interface StatJudgeInput // AI 판단 입력
 { // 구조 시작
     stats: Array<{ statId: string; name: string; target: string | null; value: number; min: number; max: number; maxChange: number }>; // AI가 정할 스탯과 현재 값
@@ -68,35 +75,36 @@ export function computeRuleDelta(stat: StatDefinition, userMessage: string): num
     return stat.perTurn + stat.rules.filter((rule) => rule.keyword.trim().length > 0 && text.includes(rule.keyword.trim().toLowerCase())).reduce((total, rule) => total + rule.delta, 0); // 합계 반환
 } // 함수 종료
 
-function previousValue(stat: StatDefinition, target: string | null, previous: StatusSnapshot | null): number // 직전 값(없으면 초기값)
+function previousValue(stat: StatDefinition, target: string | null, previous: StatusSnapshot | null, baselines: readonly StatBaseline[]): number // 직전 값(없으면 기준선, 그것도 없으면 초기값)
 { // 함수 시작
     const found = previous?.stats.find((item) => item.statId === stat.id && item.target === target); // 직전 턴 값
-    return clamp(found?.value ?? stat.initial, stat.min, stat.max); // 범위 안 값
+    const baseline = baselines.find((item) => item.statId === stat.id && item.target === target); // 이어받을 시작 값
+    return clamp(found?.value ?? baseline?.value ?? stat.initial, stat.min, stat.max); // 범위 안 값
 } // 함수 종료
 
-export function currentStatValues(template: StatusTemplate | undefined, people: readonly string[], previous: StatusSnapshot | null): StatValue[] // 지금 스탯 값(첫 응답 전에는 초기값)
+export function currentStatValues(template: StatusTemplate | undefined, people: readonly string[], previous: StatusSnapshot | null, baselines: readonly StatBaseline[] = []): StatValue[] // 지금 스탯 값(첫 응답 전에는 기준선·초기값)
 { // 함수 시작
     if (template === undefined || !template.enabled) // 상태창 끔
     { // 조건 시작
         return []; // 없음
     } // 조건 종료
-    return template.stats.flatMap((stat) => getStatTargets(stat, people).map((target) => ({ statId: stat.id, name: stat.name, icon: stat.icon, target, value: previousValue(stat, target, previous), delta: 0, min: stat.min, max: stat.max }))); // 값 목록
+    return template.stats.flatMap((stat) => getStatTargets(stat, people).map((target) => ({ statId: stat.id, name: stat.name, icon: stat.icon, target, value: previousValue(stat, target, previous, baselines), delta: 0, min: stat.min, max: stat.max }))); // 값 목록
 } // 함수 종료
 
-export function computeStats(input: { stats: StatDefinition[]; people: readonly string[]; previous: StatusSnapshot | null; userMessage: string; aiChanges: readonly StatChange[] }): StatValue[] // 이번 턴 스탯 계산(규칙 + AI 판단, 범위 제한)
+export function computeStats(input: { stats: StatDefinition[]; people: readonly string[]; previous: StatusSnapshot | null; userMessage: string; aiChanges: readonly StatChange[]; baselines?: readonly StatBaseline[] }): StatValue[] // 이번 턴 스탯 계산(규칙 + AI 판단, 범위 제한)
 { // 함수 시작
     return input.stats.flatMap((stat) => getStatTargets(stat, input.people).map((target) => // 스탯·대상 순회
     { // 계산 시작
-        const before = previousValue(stat, target, input.previous); // 직전 값
+        const before = previousValue(stat, target, input.previous, input.baselines ?? []); // 직전 값
         const ai = stat.mode === "rule" ? 0 : clamp(input.aiChanges.find((change) => change.statId === stat.id && change.target === target)?.delta ?? 0, -stat.aiMaxChange, stat.aiMaxChange); // AI 변화(한도 안)
         const value = clamp(before + computeRuleDelta(stat, input.userMessage) + ai, stat.min, stat.max); // 이번 값
         return { statId: stat.id, name: stat.name, icon: stat.icon, target, value, delta: value - before, min: stat.min, max: stat.max }; // 값 반환
     })); // 계산 종료
 } // 함수 종료
 
-export function buildStatJudgeInput(template: StatusTemplate | undefined, people: readonly string[], previous: StatusSnapshot | null, userMessage: string, reply: string, emotion: string): StatJudgeInput // AI 판단 입력(AI가 정하는 스탯만)
+export function buildStatJudgeInput(template: StatusTemplate | undefined, people: readonly string[], previous: StatusSnapshot | null, userMessage: string, reply: string, emotion: string, baselines: readonly StatBaseline[] = []): StatJudgeInput // AI 판단 입력(AI가 정하는 스탯만)
 { // 함수 시작
-    const stats = template === undefined || !template.enabled ? [] : template.stats.filter((stat) => stat.mode !== "rule").flatMap((stat) => getStatTargets(stat, people).map((target) => ({ statId: stat.id, name: stat.name, target, value: previousValue(stat, target, previous), min: stat.min, max: stat.max, maxChange: stat.aiMaxChange }))); // 판단 대상
+    const stats = template === undefined || !template.enabled ? [] : template.stats.filter((stat) => stat.mode !== "rule").flatMap((stat) => getStatTargets(stat, people).map((target) => ({ statId: stat.id, name: stat.name, target, value: previousValue(stat, target, previous, baselines), min: stat.min, max: stat.max, maxChange: stat.aiMaxChange }))); // 판단 대상
     return { stats, userMessage, reply, emotion }; // 입력 반환
 } // 함수 종료
 
@@ -195,10 +203,10 @@ export function validateStats(stats: readonly StatDefinition[]): string | null /
     return null; // 오류 없음
 } // 함수 종료
 
-export function upgradeStatusTemplate(value: Record<string, unknown>): StatusTemplate // 버전 12 상태창 형식 → 스탯 형식(호감도 켬이면 기본 호감도)
+export function upgradeStatusTemplate(value: Record<string, unknown>): Omit<StatusTemplate, "relationStatId"> // 버전 12 상태창 형식 → 버전 13 스탯 형식(호감도 켬이면 기본 호감도, 관계 스탯 지정은 버전 14에서)
 { // 함수 시작
     const { affection, ...rest } = value; // 호감도 분리
-    return { ...(rest as Omit<StatusTemplate, "stats">), stats: affection === true ? [createAffectionStat()] : [] }; // 변환 반환
+    return { ...(rest as Omit<StatusTemplate, "stats" | "relationStatId">), stats: affection === true ? [createAffectionStat()] : [] }; // 변환 반환
 } // 함수 종료
 
 export function upgradeStatusSnapshot(value: Record<string, unknown>): StatusSnapshot // 버전 12 상태창 값 → 스탯 값(호감도 0~100)
@@ -214,6 +222,7 @@ export function upgradeStatusSnapshot(value: Record<string, unknown>): StatusSna
 
 export function toVersionTwelveTemplate(template: StatusTemplate): Record<string, unknown> // 스탯 형식 → 버전 12 형식(이전 단계 변환용)
 { // 함수 시작
-    const { stats, ...rest } = template; // 스탯 분리
+    const { stats, relationStatId, ...rest } = template; // 스탯·관계 지정 분리
+    void relationStatId; // 버전 12에는 관계 스탯 지정이 없음
     return { ...rest, affection: stats.length > 0 }; // 호감도 켬 여부
 } // 함수 종료

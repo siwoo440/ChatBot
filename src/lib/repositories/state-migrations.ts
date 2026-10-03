@@ -1,11 +1,14 @@
 // 저장 데이터 버전 변환: 이전 버전 상태를 한 단계씩 올려 현재 버전으로 만든다.
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
-import type { AppState, Character, Conversation, ConversationStartSettings, ConversationVersion, Message, StatusTemplate, UserProfile } from "@/features/core/types"; // 도메인 타입
+import type { AppState, Character, Conversation, ConversationStartSettings, ConversationVersion, Message, StatusTemplate, Story, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { createDefaultConversationSettings, createDefaultPersona, createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본값
-import { toVersionTwelveTemplate, upgradeStatusSnapshot, upgradeStatusTemplate } from "@/features/chat/stat-model"; // 스탯 변환
+import { fromRelationLevel, getRelationStat, readRelationLevel } from "@/features/chat/relation-model"; // 관계 스탯
+import { AFFECTION_STAT_ID, toVersionTwelveTemplate, upgradeStatusSnapshot, upgradeStatusTemplate } from "@/features/chat/stat-model"; // 스탯 변환
+import { deriveDisplayName } from "@/features/story/story-model"; // 짧은 이름
+import { upgradeScenePath } from "@/lib/assets/scene-paths"; // 장면 그림 경로
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
 import { mockStories } from "@/mocks/story-fixtures"; // 예시 스토리
-import { contentRatings, isAppState, isOneOf, isRecord, isString, isVersionEightState, isVersionElevenState, isVersionFiveState, isVersionFourState, isVersionNineState, isVersionSevenState, isVersionSixState, isVersionTenState, isVersionThreeState, isVersionTwelveState, isVersionTwoState, publicationStatuses } from "@/lib/repositories/state-validation"; // 데이터 검사
+import { contentRatings, isAppState, isOneOf, isRecord, isString, isVersionEightState, isVersionElevenState, isVersionFiveState, isVersionFourState, isVersionNineState, isVersionSevenState, isVersionSixState, isVersionTenState, isVersionThirteenState, isVersionThreeState, isVersionTwelveState, isVersionTwoState, publicationStatuses } from "@/lib/repositories/state-validation"; // 데이터 검사
 
 export function migrateVersionSix(value: Record<string, unknown>): AppState | null // 버전 6 변환 함수
 { // 함수 시작
@@ -121,6 +124,51 @@ export function migrateVersionTwelve(value: Record<string, unknown>): AppState |
     const messages = (value.messages as Array<Record<string, unknown>>).map((message) => isRecord(message.status) ? { ...message, status: upgradeStatusSnapshot(message.status) } : message); // 턴별 상태창 변환
     const { chatTheme, ...settings } = value.settings as Record<string, unknown>; // 채팅 테마 분리
     const candidate: unknown = { ...value, schemaVersion: 13, characters: (value.characters as Array<Record<string, unknown>>).map(upgradeWork), stories: (value.stories as Array<Record<string, unknown>>).map(upgradeWork), messages, settings: { ...settings, theme: chatTheme === "dark" ? "dark" : "light", chatPanelOpen: true } }; // 버전 13 후보
+    return isVersionThirteenState(candidate) ? migrateVersionThirteen(candidate) : null; // 연속 변환 반환
+} // 함수 종료
+
+export function migrateVersionThirteen(value: Record<string, unknown>): AppState | null // 버전 13 변환 함수(관계 스탯 지정, 새 장면 그림 경로, 관계 수치 이어받기)
+{ // 함수 시작
+    if (!isVersionThirteenState(value)) // 버전 13 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const withRelation = (template: StatusTemplate): StatusTemplate => ({ ...template, relationStatId: template.stats.some((stat) => stat.id === AFFECTION_STAT_ID && stat.scope === "each") ? AFFECTION_STAT_ID : null }); // 호감도가 있으면 관계 스탯으로
+    const characters = (value.characters as Character[]).map((character) => ({ ...character, coverImage: upgradeScenePath(character.coverImage), statusTemplate: withRelation(character.statusTemplate) })); // 캐릭터 변환
+    const stories = (value.stories as Story[]).map((story) => ({ ...story, coverImage: upgradeScenePath(story.coverImage), statusTemplate: withRelation(story.statusTemplate) })); // 스토리 변환
+    const conversations = (value.conversations as Conversation[]).map((conversation) => ({ ...conversation, startSettings: { ...conversation.startSettings, scene: upgradeScenePath(conversation.startSettings.scene) } })); // 시작 장면 경로
+    const versions = (value.conversationVersions as ConversationVersion[]).map((version) => ({ ...version, currentScene: upgradeScenePath(version.currentScene) })); // 현재 장면 경로
+    const synced = new Map<string, number>(); // 관계 수치를 이어받을 상태창(메시지 식별자 → 스탯 값)
+    for (const conversation of conversations) // 대화 순회
+    { // 순회 시작
+        const character = characters.find((item) => item.id === conversation.characterId); // 대표 캐릭터
+        const story = conversation.mode === "story" ? stories.find((item) => item.id === conversation.storyId) : undefined; // 연결 스토리
+        const stat = getRelationStat(story?.statusTemplate ?? character?.statusTemplate); // 관계 스탯
+        const lead = conversation.mode === "story" ? conversation.storyCast[0]?.displayName : character === undefined ? undefined : deriveDisplayName(character.name); // 대표 인물
+        if (stat === null || lead === undefined) // 관계 스탯·인물 없음
+        { // 조건 시작
+            continue; // 다음 대화
+        } // 조건 종료
+        for (const version of versions.filter((item) => item.conversationId === conversation.id)) // 버전 순회
+        { // 버전 시작
+            const latest = (value.messages as Message[]).filter((message) => message.versionId === version.id && message.status !== undefined && message.status !== null).sort((left, right) => (right.status?.turn ?? 0) - (left.status?.turn ?? 0))[0]; // 마지막 상태창
+            const level = readRelationLevel(latest?.status, stat, lead); // 상태창의 관계 수치
+            if (latest !== undefined && level !== null && level !== version.relationshipLevel) // 대화의 관계 수치와 어긋남
+            { // 조건 시작
+                synced.set(latest.id, fromRelationLevel(stat, version.relationshipLevel)); // 대화의 관계 수치를 이어받음
+            } // 조건 종료
+        } // 버전 종료
+    } // 순회 종료
+    const leadByConversation = new Map(conversations.map((conversation) => [conversation.id, conversation.mode === "story" ? conversation.storyCast[0]?.displayName : deriveDisplayName(characters.find((item) => item.id === conversation.characterId)?.name ?? "")])); // 대화별 대표 인물
+    const messages = (value.messages as Message[]).map((message) => // 메시지 변환
+    { // 변환 시작
+        const scenePath = typeof message.scenePath === "string" ? upgradeScenePath(message.scenePath) : message.scenePath; // 장면 경로
+        const sceneImage = typeof message.sceneImage === "string" ? upgradeScenePath(message.sceneImage) : message.sceneImage; // 상황 이미지 경로
+        const value14 = synced.get(message.id); // 이어받을 값
+        const status = value14 === undefined || message.status === undefined || message.status === null ? message.status : { ...message.status, stats: message.status.stats.map((item) => item.statId === AFFECTION_STAT_ID && item.target === leadByConversation.get(message.conversationId) ? { ...item, value: value14 } : item) }; // 관계 스탯 값 맞추기
+        return { ...message, ...(message.scenePath === undefined ? {} : { scenePath }), ...(message.sceneImage === undefined ? {} : { sceneImage }), ...(message.status === undefined ? {} : { status }) }; // 변환 메시지
+    }); // 변환 종료
+    const candidate: unknown = { ...value, schemaVersion: 14, characters, stories, conversations, conversationVersions: versions, messages }; // 버전 14 후보
     return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
@@ -299,8 +347,12 @@ export function migrateParsedState(parsed: unknown): AppState | null // 분석 �
     } // 버전 11 종료
     if (parsed.schemaVersion === 12) // 버전 12 판정
     { // 버전 12 시작
-        return migrateVersionTwelve(parsed); // 버전 13 변환
+        return migrateVersionTwelve(parsed); // 버전 14 변환
     } // 버전 12 종료
+    if (parsed.schemaVersion === 13) // 버전 13 판정
+    { // 버전 13 시작
+        return migrateVersionThirteen(parsed); // 버전 14 변환
+    } // 버전 13 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 

@@ -1,4 +1,5 @@
 import { canViewMatureContent, isMatureCharacter } from "@/features/adult/adult-access"; // 19세 콘텐츠 판정
+import { getRelationStat } from "@/features/chat/relation-model"; // 관계 스탯
 import { getConversationSummary, type ConversationSummary } from "@/features/conversation/conversation-versioning"; // 대화 요약 조회
 import type { AppState, Character, Conversation, ConversationFilter, ConversationFolder, ConversationSort, StatusSnapshot, Story } from "@/features/core/types"; // 도메인 타입
 import { isMatureStory } from "@/features/story/story-model"; // 19세 스토리 판정
@@ -32,6 +33,7 @@ export interface ConversationListItem // 대화방 목록 항목
     locked: boolean; // 19+ 잠금 여부
     pinned: boolean; // 고정 여부
     latestStatus: StatusSnapshot | null; // 현재 버전의 마지막 상태창
+    relationLead: string | null; // 스토리 대화에서 관계를 보여 줄 대표 인물(관계 스탯이 없으면 null)
 } // 구조 종료
 
 export interface ConversationListGroup // 대화방 묶음
@@ -152,7 +154,7 @@ export function buildConversationListItems(state: AppState, now: Date): Conversa
         } // 조건 종료
         const lastActivityAt = summary.updatedAt.localeCompare(conversation.updatedAt) > 0 ? summary.updatedAt : conversation.updatedAt; // 더 최근 시각
         const mature = story === null ? isMatureCharacter(character) : isMatureStory(story); // 19세 판정(스토리는 스토리 등급 기준)
-        return [{ conversation, character, story, summary, lastActivityAt, turnCount: turnCounts.get(summary.versionId) ?? 0, locked: mature && !showMature, pinned: pinned.has(conversation.id), latestStatus: statuses.get(summary.versionId) ?? null }]; // 항목 반환
+        return [{ conversation, character, story, summary, lastActivityAt, turnCount: turnCounts.get(summary.versionId) ?? 0, locked: mature && !showMature, pinned: pinned.has(conversation.id), latestStatus: statuses.get(summary.versionId) ?? null, relationLead: story !== null && getRelationStat(story.statusTemplate) !== null ? conversation.storyCast[0]?.displayName ?? null : null }]; // 항목 반환
     }); // 변환 종료
 } // 함수 종료
 

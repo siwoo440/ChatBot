@@ -1,4 +1,4 @@
-import { createAffectionStat } from "@/features/chat/stat-model"; // 기본 호감도 스탯
+import { AFFECTION_STAT_ID, createAffectionStat } from "@/features/chat/stat-model"; // 기본 호감도 스탯
 import type { Character, ChatTierId, ConversationSettings, Persona, StatusTemplate, TierOption, UserProfile } from "@/features/core/types"; // 도메인 타입
 
 export type WorkExtras = Pick<Character, "playGuide" | "statusTemplate" | "updates">; // 작품 공통 추가 필드
@@ -7,7 +7,7 @@ export const DEFAULT_PERSONA_ID = "persona-default"; // 기본 대화 프로필 
 
 export function createDefaultStatusTemplate(enabled = true): StatusTemplate // 기본 상태창 형식
 { // 함수 시작
-    return { enabled, location: true, time: true, tip: true, thought: true, customLabels: [], stats: [createAffectionStat()] }; // 기본 항목(호감도 초기값 0) 반환
+    return { enabled, location: true, time: true, tip: true, thought: true, customLabels: [], stats: [createAffectionStat()], relationStatId: AFFECTION_STAT_ID }; // 기본 항목(호감도 초기값 0, 호감도가 관계 스탯) 반환
 } // 함수 종료
 
 export function createDefaultTierOptions(): Record<ChatTierId, TierOption> // 등급별 기본 답변 설정

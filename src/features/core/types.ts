@@ -82,6 +82,7 @@ export interface StatusTemplate // 상태창 형식
     thought: boolean; // 속마음
     customLabels: string[]; // 직접 정한 항목(최대 2개)
     stats: StatDefinition[]; // 제작자가 정한 스탯(최대 6개)
+    relationStatId: string | null; // 관계 스탯(관계 단계·왼쪽 카드 막대·정렬이 이 스탯 값을 씀, 없으면 예전 관계 수치)
 } // 구조 종료
 
 export interface StatusSnapshot // 한 턴의 상태창 값
@@ -413,7 +414,7 @@ export interface GeneratedImage // 이미지 스튜디오 생성 이미지
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 13; // 스키마 버전
+    schemaVersion: 14; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록

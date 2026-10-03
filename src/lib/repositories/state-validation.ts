@@ -366,9 +366,14 @@ export function hasStatusTemplateBase(value: unknown): value is Record<string, u
     return isRecord(value) && isBoolean(value.enabled) && isBoolean(value.location) && isBoolean(value.time) && isBoolean(value.tip) && isBoolean(value.thought) && isStringArray(value.customLabels) && value.customLabels.length <= 2; // 공통 항목 확인
 } // 함수 종료
 
-export function isStatusTemplate(value: unknown): boolean // 상태창 형식 판정 함수(버전 13: 스탯)
+export function isVersionThirteenStatusTemplate(value: unknown): value is Record<string, unknown> // 버전 13 상태창 형식 판정 함수(스탯)
 { // 함수 시작
     return hasStatusTemplateBase(value) && Array.isArray(value.stats) && value.stats.length <= STAT_LIMIT && value.stats.every(isStatDefinition) && hasUniqueIds(value.stats); // 스탯 확인
+} // 함수 종료
+
+export function isStatusTemplate(value: unknown): boolean // 상태창 형식 판정 함수(버전 14: 스탯 + 관계 스탯 지정)
+{ // 함수 시작
+    return isVersionThirteenStatusTemplate(value) && (value.relationStatId === null || (value.stats as Array<Record<string, unknown>>).some((stat) => stat.id === value.relationStatId && stat.scope === "each")); // 관계 스탯은 인물마다 따로인 스탯만
 } // 함수 종료
 
 export function isVersionTwelveStatusTemplate(value: unknown): boolean // 버전 12 상태창 형식 판정 함수(호감도 켜기)
@@ -444,11 +449,11 @@ export function hasUniqueIds(items: unknown[]): boolean // 식별자 중복 판�
     return new Set(items.map((item) => (item as { id: string }).id)).size === items.length; // 중복 없음
 } // 함수 종료
 
-export function hasSchemaTwelveFields(value: Record<string, unknown>, schemaVersion: 12 | 13 = 13): boolean // 스키마 12·13 필드 판정 함수(13은 스탯·색 테마)
+export function hasSchemaTwelveFields(value: Record<string, unknown>, schemaVersion: 12 | 13 | 14 = 14): boolean // 스키마 12·13·14 필드 판정 함수(13은 스탯·색 테마, 14는 관계 스탯 지정)
 { // 함수 시작
     const settings = value.settings as Record<string, unknown>; // 설정
-    const templateValidator = schemaVersion === 13 ? isStatusTemplate : isVersionTwelveStatusTemplate; // 버전별 상태창 형식
-    const snapshotValidator = schemaVersion === 13 ? isStatusSnapshot : isVersionTwelveStatusSnapshot; // 버전별 상태창 값
+    const templateValidator = schemaVersion === 14 ? isStatusTemplate : schemaVersion === 13 ? isVersionThirteenStatusTemplate : isVersionTwelveStatusTemplate; // 버전별 상태창 형식
+    const snapshotValidator = schemaVersion === 12 ? isVersionTwelveStatusSnapshot : isStatusSnapshot; // 버전별 상태창 값
     if (!(value.characters as unknown[]).every((item) => hasWorkFields(item, templateValidator)) || !(value.stories as unknown[]).every((item) => hasWorkFields(item, templateValidator))) // 작품 필드 확인
     { // 조건 시작
         return false; // 거부
@@ -469,7 +474,7 @@ export function hasSchemaTwelveFields(value: Record<string, unknown>, schemaVers
     const conversationsValid = (value.conversations as Array<Record<string, unknown>>).every((conversation) => isConversationSettings(conversation.settings) && (conversation.folderId === null || (isString(conversation.folderId) && folderIds.has(conversation.folderId)))); // 대화 설정·폴더 확인
     const messagesValid = (value.messages as Array<Record<string, unknown>>).every((message) => (message.status === undefined || message.status === null || snapshotValidator(message.status)) && (message.sceneImage === undefined || message.sceneImage === null || isString(message.sceneImage))); // 메시지 상태창·이미지 확인
     const memoriesValid = (value.memories as Array<Record<string, unknown>>).every((memory) => isOneOf(memory.category, memoryCategoriesV12)); // 새 기억 분류 확인
-    const settingsValid = isOneOf(settings.conversationFilter, conversationFilters) && isOneOf(settings.chatFont, chatFonts) && isOneOf(settings.chatFontSize, chatFontSizes) && (schemaVersion === 13 ? isOneOf(settings.theme, colorThemes) && isBoolean(settings.chatPanelOpen) : isOneOf(settings.chatTheme, colorThemes)) && isBoolean(settings.showSceneImages) && isBoolean(settings.statusPanelOpen); // 새 설정 확인
+    const settingsValid = isOneOf(settings.conversationFilter, conversationFilters) && isOneOf(settings.chatFont, chatFonts) && isOneOf(settings.chatFontSize, chatFontSizes) && (schemaVersion === 12 ? isOneOf(settings.chatTheme, colorThemes) : isOneOf(settings.theme, colorThemes) && isBoolean(settings.chatPanelOpen)) && isBoolean(settings.showSceneImages) && isBoolean(settings.statusPanelOpen); // 새 설정 확인
     return conversationsValid && messagesValid && memoriesValid && settingsValid; // 결과 반환
 } // 함수 종료
 
@@ -521,6 +526,11 @@ export function hasSchemaTenFields(value: Record<string, unknown>): boolean // �
 
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
+    return hasVersionedGraph(value, 14) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14); // 버전 14 상태 반환
+} // 함수 종료
+
+export function isVersionThirteenState(value: unknown): value is Record<string, unknown> // 버전 13 상태 판정 함수
+{ // 함수 시작
     return hasVersionedGraph(value, 13) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 13); // 버전 13 상태 반환
 } // 함수 종료
 
@@ -554,7 +564,7 @@ export function isVersionSevenState(value: unknown): value is VersionSevenState 
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인

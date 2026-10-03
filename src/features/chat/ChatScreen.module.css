@@ -473,6 +473,22 @@
     font-weight: 800; /* 굵은 글자 */
 } /* 관계 종료 */
 
+.relation b, /* 관계 단계 */
+.relation em /* 관계 스탯 값 */
+{ /* 글자 시작 */
+    display: block; /* 줄 분리 */
+    font-style: normal; /* 기울임 제거 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+} /* 글자 종료 */
+
+.relation em /* 관계 스탯 값 */
+{ /* 값 시작 */
+    margin-top: -3px; /* 단계와 가깝게 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .8rem; /* 크기 */
+    font-weight: 700; /* 굵기 */
+} /* 값 종료 */
+
 .relation > span /* 관계 막대 */
 { /* 막대 시작 */
     display: block; /* 블록 표시 */

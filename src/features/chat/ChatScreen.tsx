@@ -14,7 +14,8 @@ import { getChatFontFamily, getChatFontSize, loadChatFont } from "@/features/cha
 import { ChatSettingsPanel, type ChatDialogId } from "@/features/chat/ChatSettingsPanel"; // 채팅방 설정 패널
 import { buildAutoMemories } from "@/features/chat/memory-model"; // 자동 요약 메모리
 import { StatusPanel } from "@/features/chat/StatusPanel"; // 고정 상태창
-import { AFFECTION_STAT_ID, currentStatValues } from "@/features/chat/stat-model"; // 스탯 초기값
+import { fromRelationLevel, getRelationStat } from "@/features/chat/relation-model"; // 관계 스탯
+import { AFFECTION_STAT_ID, currentStatValues, formatStatValue } from "@/features/chat/stat-model"; // 스탯 초기값·표시
 import { getStatusPeople } from "@/features/chat/status-model"; // 상태창 인물
 import { createSuggestedReplies } from "@/features/chat/suggestion-model"; // 추천 답변
 import { TierSelector } from "@/features/chat/TierSelector"; // 모델 등급 선택
@@ -434,6 +435,11 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const versionMessages = getVersionMessages(snapshot, conversation.id, version.id); // 현재 버전 메시지
     const conversationImages = [...new Set(versionMessages.flatMap((message) => typeof message.sceneImage === "string" && message.sceneImage.length > 0 ? [message.sceneImage] : []).reverse())]; // 대화 속 상황 이미지(최근 순)
     const statusEnabled = work.statusTemplate?.enabled === true; // 상태창 사용
+    const statusPeople = getStatusPeople(conversation, deriveDisplayName(character.name)); // 상태창 인물
+    const relationStat = getRelationStat(work.statusTemplate); // 관계 스탯(없으면 예전 관계 수치)
+    const relationLead = statusPeople[0]; // 대표 인물
+    const relationValue = relationStat === null ? null : fromRelationLevel(relationStat, version.relationshipLevel); // 대표 인물의 관계 스탯 값
+    const relationBaselines = relationStat === null || relationLead === undefined || relationValue === null ? [] : [{ statId: relationStat.id, target: relationLead, value: relationValue }]; // 첫 응답 전 관계 스탯 시작 값
     const turn = versionMessages.filter((message) => message.role === "user").length; // 현재 턴
     const getSuggestions = () => createSuggestedReplies({ names: storyMode ? conversation.storyCast.map((member) => member.displayName) : [deriveDisplayName(character.name)], emotion: version.emotion, turn, seed: conversation.id }); // 추천 답변
     const canRegenerate = !busy && !retryAvailable && versionMessages.some((message) => message.role === "user"); // 다시 생성 가능
@@ -463,7 +469,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                 <MessageList messages={versionMessages} showSceneImages={state.settings.showSceneImages} streamingMessageId={streamingMessageId} busy={busy} allowRegenerate={!busy && !retryAvailable} onRegenerate={regenerate} getVersionGroup={(message) => getMessageVersionGroup(snapshot, version.id, message.id)} onEdit={editMessage} onDelete={deleteMessage} onSelectVersion={selectVersion} onDeleteVersion={deleteVersion} storyCast={castEntries} /> {/* 메시지 목록 */}
                 <p role="status" className={styles.notice}>{notice}</p> {/* 상태 안내 */}
                 {retryAvailable ? <div className={styles.requestActions}><button type="button" onClick={regenerate}>다시 시도</button></div> : null} {/* 재시도 영역 */}
-                {statusEnabled ? <StatusPanel messages={versionMessages} open={state.settings.statusPanelOpen} onToggle={toggleStatusPanel} initialStats={currentStatValues(work.statusTemplate, getStatusPeople(conversation, deriveDisplayName(character.name)), null)} /> : null} {/* 고정 상태창(첫 응답 전에는 스탯 초기값) */}
+                {statusEnabled ? <StatusPanel messages={versionMessages} open={state.settings.statusPanelOpen} onToggle={toggleStatusPanel} initialStats={currentStatValues(work.statusTemplate, statusPeople, null, relationBaselines)} /> : null} {/* 고정 상태창(첫 응답 전에는 스탯 초기값) */}
                 <ChatComposer busy={busy} onSend={send} onCancel={cancel} storyCast={storyMode ? conversation.storyCast : undefined} onContinue={storyMode ? continueStory : undefined} getSuggestions={getSuggestions} commands={commands} /> {/* 메시지 입력 */}
             </section> {/* 대화 종료 */}
             {overlay && panelOpen ? <button type="button" className={styles.panelScrim} aria-hidden="true" tabIndex={-1} onClick={() => setPanelOpen(false)} /> : null} {/* 서랍 배경(누르면 닫기) */}
@@ -489,7 +495,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                     {sceneImages.length === 0 ? <p>이미지 스튜디오에서 만든 이미지를 장면으로 쓸 수 있어요.</p> : <div>{sceneImages.map((image) => <button key={image.id} type="button" aria-label={`${image.prompt} 장면으로`} title={image.prompt} disabled={busy} data-current={version.currentScene === image.src ? "true" : undefined} onClick={() => applyImage(image)}><Image src={image.src} alt="" width={96} height={72} unoptimized /></button>)}</div>} {/* 이미지 목록 */}
                     <Link href={"/images" as Route}>이미지 스튜디오 열기</Link> {/* 스튜디오 링크 */}
                 </section> {/* 내 이미지 종료 */}
-                {storyMode ? null : <p className={styles.relation}>관계 {version.relationshipLevel}/100<span aria-hidden="true"><span style={{ width: `${version.relationshipLevel}%` }} /></span></p>} {/* 관계 수치(캐릭터 모드) */}
+                {relationStat !== null && relationValue !== null ? <p className={styles.relation}><b>{`관계 · ${version.relationshipStage}`}</b><em>{`${storyMode ? `${relationLead ?? ""} ` : ""}${relationStat.icon.length === 0 ? "" : `${relationStat.icon} `}${relationStat.name} ${formatStatValue({ value: relationValue, min: relationStat.min, max: relationStat.max })}`}</em><span aria-hidden="true"><span style={{ width: `${version.relationshipLevel}%` }} /></span></p> : storyMode ? null : <p className={styles.relation}>관계 {version.relationshipLevel}/100<span aria-hidden="true"><span style={{ width: `${version.relationshipLevel}%` }} /></span></p>} {/* 관계(관계 스탯이 있으면 대표 인물의 스탯 값과 단계, 없으면 예전 관계 수치) */}
             </aside> {/* 설정 종료 */}
         </main> // 본문 종료
     ); // 반환 종료

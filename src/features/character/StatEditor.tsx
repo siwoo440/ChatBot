@@ -26,7 +26,7 @@ function NumberField({ label, value, onChange, className }: { label: string; val
     ); // 반환 종료
 } // 함수 종료
 
-export function StatEditor({ stats, disabled, onChange }: { stats: StatDefinition[]; disabled: boolean; onChange(stats: StatDefinition[]): void }) // 제작자 스탯 편집(초기값·범위·정하는 방법·낱말 규칙·적용 대상)
+export function StatEditor({ stats, relationStatId, disabled, onChange, onRelationChange }: { stats: StatDefinition[]; relationStatId: string | null; disabled: boolean; onChange(stats: StatDefinition[]): void; onRelationChange(statId: string | null): void }) // 제작자 스탯 편집(초기값·범위·정하는 방법·낱말 규칙·적용 대상·관계 스탯 지정)
 { // 함수 시작
     const update = (index: number, patch: Partial<StatDefinition>) => onChange(stats.map((stat, position) => position === index ? { ...stat, ...patch } : stat)); // 스탯 고치기
     return ( // 편집 반환
@@ -72,6 +72,7 @@ export function StatEditor({ stats, disabled, onChange }: { stats: StatDefinitio
                                         {stat.mode === "rule" ? null : <NumberField label="AI 한 턴 최대 변화" value={stat.aiMaxChange} onChange={(value) => update(index, { aiMaxChange: value })} />} {/* AI 한도 */}
                                         <label>적용 대상<select value={stat.scope} onChange={(event) => update(index, { scope: event.target.value as StatScope })}>{statScopes.map((scope) => <option key={scope.id} value={scope.id}>{scope.label}</option>)}</select></label> {/* 대상 */}
                                     </div> {/* AI·대상 종료 */}
+                                    {stat.scope !== "each" ? null : <label className={styles.relationRow}><input type="checkbox" checked={relationStatId === stat.id} onChange={(event) => onRelationChange(event.target.checked ? stat.id : null)} /><span><strong>관계 스탯으로 쓰기</strong><small>관계 단계(첫 만남 → 아는 사이 → 가까운 사이 → 특별한 사이), 대화방 목록의 관계 막대와 정렬이 이 값을 따라요. 작품마다 하나만 고를 수 있어요.</small></span></label>} {/* 관계 스탯 지정(인물마다 따로인 스탯만) */}
                                     <button type="button" className={styles.dangerButton} onClick={() => onChange(stats.filter((_item, position) => position !== index))}>{label} 스탯 삭제</button> {/* 삭제 */}
                                 </fieldset> {/* 카드 종료 */}
                             </li> // 스탯 종료

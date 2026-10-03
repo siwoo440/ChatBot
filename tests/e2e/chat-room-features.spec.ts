@@ -86,6 +86,25 @@ test("390px에서 채팅방 설정은 오른쪽 서랍으로 열리고 Esc로 �
     await expect(toggle).toBeFocused(); // 초점 복귀
 }); // 검증 종료
 
+test("관계 스탯 값이 INFO·오른쪽 관계 표시·왼쪽 대화방 카드에 같은 값으로 보이고 새 장면 그림을 쓴다", async ({ page }) => // 관계 스탯 검증
+{ // 검증 시작
+    await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
+    await openRianChat(page); // 열기(리안 대화: 관계 34)
+    await expect(page.getByRole("img", { name: "새벽 도서관의 리안의 현재 장면" })).toHaveAttribute("src", /dawn-letter\.webp/); // 새 장면 그림
+    await expect(page.getByText("관계 · 아는 사이", { exact: true })).toBeVisible(); // 시작 관계 단계
+    await expect(page.getByText("❤️ 호감도 34/100", { exact: true })).toBeVisible(); // 시작 관계 값
+    await send(page, "선물 가져왔어, 고마워"); // 선물 +5, 고마워 +2, AI 최대 +5
+    const panel = page.getByRole("region", { name: "상태창" }); // 상태창
+    const value = Number((await panel.locator("[data-stat='affection'] b").first().textContent())?.split("/")[0]); // INFO 호감도
+    expect(value).toBeGreaterThanOrEqual(41); // 34 + 규칙 7 이상
+    expect(value).toBeLessThanOrEqual(46); // AI 최대 +5
+    await expect(page.getByText(`❤️ 호감도 ${value}/100`, { exact: true })).toBeVisible(); // 오른쪽 관계 표시
+    await page.reload(); // 새로고침
+    await page.getByRole("button", { name: "대화방 패널 열기와 닫기" }).click(); // 왼쪽 창 열기
+    const card = page.locator(".conversation-card", { hasText: "새벽 도서관의 리안" }); // 리안 카드
+    await expect(card.getByRole("meter", { name: "관계 수치" })).toHaveAttribute("aria-valuenow", String(value)); // 카드 막대도 같은 값
+}); // 검증 종료
+
 for (const width of [390, 820, 1440]) // 화면 너비 순회
 { // 순회 시작
     test(`${width}px 채팅 화면은 새 설정·상태창·입력 보조가 있어도 가로로 넘치지 않고 외부 요청이 없다`, async ({ page }) => // 넘침 검증
