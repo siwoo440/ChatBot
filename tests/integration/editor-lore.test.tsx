@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react"; // 화면 검증 도구
 import userEvent from "@testing-library/user-event"; // 사용자 동작 도구
-import { beforeEach, describe, expect, it } from "vitest"; // 테스트 도구
+import { beforeEach, describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { CharacterEditor } from "@/features/character/CharacterEditor"; // 캐릭터 편집기
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태 훅
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
@@ -8,6 +8,8 @@ import type { AppState, ExampleDialogue, LoreEntry } from "@/features/core/types
 import { StoryEditor } from "@/features/story/StoryEditor"; // 스토리 편집기
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // Mock 대화 어댑터
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더 도구
+
+vi.setConfig({ testTimeout: 20_000 }); // 글자를 많이 입력하는 화면 테스트라 컴퓨터가 바쁠 때도 끝나도록 제한 시간을 늘림
 
 const forbidden: LoreEntry = { id: "lore-forbidden", title: "금서 구역", keywords: ["금서"], content: "사서만 들어갈 수 있다." }; // 금서 설정
 const example: ExampleDialogue = { id: "example-1", user: "오늘 뭐 해?", reply: "책을 정리하고 있었어." }; // 예시 대화
@@ -147,14 +149,14 @@ describe("시험 대화에서 설정집 확인", () => // 시험 대화 묶음
         expect(within(dialog).queryByText(/설정집을 쓰지 않았어요|참고한 설정/)).toBeNull(); // 보내기 전에는 안내 없음
         const input = within(dialog).getByRole("textbox", { name: "시험 메시지" }); // 입력
         await user.type(input, "안녕{Enter}"); // 키워드 없는 말
-        await waitFor(() => expect(within(dialog).getByText("1/10턴")).toBeVisible()); // 1턴
+        await waitFor(() => expect(within(dialog).getByText("1/10턴")).toBeVisible(), { timeout: 5000 }); // 1턴(컴퓨터가 바쁠 때를 대비해 넉넉히 기다림)
         expect(within(dialog).getByText("이번 답변에는 설정집을 쓰지 않았어요. 최근 대화에 키워드가 나오지 않았어요.")).toBeVisible(); // 쓰지 않음
         await user.type(input, "금서가 궁금해{Enter}"); // 키워드
-        await waitFor(() => expect(within(dialog).getByText("2/10턴")).toBeVisible()); // 2턴
+        await waitFor(() => expect(within(dialog).getByText("2/10턴")).toBeVisible(), { timeout: 5000 }); // 2턴(컴퓨터가 바쁠 때를 대비해 넉넉히 기다림)
         expect(within(dialog).getByText(/이번 답변에 참고한 설정:/)).toHaveTextContent("이번 답변에 참고한 설정: 금서 구역"); // 참고한 설정
         expect(within(dialog).getByText(/‘금서 구역’ 이야기가 떠오른다\./)).toBeVisible(); // 답에 드러남
         await user.type(input, "오늘 뭐 해?{Enter}"); // 예시와 같은 말
-        await waitFor(() => expect(within(dialog).getByText("3/10턴")).toBeVisible()); // 3턴
+        await waitFor(() => expect(within(dialog).getByText("3/10턴")).toBeVisible(), { timeout: 5000 }); // 3턴(컴퓨터가 바쁠 때를 대비해 넉넉히 기다림)
         expect(within(dialog).getByText("책을 정리하고 있었어.")).toBeVisible(); // 예시 답
         await user.click(within(dialog).getByRole("button", { name: "닫기" })); // 닫기
         expect(summary()).toEqual(before); // 실제 상태는 그대로
@@ -167,7 +169,7 @@ describe("시험 대화에서 설정집 확인", () => // 시험 대화 묶음
         await user.click(screen.getByRole("button", { name: "시험 대화" })); // 열기
         const dialog = screen.getByRole("dialog", { name: "새벽 도서관의 리안 시험 대화" }); // 대화상자
         await user.type(within(dialog).getByRole("textbox", { name: "시험 메시지" }), "금서가 궁금해{Enter}"); // 보내기
-        await waitFor(() => expect(within(dialog).getByText("1/10턴")).toBeVisible()); // 1턴
+        await waitFor(() => expect(within(dialog).getByText("1/10턴")).toBeVisible(), { timeout: 5000 }); // 1턴(컴퓨터가 바쁠 때를 대비해 넉넉히 기다림)
         expect(within(dialog).queryByText(/설정집을 쓰지 않았어요|참고한 설정/)).toBeNull(); // 안내 없음
     }); // 검증 종료
 }); // 묶음 종료

@@ -1,9 +1,12 @@
 "use client"; // 클라이언트 컴포넌트
 
+import type { Route } from "next"; // 경로 타입
+import Link from "next/link"; // 내부 링크
 import { useState } from "react"; // 리액트 상태
 import { formatVerificationDate } from "@/features/adult/adult-access"; // 인증 날짜 표시
 import { useAdultAccess } from "@/features/adult/useAdultAccess"; // 성인 콘텐츠 접근
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
+import { getActivitySummary, getFollowedCreators } from "@/features/settings/settings-insights"; // 활동 요약·팔로우 목록
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import { validateProfileSettings, type ProfileSettingsErrors } from "@/features/settings/settings-validation"; // 프로필 검증
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
@@ -22,6 +25,10 @@ export function ProfileSettings() // 프로필 관리 화면
     const [errors, setErrors] = useState<ProfileSettingsErrors>({}); // 입력 오류
     const [status, setStatus] = useState(""); // 저장 상태
     const [adultStatus, setAdultStatus] = useState(""); // 성인 인증 안내
+    const [followStatus, setFollowStatus] = useState(""); // 팔로우 안내
+    const activity = getActivitySummary(state); // 내 활동 수
+    const creators = getFollowedCreators(state); // 팔로우한 제작자
+    const activityItems = [{ label: "만든 캐릭터", value: activity.characters }, { label: "만든 스토리", value: activity.stories }, { label: "대화방", value: activity.conversations }, { label: "좋아요", value: activity.likes }, { label: "보관", value: activity.bookmarks }, { label: "팔로우", value: activity.follows }]; // 활동 칸
     const adult = useAdultAccess({ enableOnVerify: false }); // 성인 인증 도구
     const verification = state.profile.adultVerification; // 저장된 인증
     const adultState = adult.verified ? "ON · 인증 완료" : adult.expired ? "OFF · 기간 만료" : "OFF · 인증 전"; // 인증 상태 문구
@@ -67,6 +74,25 @@ export function ProfileSettings() // 프로필 관리 화면
                 <button type="button" className={styles.primary} onClick={save}>프로필 저장</button> {/* 저장 버튼 */}
                 {status.length === 0 ? null : <p className={styles.status} role="status">{status}</p>} {/* 저장 안내 */}
             </section> {/* 기본 정보 종료 */}
+            <section className={styles.card} aria-labelledby="activity-title"> {/* 내 활동 */}
+                <h2 id="activity-title">내 활동</h2> {/* 영역 제목 */}
+                <ul className={styles.statGrid} aria-label="활동 요약">{activityItems.map((item) => <li key={item.label} className={styles.stat}><span>{item.label}</span><strong>{item.value.toLocaleString("ko-KR")}</strong></li>)}</ul> {/* 활동 수 */}
+                <p><Link className={styles.inlineLink} href={"/library" as Route}>내 캐릭터와 작품 열기</Link></p> {/* 보관함 링크 */}
+            </section> {/* 내 활동 종료 */}
+            <section className={styles.card} aria-labelledby="follow-title"> {/* 팔로우한 제작자 */}
+                <h2 id="follow-title">팔로우한 제작자</h2> {/* 영역 제목 */}
+                {creators.length === 0 ? <p className={styles.note}>아직 팔로우한 제작자가 없어요. 탐색이나 캐릭터 상세 화면에서 마음에 드는 제작자를 팔로우해 보세요.</p> : ( // 빈 목록 판정
+                    <ul className={styles.rowList} aria-label="팔로우한 제작자 목록"> {/* 제작자 목록 */}
+                        {creators.map((creator) => ( // 제작자 순회
+                            <li key={creator.creatorId}> {/* 제작자 */}
+                                <div><strong>{creator.name}</strong><span>작품 {creator.works}개</span></div> {/* 이름과 작품 수 */}
+                                <button type="button" className={styles.secondary} aria-label={`${creator.name} 팔로우 해제`} onClick={() => { dispatch({ type: "toggle-creator-follow", creatorId: creator.creatorId }); setFollowStatus(`${creator.name} 팔로우를 해제했습니다.`); }}>팔로우 해제</button> {/* 해제 */}
+                            </li> // 제작자 종료
+                        ))} {/* 순회 종료 */}
+                    </ul> // 목록 종료
+                )} {/* 판정 종료 */}
+                {followStatus.length === 0 ? null : <p className={styles.status} role="status" aria-label="팔로우 안내">{followStatus}</p>} {/* 팔로우 안내 */}
+            </section> {/* 팔로우 종료 */}
             <section id="adult" className={styles.card} aria-labelledby="adult-title"> {/* 성인 인증 */}
                 <h2 id="adult-title">성인 인증</h2> {/* 영역 제목 */}
                 <dl className={styles.infoGrid}> {/* 인증 정보 */}

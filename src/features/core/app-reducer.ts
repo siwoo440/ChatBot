@@ -45,6 +45,7 @@ export type AppAction = // 앱 동작
     | { type: "toggle-character-like"; characterId: string } // 좋아요 전환
     | { type: "toggle-creator-follow"; creatorId: string } // 제작자 팔로우 전환
     | { type: "add-character-report"; report: CharacterReport } // 캐릭터 신고 추가
+    | { type: "remove-character-report"; reportId: string } // 캐릭터 신고 취소
     | { type: "set-publication-status"; characterId: string; status: PublicationStatus } // 발행 상태 변경
     | { type: "select-conversation"; conversationId: string | null } // 대화 선택
     | { type: "select-conversation-version"; conversationId: string; versionId: string } // 대화 버전 선택
@@ -243,6 +244,8 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             } // 조건 종료
             return { ...state, localReports: [...state.localReports, action.report] }; // 신고 상태 반환
         } // 추가 범위 종료
+        case "remove-character-report": // 캐릭터 신고 취소
+            return state.localReports.some((report) => report.id === action.reportId) ? { ...state, localReports: state.localReports.filter((report) => report.id !== action.reportId) } : state; // 그 신고만 제거(없으면 그대로)
         case "set-publication-status": // 발행 상태 변경
             return { ...state, characters: state.characters.map((character) => character.id === action.characterId ? { ...character, publicationStatus: action.status } : character) }; // 발행 상태 반환
         case "select-conversation": // 대화 선택

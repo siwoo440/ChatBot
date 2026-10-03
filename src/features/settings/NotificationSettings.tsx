@@ -2,6 +2,7 @@
 
 import { useState } from "react"; // 리액트 상태
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
+import { getNotificationWindow } from "@/features/settings/settings-insights"; // 허용 시간 막대 계산
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import { validateNotificationSettings, type NotificationSettingsErrors } from "@/features/settings/settings-validation"; // 알림 검증
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
@@ -12,6 +13,7 @@ export function NotificationSettings() // 알림과 선제 메시지 화면
     const [draft, setDraft] = useState({ startTime: state.settings.notificationStartTime, endTime: state.settings.notificationEndTime, dailyLimit: state.settings.dailyNotificationLimit }); // 알림 초안
     const [errors, setErrors] = useState<NotificationSettingsErrors>({}); // 입력 오류
     const [status, setStatus] = useState(""); // 저장 상태
+    const allowed = getNotificationWindow(draft.startTime, draft.endTime); // 하루 막대에 그릴 허용 시간
     const save = () => // 알림 저장 함수
     { // 함수 시작
         const nextErrors = validateNotificationSettings(draft); // 입력 검증
@@ -38,6 +40,9 @@ export function NotificationSettings() // 알림과 선제 메시지 화면
                 {errors.startTime === undefined ? null : <p className={styles.error}>{errors.startTime}</p>} {/* 시작 오류 */}
                 <label>종료 시각<input type="time" value={draft.endTime} onChange={(event) => setDraft({ ...draft, endTime: event.target.value })} /></label> {/* 종료 시각 */}
                 {errors.endTime === undefined ? null : <p className={styles.error}>{errors.endTime}</p>} {/* 종료 오류 */}
+                <div className={styles.dayBar} role="img" aria-label={allowed === null ? "허용 시간을 그릴 수 없습니다. 종료 시각을 시작 시각보다 늦게 정해 주세요." : `하루 중 허용 시간 ${draft.startTime}부터 ${draft.endTime}까지, ${allowed.label}`}>{allowed === null ? null : <span className={styles.dayBarFill} style={{ left: `${allowed.startPercent}%`, width: `${allowed.widthPercent}%` }} />}</div> {/* 하루 막대 */}
+                <div className={styles.dayBarAxis} aria-hidden="true"><span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>24시</span></div> {/* 눈금 */}
+                {allowed === null ? null : <p>하루 중 {draft.startTime}부터 {draft.endTime}까지 {allowed.label} 동안 받을 수 있어요.</p>} {/* 허용 시간 문구 */}
                 <label>일일 알림 횟수<input type="number" min="0" max="10" value={draft.dailyLimit} onChange={(event) => setDraft({ ...draft, dailyLimit: Number(event.target.value) })} /></label> {/* 하루 횟수 */}
                 {errors.dailyLimit === undefined ? null : <p className={styles.error}>{errors.dailyLimit}</p>} {/* 횟수 오류 */}
                 <button type="button" className={styles.primary} onClick={save}>알림 저장</button> {/* 저장 버튼 */}

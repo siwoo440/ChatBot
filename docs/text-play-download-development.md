@@ -2291,4 +2291,49 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 화면: 설정집·예시 대화 편집과 시험 대화 창을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
 - **E2E 주의**: 대화 화면은 버전까지 적은 주소로 연다(HANDOFF `E2E 실행 주의사항`). `rewards`·`story-events`·`token-history`·`editor-lore`의 주소를 바꿨다.
 
+## 56. 로드맵 7단계 첫 묶음: 설정 페이지 채우기
+
+### 56.1 사용자 결정
+
+| 항목 | 결정 |
+| --- | --- |
+| 7단계 진행 방식 | 세 묶음(설정 페이지 채우기 → 대화 다시 보기 → 메인 정렬·필터), 묶음마다 커밋 |
+| 레이아웃 선택지 | 서랍형·옆 열 좁게·옆 열 넓게 3개(+ 자동) |
+| 책갈피(다음 묶음) | 답변 하나하나에 붙이고 모아 보기 |
+| 명장면 카드(다음 묶음) | 장면 그림 위에 대사를 얹은 이미지로 저장 |
+
+### 56.2 요약 계산 (`src/features/settings/settings-insights.ts`)
+
+화면은 계산을 하지 않고 이 파일의 순수 함수 결과만 그린다.
+
+- `getActivitySummary(state)`: 내가 만든 캐릭터·스토리(`creatorId === profile.id`), 대화방, 좋아요, 보관, 팔로우 수.
+- `getFollowedCreators(state)`: 최근 팔로우가 앞. 이름은 그 제작자의 첫 작품에서 가져오고, 작품이 모두 사라졌으면 `알 수 없는 제작자`.
+- `getMemoryGroups(state)`: 요약 메모리를 대화방별로 묶는다. 대화방과 메모리 모두 최근 수정이 앞. 지워진 대화의 메모리는 `지워진 대화`(주소 없음).
+- `getReportEntries(state)`: 신고를 최근 순으로, 캐릭터 이름과 사유 이름을 붙여서.
+- `getNotificationWindow(start, end)`: 하루(1440분) 가운데 시작 위치와 길이(%), 길이 문구(`13시간`, `1시간 30분`). 형식이 틀리거나 종료가 시작보다 이르면 `null`.
+- `buildDiagnostics(...)`·`formatBytes`: 진단 정보 글. 개인 정보(이름, 대화 내용)는 넣지 않는다.
+
+### 56.3 화면 레이아웃 (`layout-resolver.ts`, `DisplaySettings.tsx`)
+
+- `LayoutChoice = "drawer" | "narrow" | "wide"`, `layoutChoices`(대표 레이아웃 `M1`·`D1`·`D2`), `toLayoutChoice(layoutId)`(M 계열은 서랍, `T1`·`D2`·`D3`는 넓게, 나머지는 좁게).
+- 저장 값(`settings.layoutId`)과 채팅 화면 CSS는 그대로다. 화면에 보여 주는 선택지만 줄였다.
+- 그림 카드는 라디오 묶음(`fieldset` + 숨긴 `input[type=radio]`)이고, 배치 그림은 CSS로 그린다(`aria-hidden`).
+- 추천은 `recommendLayout({ width, height, platformMode, layoutId: null })` 결과를 묶은 것.
+
+### 56.4 그 밖의 화면
+
+- `ProfileSettings`: `내 활동`(`ul.statGrid`), `팔로우한 제작자`(`ul.rowList`). 색 칸은 세 칸마다 되풀이(`.stat:nth-child(3n + 2)`·`(3n + 3)`).
+- `NotificationSettings`: 하루 막대(`role="img"`, 이름에 시각과 길이). 눈금 글자는 장식이라 `aria-hidden`.
+- `PrivacySettings`: 메모리 묶음은 `details`(접힌 채 시작). 삭제는 `delete-memory`, 신고 취소는 `remove-character-report`.
+- `SupportScreen`: `faq.ts`(`faqTopics`, `faqs`, `filterFaqs`). 찾은 수는 `role="status"`(이름 `찾은 질문`). 저장 용량은 `mateverse:`로 시작하는 저장 항목의 이름과 값 크기 합.
+- 공통 목록 스타일 `.rowList`(내용 + 버튼 한 줄, 480px 이하에서는 버튼이 아래로).
+
+### 56.5 검증
+
+- 단위: `settings-insights`(9: 활동, 팔로우, 메모리 묶음, 신고와 취소, 하루 막대, 진단 정보, 배치 묶기 2, 질문 찾기)
+- 통합: `settings-pages`(15: 배치 선택·예전 값과 추천·활동과 팔로우·하루 막대·메모리와 신고·빈 상태·질문 찾기·진단 정보 복사 추가)
+- E2E: `settings-tools.spec.ts`(6: 고른 배치가 채팅 화면에 적용되고 유지, 팔로우 해제·메모리 삭제·신고 취소 유지, 초성 검색과 진단 정보, 390·820·1440px 넘침). 전체 단위 592개·E2E 72개 통과
+- 화면: 설정 다섯 페이지와 고객 지원을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
+- `editor-lore` 통합 테스트는 글자 입력이 많아 컴퓨터가 바쁠 때 제한 시간(5초)을 넘긴 적이 있어 파일 제한 시간을 20초로, 턴 대기를 5초로 늘렸다.
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

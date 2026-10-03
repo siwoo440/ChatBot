@@ -1,11 +1,27 @@
 "use client"; // 클라이언트 컴포넌트
 
+import type { Route } from "next"; // 경로 타입
+import Link from "next/link"; // 내부 링크
+import { useState } from "react"; // 리액트 상태
+import { memoryCategoryLabels } from "@/features/chat/memory-model"; // 메모리 분류 이름
+import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { DataManagement } from "@/features/settings/DataManagement"; // 데이터 관리
+import { getMemoryGroups, getReportEntries } from "@/features/settings/settings-insights"; // 메모리·신고 요약
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 
+function formatDate(value: string): string // 날짜 표시
+{ // 함수 시작
+    return new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 날짜 반환
+} // 함수 종료
+
 export function PrivacySettings() // 개인정보 및 보안 화면
 { // 함수 시작
+    const { state, dispatch } = useAppStore(); // 앱 상태 조회
+    const [memoryStatus, setMemoryStatus] = useState(""); // 메모리 안내
+    const [reportStatus, setReportStatus] = useState(""); // 신고 안내
+    const groups = getMemoryGroups(state); // 대화방별 요약 메모리
+    const reports = getReportEntries(state); // 내가 한 신고
     return ( // 화면 반환
         <> {/* 개인정보 화면 */}
             <SettingsPageHeader kicker="SUPPORT · PRIVACY" title="개인정보 및 보안" description="내 데이터가 어디에 저장되는지 확인하고, 내보내기·백업·복구·초기화로 직접 관리합니다." /> {/* 페이지 머리말 */}
@@ -21,6 +37,44 @@ export function PrivacySettings() // 개인정보 및 보안 화면
             <div id="data"> {/* 데이터 관리 앵커 */}
                 <DataManagement /> {/* 데이터 관리 */}
             </div> {/* 데이터 관리 앵커 종료 */}
+            <section id="memories" className={styles.card} aria-labelledby="privacy-memory-title"> {/* 요약 메모리 */}
+                <h2 id="privacy-memory-title">요약 메모리</h2> {/* 메모리 제목 */}
+                <p>AI가 대화를 이어 가려고 기억해 둔 내용이에요. 모두 {state.memories.length}개가 있어요. 지우면 그 대화에서 더는 참고하지 않아요. 내용을 고치려면 그 대화의 채팅방 설정에서 요약 메모리를 여세요.</p> {/* 메모리 안내 */}
+                {groups.length === 0 ? <p className={styles.note}>아직 기억해 둔 내용이 없어요. 대화가 쌓이면 이곳에 대화방별로 모여요.</p> : ( // 빈 목록 판정
+                    <div className={styles.faqList}> {/* 대화방 묶음 */}
+                        {groups.map((group) => ( // 대화방 순회
+                            <details key={group.conversationId}> {/* 대화방 */}
+                                <summary>{group.title} · {group.memories.length}개</summary> {/* 대화방 이름과 개수 */}
+                                <ul className={styles.rowList} aria-label={`${group.title} 메모리`}> {/* 메모리 목록 */}
+                                    {group.memories.map((memory) => ( // 메모리 순회
+                                        <li key={memory.id}> {/* 메모리 */}
+                                            <div><strong>{memoryCategoryLabels[memory.category]}</strong><span>{memory.content}</span></div> {/* 분류와 내용 */}
+                                            <button type="button" className={styles.danger} aria-label={`${memoryCategoryLabels[memory.category]} 삭제: ${memory.content}`} onClick={() => { dispatch({ type: "delete-memory", memoryId: memory.id }); setMemoryStatus("메모리를 지웠습니다."); }}>삭제</button> {/* 삭제 */}
+                                        </li> // 메모리 종료
+                                    ))} {/* 순회 종료 */}
+                                </ul> {/* 목록 종료 */}
+                                {group.href === null ? null : <Link className={styles.rowLink} href={group.href as Route}>이 대화 열기</Link>} {/* 대화 이동 */}
+                            </details> // 대화방 종료
+                        ))} {/* 순회 종료 */}
+                    </div> // 묶음 종료
+                )} {/* 판정 종료 */}
+                {memoryStatus.length === 0 ? null : <p className={styles.status} role="status">{memoryStatus}</p>} {/* 메모리 안내 */}
+            </section> {/* 요약 메모리 종료 */}
+            <section id="reports" className={styles.card} aria-labelledby="privacy-report-title"> {/* 내가 한 신고 */}
+                <h2 id="privacy-report-title">내가 한 신고</h2> {/* 신고 제목 */}
+                <p>신고 내용은 이 브라우저에만 저장돼요. 잘못 신고했다면 취소할 수 있어요.</p> {/* 신고 안내 */}
+                {reports.length === 0 ? <p className={styles.note}>신고한 캐릭터가 없어요.</p> : ( // 빈 목록 판정
+                    <ul className={styles.rowList} aria-label="신고 기록"> {/* 신고 목록 */}
+                        {reports.map((report) => ( // 신고 순회
+                            <li key={report.id}> {/* 신고 */}
+                                <div><strong>{report.characterName}</strong><span>{report.reason} · {formatDate(report.createdAt)}</span></div> {/* 캐릭터와 사유 */}
+                                <button type="button" className={styles.secondary} aria-label={`${report.characterName} 신고 취소`} onClick={() => { dispatch({ type: "remove-character-report", reportId: report.id }); setReportStatus(`${report.characterName} 신고를 취소했습니다.`); }}>신고 취소</button> {/* 취소 */}
+                            </li> // 신고 종료
+                        ))} {/* 순회 종료 */}
+                    </ul> // 목록 종료
+                )} {/* 판정 종료 */}
+                {reportStatus.length === 0 ? null : <p className={styles.status} role="status">{reportStatus}</p>} {/* 신고 안내 */}
+            </section> {/* 신고 종료 */}
             <section className={styles.card} aria-labelledby="privacy-policy-title"> {/* 정책 문서 */}
                 <h2 id="privacy-policy-title">정책 문서</h2> {/* 정책 제목 */}
                 <p className={styles.note}>개인정보처리방침과 이용약관은 서비스 운영 정책이 확정된 뒤 이곳에 게시됩니다.</p> {/* 준비 안내 */}
