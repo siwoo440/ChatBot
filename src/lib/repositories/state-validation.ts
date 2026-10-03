@@ -26,7 +26,8 @@ export const colorThemes = ["light", "dark"] as const; // 색 테마(버전 12�
 export const statModes = ["rule", "ai", "both"] as const; // 스탯 정하는 방법
 export const statScopes = ["each", "shared"] as const; // 스탯 적용 대상
 export const conversationFilters = ["all", "character", "story"] as const; // 대화 종류 탭
-export const notificationKinds = ["notice", "image", "memory"] as const; // 알림 종류
+export const notificationKinds = ["notice", "image", "memory", "reward"] as const; // 알림 종류
+export const tokenRecordSources = ["attendance", "mission", "mission-bonus"] as const; // 토큰 기록 출처
 export const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam", "other"] as const; // 신고 사유 목록
 export const contentRatings = ["all", "teen", "mature"] as const; // 이용 등급 목록
 export const adultVerificationMethods = ["mock"] as const; // 성인 인증 방식 목록
@@ -524,7 +525,44 @@ export function hasSchemaTenFields(value: Record<string, unknown>): boolean // �
     }); // 판정 종료
 } // 함수 종료
 
+function isCount(value: unknown): value is number // 0 이상 정수 판정 함수
+{ // 함수 시작
+    return isFiniteNumber(value) && Number.isInteger(value) && value >= 0; // 횟수 반환
+} // 함수 종료
+
+function isDateKey(value: unknown): boolean // 날짜 키(연-월-일) 판정 함수
+{ // 함수 시작
+    return isString(value) && /^\d{4}-\d{2}-\d{2}$/.test(value); // 날짜 키 반환
+} // 함수 종료
+
+export function isRewardState(value: unknown): boolean // 출석·미션 판정 함수
+{ // 함수 시작
+    if (!isRecord(value) || !isRecord(value.attendance) || !isRecord(value.missions) || !isCount(value.totalEarned)) // 묶음 확인
+    { // 조건 시작
+        return false; // 거부
+    } // 조건 종료
+    const { attendance, missions } = value; // 출석·미션
+    const attendanceValid = (attendance.lastDate === null || isDateKey(attendance.lastDate)) && isCount(attendance.cycleDay) && attendance.cycleDay <= 7 && isCount(attendance.totalDays); // 출석 확인
+    const missionsValid = (missions.dateKey === null || isDateKey(missions.dateKey)) && isRecord(missions.progress) && Object.values(missions.progress).every(isCount) && isStringArray(missions.claimed) && isBoolean(missions.bonusClaimed); // 미션 확인
+    return attendanceValid && missionsValid; // 판정 반환
+} // 함수 종료
+
+export function isTokenRecord(value: unknown): boolean // 토큰 기록 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.id) && value.id.length > 0 && isOneOf(value.direction, ["earn", "spend"]) && isOneOf(value.source, tokenRecordSources) && isString(value.label) && isCount(value.amount) && isFiniteNumber(value.balance) && isString(value.createdAt); // 기록 반환
+} // 함수 종료
+
+export function hasSchemaFifteenFields(value: Record<string, unknown>): boolean // 스키마 15 필드 판정 함수(출석·미션, 토큰 기록)
+{ // 함수 시작
+    return isRewardState(value.rewards) && Array.isArray(value.tokenRecords) && value.tokenRecords.every(isTokenRecord) && hasUniqueIds(value.tokenRecords); // 판정 반환
+} // 함수 종료
+
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
+{ // 함수 시작
+    return hasVersionedGraph(value, 15) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14) && hasSchemaFifteenFields(value); // 버전 15 상태 반환
+} // 함수 종료
+
+export function isVersionFourteenState(value: unknown): value is Record<string, unknown> // 버전 14 상태 판정 함수
 { // 함수 시작
     return hasVersionedGraph(value, 14) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14); // 버전 14 상태 반환
 } // 함수 종료
@@ -564,7 +602,7 @@ export function isVersionSevenState(value: unknown): value is VersionSevenState 
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인

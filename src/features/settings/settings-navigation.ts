@@ -24,6 +24,7 @@ export const settingsNavigation: SettingsNavigationGroup[] = // 오른쪽 패널
             { href: "/settings/profile", label: "프로필 관리", description: "닉네임과 프로필 표시" }, // 프로필 항목
             { href: "/library", label: "내 캐릭터와 작품", description: "보관함에서 만든 캐릭터와 대화 관리" }, // 작품 항목
             { href: "/settings/tokens", label: "토큰 이용 내역", description: "잔액과 사용 비용" }, // 토큰 항목
+            { href: "/rewards", label: "출석과 미션", description: "매일 출석하고 미션으로 토큰 받기" }, // 출석·미션 항목
         ], // 항목 종료
     }, // 계정 묶음 종료
     { // 설정 묶음 시작

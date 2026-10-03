@@ -1,14 +1,14 @@
 // 저장 데이터 버전 변환: 이전 버전 상태를 한 단계씩 올려 현재 버전으로 만든다.
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
 import type { AppState, Character, Conversation, ConversationStartSettings, ConversationVersion, Message, StatusTemplate, Story, UserProfile } from "@/features/core/types"; // 도메인 타입
-import { createDefaultConversationSettings, createDefaultPersona, createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본값
+import { createDefaultConversationSettings, createDefaultPersona, createDefaultRewardState, createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본값
 import { fromRelationLevel, getRelationStat, readRelationLevel } from "@/features/chat/relation-model"; // 관계 스탯
 import { AFFECTION_STAT_ID, toVersionTwelveTemplate, upgradeStatusSnapshot, upgradeStatusTemplate } from "@/features/chat/stat-model"; // 스탯 변환
 import { deriveDisplayName } from "@/features/story/story-model"; // 짧은 이름
 import { upgradeScenePath } from "@/lib/assets/scene-paths"; // 장면 그림 경로
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
 import { mockStories } from "@/mocks/story-fixtures"; // 예시 스토리
-import { contentRatings, isAppState, isOneOf, isRecord, isString, isVersionEightState, isVersionElevenState, isVersionFiveState, isVersionFourState, isVersionNineState, isVersionSevenState, isVersionSixState, isVersionTenState, isVersionThirteenState, isVersionThreeState, isVersionTwelveState, isVersionTwoState, publicationStatuses } from "@/lib/repositories/state-validation"; // 데이터 검사
+import { contentRatings, isAppState, isOneOf, isRecord, isString, isVersionEightState, isVersionElevenState, isVersionFiveState, isVersionFourState, isVersionFourteenState, isVersionNineState, isVersionSevenState, isVersionSixState, isVersionTenState, isVersionThirteenState, isVersionThreeState, isVersionTwelveState, isVersionTwoState, publicationStatuses } from "@/lib/repositories/state-validation"; // 데이터 검사
 
 export function migrateVersionSix(value: Record<string, unknown>): AppState | null // 버전 6 변환 함수
 { // 함수 시작
@@ -169,6 +169,16 @@ export function migrateVersionThirteen(value: Record<string, unknown>): AppState
         return { ...message, ...(message.scenePath === undefined ? {} : { scenePath }), ...(message.sceneImage === undefined ? {} : { sceneImage }), ...(message.status === undefined ? {} : { status }) }; // 변환 메시지
     }); // 변환 종료
     const candidate: unknown = { ...value, schemaVersion: 14, characters, stories, conversations, conversationVersions: versions, messages }; // 버전 14 후보
+    return isVersionFourteenState(candidate) ? migrateVersionFourteen(candidate) : null; // 연속 변환 반환
+} // 함수 종료
+
+export function migrateVersionFourteen(value: Record<string, unknown>): AppState | null // 버전 14 변환 함수(출석·미션과 토큰 기록 추가)
+{ // 함수 시작
+    if (!isVersionFourteenState(value)) // 버전 14 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const candidate: unknown = { ...value, schemaVersion: 15, rewards: createDefaultRewardState(), tokenRecords: [] }; // 버전 15 후보(잔액은 그대로)
     return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
@@ -351,8 +361,12 @@ export function migrateParsedState(parsed: unknown): AppState | null // 분석 �
     } // 버전 12 종료
     if (parsed.schemaVersion === 13) // 버전 13 판정
     { // 버전 13 시작
-        return migrateVersionThirteen(parsed); // 버전 14 변환
+        return migrateVersionThirteen(parsed); // 버전 15 변환
     } // 버전 13 종료
+    if (parsed.schemaVersion === 14) // 버전 14 판정
+    { // 버전 14 시작
+        return migrateVersionFourteen(parsed); // 버전 15 변환
+    } // 버전 14 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 

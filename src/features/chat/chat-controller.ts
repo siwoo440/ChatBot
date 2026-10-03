@@ -1,5 +1,5 @@
 import { CHAT_MESSAGE_MAX_LENGTH, CHAT_VERSION_LIMIT, createVersionFork, getConversationVersion, getMessageVersionGroup, getVersionMessages, type VersionStateInput } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
-import type { AppState, Character, Conversation, ConversationVersion, Message, StatusSnapshot, StatusTemplate } from "@/features/core/types"; // 앱 타입
+import type { AppState, Character, Conversation, ConversationVersion, Message, StatusSnapshot, StatusTemplate, TokenWallet } from "@/features/core/types"; // 앱 타입
 import type { ImageGenerationAdapter } from "@/lib/adapters/image-generation-adapter"; // 이미지 계약
 import type { LLMAdapter, LLMInput } from "@/lib/adapters/llm-adapter"; // 대화 계약
 import { evaluateStory, resolveRelationshipStage } from "@/lib/story/story-engine"; // 스토리 판정·관계 단계
@@ -75,6 +75,14 @@ export class ChatController // 채팅 제어기
         this.state = structuredClone(options.state); // 상태 복사
         this.context = buildChatContext(options.state, options.conversationId); // 시작 맥락
     } // 생성자 종료
+
+    public syncWallet(wallet: TokenWallet): void // 요청 직전 전역 지갑 반영(출석·미션으로 받은 토큰)
+    { // 함수 시작
+        if (!this.busy) // 응답 중이 아닐 때만
+        { // 조건 시작
+            this.state = { ...this.state, wallet: structuredClone(wallet) }; // 지갑 교체
+        } // 조건 종료
+    } // 함수 종료
 
     public setContext(context: ChatContext): void // 요청 직전 최신 맥락 반영(오른쪽 패널 설정)
     { // 함수 시작

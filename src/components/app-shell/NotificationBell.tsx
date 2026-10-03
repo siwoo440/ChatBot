@@ -7,7 +7,7 @@ import { formatConversationTime } from "@/features/conversation/conversation-lis
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import type { NotificationKind } from "@/features/core/types"; // 알림 종류
 
-const kindLabels: Record<NotificationKind, string> = { notice: "공지", image: "이미지", memory: "메모리" }; // 종류 이름
+const kindLabels: Record<NotificationKind, string> = { notice: "공지", image: "이미지", memory: "메모리", reward: "보상" }; // 종류 이름
 
 function BellIcon() // 종 아이콘
 { // 함수 시작

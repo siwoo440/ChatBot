@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import { appReducer, type AppAction } from "@/features/core/app-reducer"; // 앱 리듀서
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import type { AppState } from "@/features/core/types"; // 상태 타입
+import { trackRewardProgress } from "@/features/rewards/reward-tracker"; // 미션 진행 추적
 import { isStorageQuotaError, LocalStorageGateway, type BackupReason, type LoadResult } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
 
 export interface StateRepository // 상태 저장 계약
@@ -46,9 +47,21 @@ function describeStorageFailure(error: unknown, quotaMessage: string, fallback: 
     return isStorageQuotaError(error) ? `${quotaMessage} ${quotaGuide}` : fallback; // 원인별 문구 반환
 } // 함수 종료
 
+interface TimedAction // 시각을 붙인 동작
+{ // 구조 시작
+    action: AppAction; // 앱 동작
+    now: string; // 동작 시각(리듀서를 순수하게 유지)
+} // 구조 종료
+
+function storeReducer(state: AppState, entry: TimedAction): AppState // 저장소 리듀서(앱 리듀서 + 미션 진행 추적)
+{ // 함수 시작
+    return trackRewardProgress(state, appReducer(state, entry.action), entry.action, entry.now); // 동작 뒤 미션 진행 반영
+} // 함수 종료
+
 export function AppProvider({ children, initialState = createInitialState(), repository }: AppProviderProps) // 앱 공급자
 { // 함수 시작
-    const [state, dispatch] = useReducer(appReducer, initialState); // 상태 리듀서
+    const [state, dispatchTimed] = useReducer(storeReducer, initialState); // 상태 리듀서
+    const dispatch = useCallback<Dispatch<AppAction>>((action) => dispatchTimed({ action, now: new Date().toISOString() }), []); // 동작 전달(시각 붙임)
     const [storageError, setStorageError] = useState<string | null>(null); // 저장 오류 상태
     const [storageNotice, setStorageNotice] = useState<StorageNotice | null>(null); // 저장소 안내 상태
     const [restored, setRestored] = useState(repository !== undefined); // 저장 복원 상태
@@ -91,7 +104,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
         { // 정리 시작
             cancelled = true; // 예약 취소
         }; // 정리 종료
-    }, [repository]); // 저장소 변경 의존
+    }, [dispatch, repository]); // 저장소 변경 의존
     useEffect(() => // 상태 저장 효과
     { // 효과 시작
         if (!hydrated.current || persistenceBlocked.current) // 복원 전·차단 판정
@@ -173,9 +186,9 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             setStorageError(describeStorageFailure(error, "브라우저 저장공간이 가득 차 변경 내용을 적용하지 않았습니다.", "저장하지 못해 변경 내용을 적용하지 않았습니다.")); // 저장 오류 안내
             return false; // 저장 실패 반환
         } // 실패 종료
-    }, [repository]); // 함수 종료
+    }, [dispatch, repository]); // 함수 종료
     const dismissStorageNotice = useCallback(() => setStorageNotice(null), []); // 안내 닫기 함수
-    const value = useMemo(() => ({ state, dispatch, storageError, storageNotice, dismissStorageNotice, createBackup, commitState }), [commitState, createBackup, dismissStorageNotice, state, storageError, storageNotice]); // 문맥 값
+    const value = useMemo(() => ({ state, dispatch, storageError, storageNotice, dismissStorageNotice, createBackup, commitState }), [commitState, createBackup, dismissStorageNotice, dispatch, state, storageError, storageNotice]); // 문맥 값
     return <AppContext.Provider value={value}>{restored ? children : <p role="status">로컬 대화를 불러오는 중입니다.</p>}</AppContext.Provider>; // 공급자 반환
 } // 함수 종료
 

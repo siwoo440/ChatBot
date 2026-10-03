@@ -451,6 +451,29 @@
     color: light-dark(#15803d, #93edb5); /* 초록 글자 */
 } /* 메모리 종료 */
 
+.shell :global(.app-notifications-kind[data-kind="reward"]) /* 보상 알림 */
+{ /* 보상 시작 */
+    background: light-dark(#fce7f3, #38162a); /* 분홍 */
+    color: light-dark(#be185d, #f08bb6); /* 분홍 글자 */
+} /* 보상 종료 */
+
+.shell :global(.app-header button[data-reward="true"]) /* 받을 보상이 있는 메뉴 버튼 */
+{ /* 버튼 시작 */
+    position: relative; /* 점 기준 */
+} /* 버튼 종료 */
+
+.shell :global(.app-header-dot) /* 받을 보상 점 */
+{ /* 점 시작 */
+    position: absolute; /* 모서리 배치 */
+    top: -3px; /* 위 */
+    right: -3px; /* 오른쪽 */
+    width: 12px; /* 너비 */
+    height: 12px; /* 높이 */
+    border: 2px solid light-dark(#ecebf0, #3e3c44); /* 헤더색 테두리 */
+    border-radius: 50%; /* 원 */
+    background: #e11d48; /* 빨강 */
+} /* 점 종료 */
+
 .shell :global(.app-notifications-empty) /* 빈 알림 */
 { /* 빈 시작 */
     margin: 0; /* 여백 제거 */
@@ -1678,6 +1701,55 @@
 { /* 잔액 값 시작 */
     font-size: 1.45rem; /* 잔액 크기 */
 } /* 잔액 값 종료 */
+
+.grid :global(.user-panel-rewards) /* 출석·미션 카드 */
+{ /* 카드 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 4px; /* 간격 */
+    padding: 13px 15px; /* 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 16px; /* 모서리 */
+    background: var(--mv-surface); /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+    text-decoration: none; /* 밑줄 제거 */
+} /* 카드 종료 */
+
+.grid :global(.user-panel-rewards[data-ready="true"]) /* 받을 보상 있음 */
+{ /* 강조 시작 */
+    border-color: light-dark(#f3b8d3, #6b2a4a); /* 분홍 테두리 */
+    background: light-dark(#fff3f8, #2a1420); /* 분홍 배경 */
+} /* 강조 종료 */
+
+.grid :global(.user-panel-rewards:hover) /* 카드 올림 */
+{ /* 올림 시작 */
+    border-color: light-dark(#be185d, #f08bb6); /* 진한 테두리 */
+} /* 올림 종료 */
+
+.grid :global(.user-panel-rewards:focus-visible) /* 카드 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 2px; /* 외곽선 간격 */
+} /* 초점 종료 */
+
+.grid :global(.user-panel-rewards-label) /* 카드 표제 */
+{ /* 표제 시작 */
+    color: light-dark(#be185d, #f08bb6); /* 분홍 글자 */
+    font-size: .75rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+} /* 표제 종료 */
+
+.grid :global(.user-panel-rewards strong) /* 출석 상태 */
+{ /* 상태 시작 */
+    font-size: 1rem; /* 크기 */
+} /* 상태 종료 */
+
+.grid :global(.user-panel-rewards-meta) /* 진행 */
+{ /* 진행 시작 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .8rem; /* 크기 */
+    line-height: 1.45; /* 행간 */
+    word-break: keep-all; /* 한글 줄바꿈 */
+} /* 진행 종료 */
 
 .grid :global(.user-panel-menu) /* 사용자 메뉴 */
 { /* 메뉴 시작 */

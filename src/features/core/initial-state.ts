@@ -1,4 +1,4 @@
-import { createDefaultPersona } from "@/features/core/defaults"; // 기본 대화 프로필
+import { createDefaultPersona, createDefaultRewardState } from "@/features/core/defaults"; // 기본 대화 프로필·출석 미션
 import type { AppState } from "@/features/core/types"; // 앱 상태 타입
 import { mockCharacters, mockConversations, mockConversationVersions, mockMessages, mockProfile } from "@/mocks/fixtures"; // Mock 기준값
 import { mockStories } from "@/mocks/story-fixtures"; // 예시 스토리
@@ -7,7 +7,7 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
 { // 함수 시작
     return ( // 초기 상태 반환
     { // 상태 시작
-        schemaVersion: 14, // 스키마 버전
+        schemaVersion: 15, // 스키마 버전
         providerMode: "mock", // Mock 공급자
         profile: structuredClone(mockProfile), // 사용자 복사본
         characters: structuredClone(mockCharacters), // 캐릭터 복사본
@@ -27,6 +27,8 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
             dailyImageUsed: 0, // 일일 이미지 사용량
             updatedAt: "2026-09-22T00:00:00.000Z", // 수정 시각
         }, // 지갑 종료
+        rewards: createDefaultRewardState(), // 출석·미션
+        tokenRecords: [], // 토큰 기록
         settings: // 앱 설정
         { // 설정 시작
             platformMode: "auto", // 자동 플랫폼

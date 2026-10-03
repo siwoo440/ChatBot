@@ -1,5 +1,7 @@
 "use client"; // 클라이언트 컴포넌트
 
+import type { Route } from "next"; // 경로 타입
+import Link from "next/link"; // 내부 경로 링크
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import { getDailyUsage, tokenActionLabels, tokenCosts, type TokenAction } from "@/lib/story/token-policy"; // 토큰 비용표
@@ -34,6 +36,7 @@ export function TokenSettings() // 토큰 이용 내역 화면
             <section className={styles.card} aria-labelledby="token-history-title"> {/* 사용 내역 */}
                 <h2 id="token-history-title">사용 내역</h2> {/* 사용 내역 제목 */}
                 <p className={styles.note}>오늘 사용량은 한국 시간 기준으로 날짜가 바뀌면 0부터 다시 셉니다. 토큰을 어디에 썼는지 남기는 사용 내역은 준비 중이라, 지금은 잔액과 합계만 확인할 수 있습니다.</p> {/* 준비 안내 */}
+                <p>출석과 미션으로 받은 토큰은 지금까지 {state.rewards.totalEarned.toLocaleString()}토큰이에요. <Link href={"/rewards" as Route}>출석과 미션에서 받은 기록 보기</Link></p> {/* 받은 토큰 안내 */}
             </section> {/* 사용 내역 종료 */}
             <section className={styles.card} aria-labelledby="token-charge-title"> {/* 충전 */}
                 <h2 id="token-charge-title">토큰 충전</h2> {/* 충전 제목 */}

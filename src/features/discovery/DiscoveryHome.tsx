@@ -10,6 +10,7 @@ import { CharacterRail } from "@/features/discovery/CharacterRail"; // 캐릭터
 import { FeaturedCharacter } from "@/features/discovery/FeaturedCharacter"; // 추천 캐릭터
 import { RankingRail } from "@/features/discovery/RankingRail"; // 랭킹 레일
 import { getInterestCharacters, getRecommendedCharacters } from "@/features/discovery/recommendation-model"; // 유저 추천·관심 목록
+import { RewardsBanner } from "@/features/rewards/RewardsBanner"; // 출석·미션 카드
 import { ModeSwitch } from "@/features/story/ModeSwitch"; // 캐릭터·스토리 모드 전환
 import styles from "@/features/discovery/DiscoveryHome.module.css"; // 탐색 스타일
 
@@ -67,6 +68,7 @@ export function DiscoveryHome() // 탐색 홈
                     <input type="search" aria-label="캐릭터와 세계관 검색" placeholder="캐릭터와 세계관 검색" value={query} onChange={(event) => updateQuery(event.target.value)} /> {/* 검색 입력 */}
                 </div> {/* 검색 영역 종료 */}
             </header> {/* 헤더 종료 */}
+            {defaultView ? <RewardsBanner /> : null} {/* 출석·미션(기본 화면) */}
             <CategoryFilter categories={categories} selected={category} onSelect={updateCategory} /> {/* 카테고리 */}
             {defaultView && filtered[0] !== undefined ? <FeaturedCharacter character={filtered[0]} /> : null} {/* 추천 영역 */}
             {defaultView && rankingCharacters.length > 0 ? <RankingRail characters={rankingCharacters} /> : null} {/* 랭킹 영역 */}

@@ -224,6 +224,10 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
         const global = latestGlobalState.current; // 전역 상태
         const source = isSaved() ? global : { ...controller.snapshot(), personas: global.personas, memories: global.memories }; // 저장 전이면 제어 상태 기준
         controller.setContext(buildChatContext(source, prepared.conversation.id)); // 맥락 반영
+        if (isSaved()) // 저장된 대화(전역 지갑이 기준)
+        { // 조건 시작
+            controller.syncWallet(global.wallet); // 다른 곳에서 받은 토큰 반영
+        } // 조건 종료
     }; // 함수 종료
     const summarizeIfNeeded = async () => // 5턴마다 요약 메모리 자동 추가
     { // 함수 시작

@@ -1963,7 +1963,7 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 ### 49.3 달라진 점과 남은 일
 
 - 대화 시작 때 왼쪽에 보이던 시작 장면 그림(프롤로그 그림·표지 그림)은 대화 화면에서 보이지 않는다. 첫 응답 아래에 붙이려면 대화를 만들 때 첫 메시지의 `sceneImage`를 채우면 된다(지금은 하지 않음).
-- `currentScene`은 계속 저장한다. 2단계(스탯 조건 이벤트)의 특별 장면은 응답 아래 상황 이미지로 보여 준다.
+- `currentScene`은 계속 저장한다. 스탯 조건 이벤트(로드맵 4단계)의 특별 장면은 응답 아래 상황 이미지로 보여 준다.
 - 배치 9종(`layoutId`)은 서랍형인지와 설정 열 너비만 다르다. 선택지를 줄이는 일은 설정 페이지 2단계에서 한다.
 - Text-Play exe 화면도 같은 구성으로 맞춘다.
 
@@ -1973,5 +1973,78 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 통합: `chat-room-features`(입력 보조의 장면 버튼 → 마지막 응답 아래 그림·20토큰 차감, 숨김 안내), `chat-flow`(내 이미지가 마지막 응답 아래에 붙고 `지금 장면` 표시)
 - E2E: `chat-room-features.spec.ts`(1440px에서 대화 영역이 왼쪽 끝부터 1100px 이상, 설정을 접으면 1360px 이상, 장면 버튼), `character-detail.spec.ts`(장면 그림 없음). 전체 단위 455개·E2E 41개 통과
 - 화면: 캐릭터·스토리 대화를 1920·1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
+
+## 50. 로드맵 2단계: 일일 출석과 미션
+
+사용자 요청으로 로드맵에 넣은 단계다. 매일 들어올 이유를 만들기 위해 출석과 미션으로 토큰을 조금씩 준다(Mock, 브라우저 저장).
+
+### 50.1 사용자 결정
+
+| 항목 | 결정 |
+| --- | --- |
+| 출석이 하루 끊기면 | 1일차부터 다시 시작(누적 출석일은 유지) |
+| 보상 크기 | 출석 1~6일차 5토큰·7일차 20토큰, 미션 3·3·2토큰, 모두 완료 보너스 5토큰(하루 최대 18토큰) |
+| 받는 방식 | 보상 페이지에서 직접 `받기` |
+| 주간 미션 | 이번에는 넣지 않음(반응을 보고 추가) |
+
+### 50.2 규칙 (`src/features/rewards/reward-model.ts`)
+
+- 순수 함수만 둔다. 시각은 모두 인자로 받는다(리듀서 동작의 `now`, 화면의 `new Date()`).
+- 날짜: `getDateKey`(한국 시간 연-월-일). 날짜 차이는 날짜 키를 UTC 날짜 번호로 바꿔 계산한다.
+- `getAttendanceView(attendance, now)`: 마지막 출석과의 차이가 0 이하이면 `오늘 출석 완료`(시계를 뒤로 돌린 경우 포함), 1이고 도장판이 남았으면 이어 찍기, 그 밖에는 새 도장판 1일차.
+- `checkAttendance(state, now)`: 도장 → 지급. 기록 식별자 `attendance-날짜`.
+- 미션 정의 `dailyMissions`: `send-messages`(5회, 3토큰), `start-conversation`(1회, 3토큰), `favorite-work`(1회, 2토큰). `MISSION_BONUS` 5.
+- `getMissionState(missions, now)`: 기록 날짜가 오늘보다 앞이면 빈 상태(자정 초기화). 기록 날짜가 오늘 이후이면(시계를 뒤로 돌림) 그대로 둔다.
+- `recordMissionProgress(rewards, 미션, 양, now)`: 목표까지만 쌓고, 목표에 닿는 순간만 `completedNow: true`.
+- `claimMission`·`claimMissionBonus`: 받을 수 있을 때만 지급(기록 식별자 `mission-날짜-미션`, `mission-bonus-날짜`). 보너스는 세 미션을 모두 채우면 받을 수 있다(각 미션 보상을 받았는지와 무관).
+- 지급(`grantTokens`): 잔액 증가, 오늘 사용량은 날짜에 맞게 유지(`getDailyUsage`), `updatedAt` 갱신, `tokenRecords` 맨 앞에 기록(최대 `TOKEN_RECORD_LIMIT` 100), `rewards.totalEarned` 증가.
+- `getClaimableCount`·`getClaimableTokens`: 출석을 포함해 지금 받을 수 있는 보상 수와 토큰(헤더 점, 카드 문구).
+
+### 50.3 진행 추적 (`reward-tracker.ts`, `AppProvider.tsx`)
+
+- `AppProvider`의 리듀서는 `{ action, now }`를 받는다. 바깥에 주는 `dispatch(action)`는 그대로이고 안에서 시각을 붙인다. `storeReducer = trackRewardProgress(이전, appReducer(이전, action), action, now)`.
+- `appReducer` 자체는 그대로 순수하고 추적을 하지 않는다(단위 테스트와 `commitState`에서 직접 쓰는 호출에 영향 없음).
+- 세는 동작: `merge-chat-state`(그 대화에서 새로 생긴 `role: "user"` 메시지 수 → 메시지 미션, 전역에 없던 대화가 생김 → 새 대화 미션), `toggle-character-like`·`toggle-bookmark`(목록이 늘어난 경우만 → 좋아요·보관 미션).
+- 세지 않는 동작: `replace-state`(복원·가져오기·메시지 수정 분기 확정), 그 밖의 모든 동작.
+- 완료 알림: `reward-mission-날짜-미션`(종류 `reward`, `/rewards`로 이동). 같은 식별자는 한 번만.
+
+### 50.4 지갑 병합
+
+- 이전: `merge-chat-state`가 채팅 화면의 지갑으로 전역 지갑을 통째로 바꿨다. 채팅 화면이 떠 있는 동안 다른 곳에서 토큰을 받으면 다음 저장 때 사라질 수 있었다.
+- 지금: `spent = 채팅 지갑 totalUsed − 전역 totalUsed`. `spent > 0`이면 `전역 잔액 − spent`(나머지 값은 채팅 지갑), 아니면 전역 지갑 그대로.
+- `ChatController.syncWallet(wallet)`: 응답 중이 아니면 지갑 교체. `ChatScreen.syncContext()`가 요청 직전에 전역 지갑을 넘긴다(저장된 대화만).
+- 테스트 준비에서 채팅 지갑을 바꿀 때는 `balance`와 `totalUsed`를 함께 바꿔야 한다.
+
+### 50.5 화면
+
+- `/rewards`(`RewardsScreen`, 설정 공통 틀 `SettingsShell`, 계정 묶음): 요약 3칸(보유 토큰·이번 도장판·오늘의 미션), 안내(`role="status"`), 출석 도장판(`ol`, 칸 이름 `N일차, N토큰, 상태`), 오늘의 미션(진행 막대 `role="progressbar"`, `받기`·하러 가기 링크·`받음`), `미션 보상 모두 받기`, 받은 기록(최근 10개).
+- `RewardsBanner`: 메인(검색·분류를 쓰지 않을 때)과 스토리 홈의 머리말 아래 카드.
+- `UserPanel`: `rewards`를 넘기면 토큰 아래에 카드(`오늘 출석 전/완료`, `도장 N/7 · 미션 N/3 · 받을 보상 N개`)를 보여 주고 메뉴 목록에서는 `출석과 미션`을 뺀다.
+- `AppHeader`: `rewardCount > 0`이면 메뉴 버튼에 `title`과 빨간 점(`.app-header-dot`).
+- `NotificationBell`: 종류 `reward` → `보상`(분홍).
+- `TokenSettings`: 받은 토큰 합계와 `/rewards` 링크.
+- 그림 없이 만들었다(도장은 CSS, 카드 아이콘은 이모지).
+
+### 50.6 저장 구조 (앱 상태 버전 15)
+
+- `AppState.rewards: { attendance: { lastDate, cycleDay, totalDays }, missions: { dateKey, progress, claimed, bonusClaimed }, totalEarned }`
+- `AppState.tokenRecords: TokenRecord[]`(`id`, `direction: "earn" | "spend"`, `source: "attendance" | "mission" | "mission-bonus"`, `label`, `amount`, `balance`, `createdAt`)
+- `missions.progress`와 `claimed`는 미션 식별자를 글자 그대로 받는다(미션을 늘려도 저장 형식을 올리지 않음).
+- 검사: `isRewardState`(날짜 키 형식, 도장판 0~7, 0 이상 정수), `isTokenRecord`, 기록 식별자 중복 금지.
+- `migrateVersionFourteen`: 빈 출석·미션과 빈 기록 추가(잔액 그대로). 13 이하도 연쇄 변환. 미래 버전은 16 이상.
+
+### 50.7 한계와 다음 일
+
+- 브라우저 저장이라 기기 시계를 앞으로 돌리거나 데이터를 지우면 다시 받을 수 있다. 서버가 생기면 `reward-model.ts` 규칙을 서버에서 실행하고 화면은 결과만 받는다.
+- 좋아요 미션은 캐릭터만 센다(스토리에는 좋아요가 없음).
+- 주간 미션, 미션 교체(날마다 다른 미션), 멤버십별 보상 배수는 넣지 않았다.
+- 다음 단계(3단계 친구 초대)도 같은 지급 방식과 토큰 기록을 쓴다.
+
+### 50.8 검증
+
+- 단위: `reward-model`(13: 첫 출석, 중복, 7일 연속, 끊김, 자정 기준, 시계 되돌리기, 사용량 정합, 미션 목록·진행·받기·보너스·자정 초기화·기록 한도), `reward-tracker`(6: 메시지·새 대화·좋아요·제외 동작·날짜 변경, 지갑 병합), `local-storage-gateway`(버전 14 → 15, 잘못된 출석·미션·기록 거부)
+- 통합: `rewards`(7: 출석, 미션 받기, 모두 받기, 오른쪽 패널 카드, 헤더 점, 메인 카드, 채팅 연동과 채팅 중 받은 토큰 유지)
+- E2E: `rewards.spec.ts`(5: 메인 카드 → 출석 → 새로고침 유지, 채팅 → 미션 진행, 390·820·1440px 넘침·외부 요청 없음). 전체 단위 483개·E2E 46개 통과
+- 화면: 메인·보상 페이지·오른쪽 패널·스토리 홈·토큰 페이지를 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
 
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

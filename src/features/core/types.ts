@@ -19,7 +19,9 @@ export type ChatFont = "default" | "nanum-myeongjo" | "gowun-batang" | "noto-ser
 export type ChatFontSize = "small" | "medium" | "large"; // 채팅 글자 크기
 export type ColorTheme = "light" | "dark"; // 사이트 색 테마(밝게·어둡게)
 export type ConversationFilter = "all" | "character" | "story"; // 왼쪽 창 대화 종류 탭
-export type NotificationKind = "notice" | "image" | "memory"; // 알림 종류
+export type NotificationKind = "notice" | "image" | "memory" | "reward"; // 알림 종류(reward: 출석·미션 보상)
+export type MissionId = "send-messages" | "start-conversation" | "favorite-work"; // 오늘의 미션 식별자
+export type TokenRecordSource = "attendance" | "mission" | "mission-bonus"; // 토큰 기록 출처(4단계에서 사용 출처를 더함)
 export type StatMode = "rule" | "ai" | "both"; // 스탯 수치를 정하는 방법(규칙·AI 판단·둘 다)
 export type StatScope = "each" | "shared"; // 스탯 적용 대상(인물마다 따로·하나만)
 
@@ -372,6 +374,39 @@ export interface TokenWallet // 토큰 지갑 구조
     updatedAt: string; // 수정 시각
 } // 구조 종료
 
+export interface AttendanceState // 출석 상태
+{ // 구조 시작
+    lastDate: string | null; // 마지막 출석 날짜(한국 시간 연-월-일)
+    cycleDay: number; // 이번 도장판에서 찍은 칸(0~7)
+    totalDays: number; // 누적 출석일
+} // 구조 종료
+
+export interface DailyMissionState // 오늘의 미션 상태
+{ // 구조 시작
+    dateKey: string | null; // 기록한 날짜(바뀌면 처음부터)
+    progress: Record<string, number>; // 미션별 진행(없으면 0)
+    claimed: string[]; // 보상을 받은 미션
+    bonusClaimed: boolean; // 모두 완료 보너스 받음
+} // 구조 종료
+
+export interface RewardState // 출석·미션 상태
+{ // 구조 시작
+    attendance: AttendanceState; // 출석
+    missions: DailyMissionState; // 오늘의 미션
+    totalEarned: number; // 지금까지 받은 토큰
+} // 구조 종료
+
+export interface TokenRecord // 토큰 기록(지금은 받은 기록만, 4단계에서 사용 기록 추가)
+{ // 구조 시작
+    id: string; // 기록 식별자
+    direction: "earn" | "spend"; // 받음·사용
+    source: TokenRecordSource; // 출처
+    label: string; // 표시 이름
+    amount: number; // 토큰 수
+    balance: number; // 기록 뒤 잔액
+    createdAt: string; // 기록 시각
+} // 구조 종료
+
 export interface AppSettings // 앱 설정 구조
 { // 구조 시작
     platformMode: PlatformMode; // 플랫폼 선택
@@ -414,7 +449,7 @@ export interface GeneratedImage // 이미지 스튜디오 생성 이미지
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 14; // 스키마 버전
+    schemaVersion: 15; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록
@@ -427,6 +462,8 @@ export interface AppState // 앱 상태 구조
     conversationVersions: ConversationVersion[]; // 대화 버전 목록
     messages: Message[]; // 메시지 목록
     wallet: TokenWallet; // 토큰 지갑
+    rewards: RewardState; // 출석·미션
+    tokenRecords: TokenRecord[]; // 토큰 기록(최근 순)
     settings: AppSettings; // 사용자 설정
     bookmarkedCharacterIds: string[]; // 보관 캐릭터
     memories: CharacterMemory[]; // 장기 기억 목록

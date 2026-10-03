@@ -5,6 +5,7 @@ import Link from "next/link"; // 내부 경로 링크
 import { canViewMatureContent } from "@/features/adult/adult-access"; // 19세 콘텐츠 판정
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { ModeSwitch } from "@/features/story/ModeSwitch"; // 모드 전환
+import { RewardsBanner } from "@/features/rewards/RewardsBanner"; // 출석·미션 카드
 import { StoryCard } from "@/features/story/StoryCard"; // 스토리 카드
 import { getDiscoverableStories, getStoryCastEntries } from "@/features/story/story-model"; // 스토리 모델
 import styles from "@/features/story/Story.module.css"; // 스토리 스타일
@@ -26,6 +27,7 @@ export function StoryHome() // 스토리 모드 홈
                 </div> {/* 문구 종료 */}
                 <div className={styles.heroAside}><Link href={"/stories/new" as Route} className={styles.createLink}>＋ 새 스토리 만들기</Link></div> {/* 만들기(메인의 검색창 자리) */}
             </header> {/* 머리말 종료 */}
+            <RewardsBanner /> {/* 출석·미션 */}
             <section className={styles.section} aria-labelledby="story-list-title"> {/* 공개 스토리 */}
                 <h2 id="story-list-title" className={styles.sectionTitle}>지금 시작할 수 있는 스토리</h2> {/* 구역 제목 */}
                 {stories.length === 0 ? <p className={styles.empty}>아직 공개된 스토리가 없습니다.</p> : <div className={styles.grid}>{stories.map((story) => <StoryCard key={story.id} story={story} cast={getStoryCastEntries(state, story.cast)} />)}</div>} {/* 카드 목록 */}

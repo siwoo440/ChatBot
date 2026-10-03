@@ -9,6 +9,7 @@ import { MobileBottomNavigation } from "@/components/app-shell/MobileBottomNavig
 import { THEME_STORAGE_KEY } from "@/lib/theme/stored-theme"; // 테마 저장 키
 import { UserPanel } from "@/components/app-shell/UserPanel"; // 사용자 패널
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
+import { getClaimableCount } from "@/features/rewards/reward-model"; // 받을 보상 수
 import { formatUsageDuration } from "@/features/safety/usage-time"; // 이용 시간 표시
 import { useUsageReminder } from "@/features/safety/useUsageReminder"; // 이용 시간 알림
 import styles from "@/components/app-shell/AppShell.module.css"; // 앱 셸 스타일
@@ -77,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
     }; // 함수 종료
     return ( // 셸 반환
         <div className={styles.shell} data-left-open={state.settings.leftPanelOpen} data-right-open={state.settings.rightPanelOpen} data-mobile={mobile}> {/* 셸 영역 */}
-            <AppHeader leftOpen={state.settings.leftPanelOpen} rightOpen={state.settings.rightPanelOpen} onToggleLeft={toggleLeft} onToggleRight={toggleRight} onNavigate={closePanelsForNavigation} leftButtonRef={leftButtonRef} rightButtonRef={rightButtonRef} /> {/* 앱 헤더 */}
+            <AppHeader leftOpen={state.settings.leftPanelOpen} rightOpen={state.settings.rightPanelOpen} onToggleLeft={toggleLeft} onToggleRight={toggleRight} onNavigate={closePanelsForNavigation} leftButtonRef={leftButtonRef} rightButtonRef={rightButtonRef} rewardCount={getClaimableCount(state.rewards, new Date())} /> {/* 앱 헤더 */}
             {storageError === null && storageNotice === null && !usageReminder.due ? null : ( // 상단 메시지 판정
                 <div className={styles.storageMessages}> {/* 상단 메시지 묶음 */}
                     {usageReminder.due ? ( // 이용 시간 알림 판정
@@ -99,7 +100,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
             <div className={styles.grid}> {/* 패널 그리드 */}
                 <ConversationPanel open={state.settings.leftPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 대화 패널 */}
                 <div className={styles.content}>{children}</div> {/* 중앙 콘텐츠 */}
-                <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 사용자 패널 */}
+                <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} rewards={state.rewards} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 사용자 패널 */}
             </div> {/* 그리드 종료 */}
             {(state.settings.leftPanelOpen || state.settings.rightPanelOpen) ? <button type="button" className={styles.scrim} aria-label="열린 패널 닫기" onClick={closePanels} /> : null} {/* 패널 배경 */}
             <MobileBottomNavigation onNavigate={closePanelsForNavigation} /> {/* 모바일 하단 메뉴 */}

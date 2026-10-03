@@ -2,7 +2,8 @@ import { removeMessageFromVersion, removeVersionTree } from "@/features/conversa
 import { autoOrganizeConversations, CONVERSATION_PIN_LIMIT } from "@/features/conversation/conversation-list-model"; // 고정 한도·자동 정리
 import { DEFAULT_PERSONA_ID } from "@/features/core/defaults"; // 기본 대화 프로필
 import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
-import type { AdultVerification, AppNotification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationFolder, ConversationSettings, ConversationVersion, GeneratedImage, Message, Persona, PublicationStatus, Story, TokenWallet, UserProfile } from "@/features/core/types"; // 상태 타입
+import type { AdultVerification, AppNotification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationFolder, ConversationSettings, ConversationVersion, GeneratedImage, Message, MissionId, Persona, PublicationStatus, Story, TokenWallet, UserProfile } from "@/features/core/types"; // 상태 타입
+import { checkAttendance, claimMission, claimMissionBonus } from "@/features/rewards/reward-model"; // 출석·미션 규칙
 
 export const NOTIFICATION_LIMIT = 30; // 알림 보관 최대 수
 import { trySpend, type TokenAction } from "@/lib/story/token-policy"; // 토큰 정책
@@ -55,6 +56,9 @@ export type AppAction = // 앱 동작
     | { type: "toggle-conversation-pin"; conversationId: string } // 대화 고정 전환
     | { type: "merge-chat-state"; conversationId: string; state: AppState; allowCreate: boolean } // 채팅 화면 상태 병합
     | { type: "spend-token"; action: TokenAction } // 토큰 차감
+    | { type: "check-attendance"; now: string } // 출석하기
+    | { type: "claim-mission"; missionId: MissionId; now: string } // 미션 보상 받기
+    | { type: "claim-mission-bonus"; now: string } // 미션 모두 완료 보너스 받기
     | { type: "replace-state"; state: AppState }; // 상태 복원
 
 export function appReducer(state: AppState, action: AppAction): AppState // 앱 리듀서
@@ -331,13 +335,21 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             const conversations = existing === undefined ? [...state.conversations, conversation] : state.conversations.map((item) => item.id === conversation.id ? conversation : item); // 대화 목록 생성
             const conversationVersions = [...state.conversationVersions.filter((version) => version.conversationId !== action.conversationId), ...chat.conversationVersions.filter((version) => version.conversationId === action.conversationId)]; // 채팅 대화 버전 교체
             const messages = [...state.messages.filter((message) => message.conversationId !== action.conversationId), ...chat.messages.filter((message) => message.conversationId === action.conversationId)]; // 채팅 대화 메시지 교체
-            return { ...state, conversations, conversationVersions, messages, wallet: chat.wallet, selectedConversationId: chat.selectedConversationId }; // 채팅 소유 필드만 반영
+            const spent = chat.wallet.totalUsed - state.wallet.totalUsed; // 채팅이 그동안 쓴 토큰
+            const wallet = spent > 0 ? { ...chat.wallet, balance: state.wallet.balance - spent } : state.wallet; // 쓴 만큼만 차감(그 사이 다른 곳에서 받은 토큰은 유지)
+            return { ...state, conversations, conversationVersions, messages, wallet, selectedConversationId: chat.selectedConversationId }; // 채팅 소유 필드만 반영
         } // 병합 범위 종료
         case "spend-token": // 토큰 차감
         { // 차감 범위 시작
             const result = trySpend(state.wallet, action.action); // 차감 실행
             return result.ok ? { ...state, wallet: result.wallet } : state; // 원자적 결과 반환
         } // 차감 범위 종료
+        case "check-attendance": // 출석하기
+            return checkAttendance(state, action.now); // 도장과 보상
+        case "claim-mission": // 미션 보상 받기
+            return claimMission(state, action.missionId, action.now); // 보상 지급
+        case "claim-mission-bonus": // 모두 완료 보너스 받기
+            return claimMissionBonus(state, action.now); // 보너스 지급
         case "replace-state": // 상태 교체
             return structuredClone(action.state); // 복원 상태 반환
         default: // 기본 분기
