@@ -49,12 +49,14 @@ test("새 스토리를 만들어 공개 저장하고 상세에서 바로 시작�
     await page.goto("/stories/new"); // 제작 화면 이동
     await page.getByLabel("스토리 제목").fill("옥상 위 마지막 공연"); // 제목
     await page.getByLabel("한 줄 소개", { exact: true }).fill("비가 그친 옥상에서 마지막 곡을 맞춘다."); // 소개
+    await page.getByRole("button", { name: "다음 단계 ›" }).click(); // 이야기와 등장인물 단계로
     const picker = page.getByRole("group", { name: "등장인물 고르기" }); // 인물 고르기
     await picker.getByText("옥상 밴드의 유나").click(); // 유나 선택
     await picker.getByText("퇴근길 카페의 하린").click(); // 하린 선택
     await expect(picker).toContainText("2/4명"); // 인원 확인
     await page.getByLabel("옥상 밴드의 유나 첫 대사").fill("마지막 곡, 같이 맞춰 볼래?"); // 첫 대사
     await page.getByLabel("시작 장면").fill("젖은 옥상 바닥 위로 앰프 불빛이 번진다."); // 시작 장면
+    await page.getByRole("navigation", { name: "편집 단계" }).getByRole("button", { name: /공개 설정/ }).click(); // 공개 설정 단계로
     await page.getByRole("combobox", { name: "공개 범위" }).selectOption("public"); // 전체 공개
     await page.getByRole("button", { name: "공개 저장" }).click(); // 공개 저장
     await expect(page.getByRole("status", { name: "저장 상태" })).toHaveText("공개 저장했습니다."); // 저장 확인

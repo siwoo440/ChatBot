@@ -4,7 +4,11 @@ test("19+ 스위치로 모의 성인 인증을 마치고 19세 캐릭터 상세�
 { // 테스트 시작
     await page.goto("/characters/rank-017"); // 19세 캐릭터 주소 열기
     await expect(page.getByRole("heading", { level: 1, name: "19세 이상 이용 가능한 캐릭터입니다" })).toBeVisible(); // 잠금 화면 확인
-    await page.keyboard.press("Escape"); // 기본 패널 닫기
+    await expect(async () => // 기본으로 열린 패널 닫기(화면 준비가 끝나기 전에 누른 키가 무시될 수 있어 닫힐 때까지 반복)
+    { // 반복 시작
+        await page.keyboard.press("Escape"); // 패널 닫기
+        await expect(page.getByRole("button", { name: "열린 패널 닫기" })).toHaveCount(0, { timeout: 500 }); // 배경이 사라졌는지 확인
+    }).toPass({ timeout: 10_000 }); // 반복 종료
     const toggle = page.getByRole("switch", { name: "19+ 콘텐츠 보기" }); // 헤더 스위치
     await expect(toggle).toHaveAttribute("aria-checked", "false"); // 꺼짐 확인
     await toggle.click(); // 켜기 요청

@@ -24,7 +24,11 @@ test("하단 안내의 다운로드 버튼 이동은 헤더에 가리지 않는 
 { // 테스트 시작
     await page.goto("/text-play"); // 통합 페이지 열기
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); // 상태 복원 대기
-    await page.keyboard.press("Escape"); // 기본 패널 닫기
+    await expect(async () => // 기본으로 열린 패널 닫기(화면 준비가 끝나기 전에 누른 키가 무시될 수 있어 닫힐 때까지 반복)
+    { // 반복 시작
+        await page.keyboard.press("Escape"); // 패널 닫기
+        await expect(page.getByRole("button", { name: "열린 패널 닫기" })).toHaveCount(0, { timeout: 500 }); // 배경이 사라졌는지 확인
+    }).toPass({ timeout: 10_000 }); // 반복 종료
     await page.getByRole("link", { name: "다운로드 버튼으로 이동" }).click(); // 바로가기 선택
     await expect(page).toHaveURL(/#text-play-download$/); // 앵커 주소 확인
     const position = await page.evaluate(() => // 위치 계산

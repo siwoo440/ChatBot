@@ -47,6 +47,7 @@ test("대화에서 메시지를 보내면 미션 진행이 오르고 오른쪽 �
     const input = page.getByRole("textbox", { name: "메시지" }); // 입력창
     await input.fill("오늘도 왔어"); // 입력
     await input.press("Enter"); // 전송
+    await expect(page.getByRole("region", { name: "상태창" })).toContainText("2턴", { timeout: 15_000 }); // 응답이 끝나 상태창이 2턴으로 바뀜(끝나기 전에 화면을 옮기면 대화가 저장되지 않음)
     await expect(input).toBeEnabled({ timeout: 15_000 }); // 응답 완료
     await page.getByRole("button", { name: "사용자 패널 열기와 닫기" }).click(); // 사용자 패널
     const card = page.getByRole("link", { name: /출석·미션/ }); // 출석·미션 카드

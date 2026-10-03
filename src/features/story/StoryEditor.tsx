@@ -6,12 +6,19 @@ import Link from "next/link"; // 내부 링크
 import { useState } from "react"; // 리액트 상태
 import { StatusScreen } from "@/components/feedback/StatusScreen"; // 공통 상태 화면
 import { canViewMatureContent, contentRatingLabels, isAdultVerified } from "@/features/adult/adult-access"; // 19세 판정·등급 문구
+import { appReducer } from "@/features/core/app-reducer"; // 앱 리듀서(시험 대화용 임시 상태)
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
+import { formatSavedAt } from "@/features/character/CharacterEditor"; // 자동 저장 시각 표시
+import { draftKey } from "@/features/character/draft-storage"; // 자동 저장 키
+import { EditorStepNav, EditorStepSection, useEditorSteps, type EditorStepDefinition } from "@/features/character/EditorSteps"; // 편집 단계
+import { TEST_CHAT_BALANCE, TestChat, type TestChatSession } from "@/features/character/TestChat"; // 시험 대화
+import { useDraftAutosave } from "@/features/character/useDraftAutosave"; // 작성 중 자동 저장
+import type { LLMAdapter } from "@/lib/adapters/llm-adapter"; // 대화 계약
 import type { Character, ContentRating, PublicationStatus, Story, StoryCastMember } from "@/features/core/types"; // 도메인 타입
 import { useUnsavedChangesGuard } from "@/features/core/useUnsavedChangesGuard"; // 이탈 경고
 import { matchesKoreanText } from "@/features/conversation/conversation-list-model"; // 초성 포함 검색
 import { canUseImageForRating, findImageBySource } from "@/features/images/image-model"; // 내 이미지 도구
-import { STORY_CAST_LIMIT } from "@/features/story/story-model"; // 등장인물 최대 수
+import { createStoryConversation, STORY_CAST_LIMIT } from "@/features/story/story-model"; // 스토리 대화 시작·등장인물 최대 수
 import { WorkExtrasFields } from "@/features/character/WorkExtrasFields"; // 플레이 가이드·상태창·업데이트 입력
 import { createEmptyStoryDraft, createStoryCastMember, getCastRequiredRating, getStoryCandidates, getStoryCoverChoices, isRatingBelow, normalizeStoryDraft, storyCoverOptions, toStoryDraft, validateStoryDraft, type StoryDraft, type StoryValidationResult } from "@/features/story/story-validation"; // 초안 도구
 import editorStyles from "@/features/character/CharacterEditor.module.css"; // 공통 편집기 스타일
@@ -19,7 +26,15 @@ import styles from "@/features/story/StoryEditor.module.css"; // 스토리 편�
 
 const ratingOptions: ContentRating[] = ["all", "teen", "mature"]; // 등급 선택지
 
-export function StoryEditor({ storyId, initialImageId }: { storyId?: string; initialImageId?: string }) // 스토리 편집기(이미지 스튜디오에서 고른 이미지로 시작 가능)
+const storySteps: EditorStepDefinition[] = // 스토리 편집 단계
+[ // 단계 시작
+    { id: "basic", label: "기본 정보", hint: "제목과 한 줄 소개, 태그, 표지를 정해요.", fields: ["title", "summary", "tags", "coverImage"] }, // 기본 정보
+    { id: "story", label: "이야기와 등장인물", hint: "줄거리와 등장인물, 시작 장면, 내 역할을 정해요.", fields: ["synopsis", "cast", "opening", "userRole"] }, // 이야기와 등장인물
+    { id: "play", label: "진행 설정", hint: "플레이 가이드와 상태창, 스탯, 이벤트, 업데이트 기록을 정해요.", fields: ["playGuide", "statusTemplate", "events", "updates"] }, // 진행 설정
+    { id: "publish", label: "공개 설정", hint: "누가 볼 수 있는지와 이용 등급을 정하고 저장해요.", fields: ["visibility", "contentRating"] }, // 공개 설정
+]; // 단계 종료
+
+export function StoryEditor({ storyId, initialImageId, llm }: { storyId?: string; initialImageId?: string; llm?: LLMAdapter }) // 스토리 편집기(이미지 스튜디오에서 고른 이미지로 시작 가능)
 { // 함수 시작
     const { state, dispatch } = useAppStore(); // 앱 상태
     const existing = storyId === undefined ? undefined : state.stories.find((story) => story.id === storyId); // 기존 스토리
@@ -39,6 +54,10 @@ export function StoryEditor({ storyId, initialImageId }: { storyId?: string; ini
     const [dirty, setDirty] = useState(false); // 변경 표시
     const [pickerQuery, setPickerQuery] = useState(""); // 등장인물 검색어
     useUnsavedChangesGuard(dirty); // 저장하지 않은 변경 이탈 경고
+    const [initialDraft] = useState(draft); // 처음 초안(자동 저장분을 맞출 기준)
+    const steps = useEditorSteps(storySteps, existing !== undefined); // 편집 단계(새로 만들 때는 단계별, 수정은 전체 보기)
+    const autosave = useDraftAutosave(draftKey("story", storyId), draft, dirty, initialDraft); // 작성 중 자동 저장
+    const [testing, setTesting] = useState(false); // 시험 대화 열림
     if (storyId !== undefined && existing === undefined) // 수정 대상 부재 판정
     { // 조건 시작
         return ( // 부재 화면 반환
@@ -115,13 +134,45 @@ export function StoryEditor({ storyId, initialImageId }: { storyId?: string; ini
         [cast[index - 1], cast[index]] = [cast[index], cast[index - 1]]; // 자리 바꾸기
         changeCast(cast); // 반영
     }; // 함수 종료
+    const restoreDraft = () => // 자동 저장한 내용 이어 쓰기
+    { // 함수 시작
+        const value = autosave.restore(); // 보관 초안
+        if (value !== null) // 초안 있음
+        { // 조건 시작
+            setDraft(value); // 초안 교체
+            setDirty(true); // 변경 표시
+            setNotice("자동 저장한 내용을 불러왔습니다."); // 안내
+        } // 조건 종료
+    }; // 함수 종료
+    const openTestChat = () => // 시험 대화 열기(필수 입력을 먼저 확인)
+    { // 함수 시작
+        const validation = validateStoryDraft(normalizeStoryDraft(draft), state.characters); // 초안 검증
+        setResult(validation); // 검증 결과 반영
+        if (!validation.valid) // 오류 판정
+        { // 조건 시작
+            steps.showErrors(validation.errors); // 오류 단계로
+            setNotice("시험 대화를 하려면 입력 내용을 먼저 확인해 주세요."); // 안내
+            return; // 중단
+        } // 조건 종료
+        setTesting(true); // 열기
+    }; // 함수 종료
+    const startTestChat = (): TestChatSession => // 지금 초안으로 임시 대화 만들기(저장하지 않음)
+    { // 함수 시작
+        const stamp = new Date().toISOString(); // 현재 시각
+        const story: Story = { ...normalizeStoryDraft(draft), id: "test-chat-story", creatorId: state.profile.id, creatorName: state.profile.nickname, publicationStatus: "draft", popularity: 0, createdAt: stamp, updatedAt: stamp }; // 임시 스토리
+        const base = appReducer({ ...structuredClone(state), wallet: { ...state.wallet, balance: TEST_CHAT_BALANCE } }, { type: "upsert-story", story }); // 임시 상태
+        const started = createStoryConversation(base, story.id, stamp); // 임시 대화
+        return { state: started.state, conversationId: started.conversation.id }; // 준비물 반환
+    }; // 함수 종료
     const save = (publicationStatus: PublicationStatus) => // 스토리 저장
     { // 함수 시작
         const normalized = normalizeStoryDraft(draft); // 초안 정리
         const validation = validateStoryDraft(normalized, state.characters); // 초안 검증
+        steps.showErrors(validation.errors); // 오류가 난 단계로
         if (validation.valid && normalized.contentRating === "mature" && !adultVerified) // 인증 없는 19세 판정
         { // 조건 시작
             setResult({ valid: false, errors: { contentRating: "19세 이용가는 성인 인증 후 선택할 수 있습니다." } }); // 등급 오류
+            steps.showErrors({ contentRating: true }); // 공개 설정 단계로
             setNotice("입력 내용을 확인해 주세요."); // 오류 안내
             return; // 저장 중단
         } // 조건 종료
@@ -130,6 +181,7 @@ export function StoryEditor({ storyId, initialImageId }: { storyId?: string; ini
         { // 조건 시작
             const label = contentRatingLabels[coverSource.contentRating]; // 이미지 등급 이름
             setResult({ valid: false, errors: { coverImage: `${label} 이미지를 쓰려면 이용 등급을 ${label} 이상으로 정해 주세요.` } }); // 등급 오류
+            steps.showErrors({ coverImage: true }); // 기본 정보 단계로
             setNotice("입력 내용을 확인해 주세요."); // 오류 안내
             return; // 저장 중단
         } // 조건 종료
@@ -155,6 +207,7 @@ export function StoryEditor({ storyId, initialImageId }: { storyId?: string; ini
         dispatch({ type: "upsert-story", story }); // 스토리 저장
         setDraft(normalized); // 정리 초안 반영
         setDirty(false); // 변경 해제
+        autosave.clear(); // 자동 저장분 지움
         setNotice(publicationStatus === "draft" ? "임시 저장했습니다." : "공개 저장했습니다."); // 성공 안내
     }; // 함수 종료
     const error = (key: keyof StoryDraft) => result.errors[key] === undefined ? null : <span role="alert" className={editorStyles.error}>{result.errors[key]}</span>; // 오류 표시
@@ -166,84 +219,103 @@ export function StoryEditor({ storyId, initialImageId }: { storyId?: string; ini
             </header> {/* 머리말 종료 */}
             <div className={editorStyles.workspace}> {/* 작업 영역 */}
                 <form className={editorStyles.form} onSubmit={(event) => event.preventDefault()}> {/* 입력 폼 */}
-                    <label>스토리 제목<input value={draft.title} onChange={(event) => update("title", event.target.value)} maxLength={41} /></label> {/* 제목 */}
-                    {error("title")} {/* 제목 오류 */}
-                    <label>한 줄 소개<input value={draft.summary} onChange={(event) => update("summary", event.target.value)} maxLength={81} /></label> {/* 소개 */}
-                    {error("summary")} {/* 소개 오류 */}
-                    <label>줄거리·세계관<textarea value={draft.synopsis} onChange={(event) => update("synopsis", event.target.value)} rows={4} /></label> {/* 줄거리 */}
-                    {error("synopsis")} {/* 줄거리 오류 */}
-                    <fieldset className={styles.picker}> {/* 등장인물 고르기 */}
-                        <legend>등장인물 고르기</legend> {/* 고르기 제목 */}
-                        <span className={styles.pickerCount} data-full={full ? "true" : undefined}>{draft.cast.length}/{STORY_CAST_LIMIT}명</span> {/* 인원 표시 */}
-                        <input type="search" className={styles.pickerSearch} aria-label="등장인물 검색" placeholder="이름·태그로 찾기 (초성 가능)" value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} /> {/* 후보 검색 */}
-                        {pickerQuery.trim().length > 0 && choices.every((character) => draft.cast.some((member) => member.characterId === character.id)) ? <p className={editorStyles.hint}>‘{pickerQuery}’에 맞는 캐릭터가 없습니다.</p> : null} {/* 빈 검색 결과 */}
-                        <div className={styles.pickerGrid}> {/* 후보 목록 */}
-                            {choices.map((character) => // 후보 순회
-                            { // 순회 시작
-                                const checked = draft.cast.some((member) => member.characterId === character.id); // 포함 여부
-                                return ( // 후보 반환
-                                    <label key={character.id} data-selected={checked ? "true" : undefined}> {/* 후보 항목 */}
-                                        <input type="checkbox" checked={checked} disabled={!checked && full} onChange={() => toggleCharacter(character)} /> {/* 선택 상자 */}
-                                        <Image src={character.coverImage} alt="" width={72} height={72} /> {/* 얼굴 */}
-                                        <span>{character.name}{character.contentRating === "all" ? null : <small> · {contentRatingLabels[character.contentRating]}</small>}</span> {/* 이름·등급 */}
-                                    </label> // 후보 항목 종료
-                                ); // 후보 반환 종료
-                            })} {/* 순회 종료 */}
-                        </div> {/* 후보 목록 종료 */}
-                    </fieldset> {/* 고르기 종료 */}
-                    {draft.cast.length === 0 ? <p className={editorStyles.hint}>등장인물을 한 명만 골라도 상황극이 됩니다. 첫 번째 인물이 대표 인물이 됩니다.</p> : ( // 고른 인물 판정
-                        <ol className={styles.castList} aria-label="고른 등장인물"> {/* 고른 인물 목록 */}
-                            {draft.cast.map((member, index) => // 인물 순회
-                            { // 순회 시작
-                                const character = state.characters.find((item) => item.id === member.characterId); // 연결 캐릭터
-                                const name = character?.name ?? member.displayName; // 표시 이름
-                                return ( // 인물 반환
-                                    <li key={member.characterId}> {/* 인물 항목 */}
-                                        <div className={styles.castHead}> {/* 인물 머리 */}
-                                            {character === undefined ? <span className={styles.castFace} aria-hidden="true">{member.displayName.slice(0, 1)}</span> : <Image className={styles.castFace} src={character.coverImage} alt="" width={64} height={64} />} {/* 얼굴 */}
-                                            <span className={styles.castTitle}><strong>{name}</strong>{index === 0 ? <span className={styles.leadBadge}>대표 인물</span> : null}{character === undefined ? <span className={styles.missing}>삭제된 캐릭터</span> : null}</span> {/* 이름·표시 */}
-                                            <span className={styles.castButtons}> {/* 인물 동작 */}
-                                                <button type="button" aria-label={`${name} 앞으로`} disabled={index === 0} onClick={() => moveForward(index)}>↑</button> {/* 앞으로 */}
-                                                <button type="button" aria-label={`${name} 빼기`} onClick={() => changeCast(draft.cast.filter((_, position) => position !== index))}>빼기</button> {/* 빼기 */}
-                                            </span> {/* 동작 종료 */}
-                                        </div> {/* 머리 종료 */}
-                                        <div className={styles.castFields}> {/* 인물 입력 */}
-                                            <label>이야기 속 이름<input aria-label={`${name} 이야기 속 이름`} value={member.displayName} maxLength={13} onChange={(event) => updateMember(index, { displayName: event.target.value })} /></label> {/* 이름 */}
-                                            <label>역할<input aria-label={`${name} 역할`} value={member.role} maxLength={121} placeholder="이 이야기에서 맡는 역할" onChange={(event) => updateMember(index, { role: event.target.value })} /></label> {/* 역할 */}
-                                            <label className={styles.wide}>첫 대사<input aria-label={`${name} 첫 대사`} value={member.firstLine} maxLength={301} placeholder="시작 장면에서 건넬 한마디(비워도 됨)" onChange={(event) => updateMember(index, { firstLine: event.target.value })} /></label> {/* 첫 대사 */}
-                                        </div> {/* 입력 종료 */}
-                                    </li> // 인물 항목 종료
-                                ); // 인물 반환 종료
-                            })} {/* 순회 종료 */}
-                        </ol> // 목록 종료
-                    )} {/* 고른 인물 판정 종료 */}
-                    {error("cast")} {/* 등장인물 오류 */}
-                    <label>시작 장면<textarea value={draft.opening} onChange={(event) => update("opening", event.target.value)} rows={4} aria-describedby="story-opening-hint" /></label> {/* 시작 장면 */}
-                    <p id="story-opening-hint" className={editorStyles.hint}>첫 화면의 내레이션으로 나오고, 등장인물의 첫 대사가 뒤에 이어집니다.</p> {/* 시작 장면 안내 */}
-                    {error("opening")} {/* 시작 장면 오류 */}
-                    <label>내 역할<input value={draft.userRole} onChange={(event) => update("userRole", event.target.value)} maxLength={201} placeholder="예: 오늘 처음 온 전학생" /></label> {/* 내 역할 */}
-                    {error("userRole")} {/* 역할 오류 */}
-                    <label>태그<input value={draft.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(","))} placeholder="미스터리, 학원, 판타지" /></label> {/* 태그 */}
-                    {error("tags")} {/* 태그 오류 */}
-                    <WorkExtrasFields value={draft} errors={result.errors} onChange={(patch) => { setDraft((current) => ({ ...current, ...patch })); touch(); }} /> {/* 플레이 가이드·상태창·업데이트 */}
-                    <fieldset className={`${editorStyles.images} ${styles.covers}`}> {/* 표지 고르기 */}
-                        <legend>표지 이미지</legend> {/* 표지 제목 */}
-                        {getStoryCoverChoices(draft.cast, state.characters, myImages).map((choice) => <label key={choice.path} data-selected={draft.coverImage === choice.path}><input type="radio" name="story-cover" value={choice.path} checked={draft.coverImage === choice.path} onChange={() => update("coverImage", choice.path)} /><span><Image src={choice.path} alt={`${choice.label} 표지`} width={240} height={150} unoptimized={choice.path.startsWith("data:")} /><small>{choice.label}</small></span></label>)} {/* 표지 목록(장면 + 등장인물) */}
-                    </fieldset> {/* 표지 종료 */}
-                    {error("coverImage")} {/* 표지 오류 */}
-                    <label>공개 범위<select value={draft.visibility} onChange={(event) => update("visibility", event.target.value as StoryDraft["visibility"])}><option value="private">비공개</option><option value="unlisted">링크 공개</option><option value="public">전체 공개</option></select></label> {/* 공개 범위 */}
-                    <label>이용 등급<select value={draft.contentRating} aria-describedby="story-rating-hint" onChange={(event) => update("contentRating", event.target.value as ContentRating)}>{ratingOptions.map((rating) => <option key={rating} value={rating} disabled={isRatingBelow(rating, required) || (rating === "mature" && !adultVerified)}>{contentRatingLabels[rating]}</option>)}</select></label> {/* 이용 등급 */}
-                    <p id="story-rating-hint" className={editorStyles.hint}>{ratingNotice.length > 0 ? ratingNotice : required === "all" ? "등장인물 중 가장 높은 등급보다 낮게 정할 수 없습니다." : `등장인물 기준 최소 ${contentRatingLabels[required]}입니다.`}</p> {/* 등급 안내 */}
-                    {error("contentRating")} {/* 등급 오류 */}
+                    <EditorStepNav steps={storySteps} controller={steps} errors={result.errors} /> {/* 편집 단계 */}
+                    {autosave.stored === null ? null : ( // 자동 저장분 판정
+                        <div className={editorStyles.draftNotice} role="group" aria-label="자동 저장 안내"> {/* 자동 저장 안내 */}
+                            <p>지난번에 쓰다가 자동 저장한 내용이 있어요({formatSavedAt(autosave.stored.savedAt)}). 이어서 쓸까요?</p> {/* 안내 */}
+                            <button type="button" className={editorStyles.smallButton} onClick={restoreDraft}>이어서 쓰기</button> {/* 이어 쓰기 */}
+                            <button type="button" className={editorStyles.smallButton} onClick={autosave.discard}>지우기</button> {/* 지우기 */}
+                        </div> // 자동 저장 안내 종료
+                    )} {/* 판정 종료 */}
+                    <EditorStepSection steps={storySteps} step={storySteps[0]} controller={steps}> {/* 단계 1 */}
+                        <label>스토리 제목<input value={draft.title} onChange={(event) => update("title", event.target.value)} maxLength={41} /></label> {/* 제목 */}
+                        {error("title")} {/* 제목 오류 */}
+                        <label>한 줄 소개<input value={draft.summary} onChange={(event) => update("summary", event.target.value)} maxLength={81} /></label> {/* 소개 */}
+                        {error("summary")} {/* 소개 오류 */}
+                        <label>태그<input value={draft.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(","))} placeholder="미스터리, 학원, 판타지" /></label> {/* 태그 */}
+                        {error("tags")} {/* 태그 오류 */}
+                        <fieldset className={`${editorStyles.images} ${styles.covers}`}> {/* 표지 고르기 */}
+                            <legend>표지 이미지</legend> {/* 표지 제목 */}
+                            {getStoryCoverChoices(draft.cast, state.characters, myImages).map((choice) => <label key={choice.path} data-selected={draft.coverImage === choice.path}><input type="radio" name="story-cover" value={choice.path} checked={draft.coverImage === choice.path} onChange={() => update("coverImage", choice.path)} /><span><Image src={choice.path} alt={`${choice.label} 표지`} width={240} height={150} unoptimized={choice.path.startsWith("data:")} /><small>{choice.label}</small></span></label>)} {/* 표지 목록(장면 + 등장인물) */}
+                        </fieldset> {/* 표지 종료 */}
+                        {error("coverImage")} {/* 표지 오류 */}
+                    </EditorStepSection> {/* 단계 1 종료 */}
+                    <EditorStepSection steps={storySteps} step={storySteps[1]} controller={steps}> {/* 단계 2 */}
+                        <label>줄거리·세계관<textarea value={draft.synopsis} onChange={(event) => update("synopsis", event.target.value)} rows={4} /></label> {/* 줄거리 */}
+                        {error("synopsis")} {/* 줄거리 오류 */}
+                        <fieldset className={styles.picker}> {/* 등장인물 고르기 */}
+                            <legend>등장인물 고르기</legend> {/* 고르기 제목 */}
+                            <span className={styles.pickerCount} data-full={full ? "true" : undefined}>{draft.cast.length}/{STORY_CAST_LIMIT}명</span> {/* 인원 표시 */}
+                            <input type="search" className={styles.pickerSearch} aria-label="등장인물 검색" placeholder="이름·태그로 찾기 (초성 가능)" value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} /> {/* 후보 검색 */}
+                            {pickerQuery.trim().length > 0 && choices.every((character) => draft.cast.some((member) => member.characterId === character.id)) ? <p className={editorStyles.hint}>‘{pickerQuery}’에 맞는 캐릭터가 없습니다.</p> : null} {/* 빈 검색 결과 */}
+                            <div className={styles.pickerGrid}> {/* 후보 목록 */}
+                                {choices.map((character) => // 후보 순회
+                                { // 순회 시작
+                                    const checked = draft.cast.some((member) => member.characterId === character.id); // 포함 여부
+                                    return ( // 후보 반환
+                                        <label key={character.id} data-selected={checked ? "true" : undefined}> {/* 후보 항목 */}
+                                            <input type="checkbox" checked={checked} disabled={!checked && full} onChange={() => toggleCharacter(character)} /> {/* 선택 상자 */}
+                                            <Image src={character.coverImage} alt="" width={72} height={72} /> {/* 얼굴 */}
+                                            <span>{character.name}{character.contentRating === "all" ? null : <small> · {contentRatingLabels[character.contentRating]}</small>}</span> {/* 이름·등급 */}
+                                        </label> // 후보 항목 종료
+                                    ); // 후보 반환 종료
+                                })} {/* 순회 종료 */}
+                            </div> {/* 후보 목록 종료 */}
+                        </fieldset> {/* 고르기 종료 */}
+                        {draft.cast.length === 0 ? <p className={editorStyles.hint}>등장인물을 한 명만 골라도 상황극이 됩니다. 첫 번째 인물이 대표 인물이 됩니다.</p> : ( // 고른 인물 판정
+                            <ol className={styles.castList} aria-label="고른 등장인물"> {/* 고른 인물 목록 */}
+                                {draft.cast.map((member, index) => // 인물 순회
+                                { // 순회 시작
+                                    const character = state.characters.find((item) => item.id === member.characterId); // 연결 캐릭터
+                                    const name = character?.name ?? member.displayName; // 표시 이름
+                                    return ( // 인물 반환
+                                        <li key={member.characterId}> {/* 인물 항목 */}
+                                            <div className={styles.castHead}> {/* 인물 머리 */}
+                                                {character === undefined ? <span className={styles.castFace} aria-hidden="true">{member.displayName.slice(0, 1)}</span> : <Image className={styles.castFace} src={character.coverImage} alt="" width={64} height={64} />} {/* 얼굴 */}
+                                                <span className={styles.castTitle}><strong>{name}</strong>{index === 0 ? <span className={styles.leadBadge}>대표 인물</span> : null}{character === undefined ? <span className={styles.missing}>삭제된 캐릭터</span> : null}</span> {/* 이름·표시 */}
+                                                <span className={styles.castButtons}> {/* 인물 동작 */}
+                                                    <button type="button" aria-label={`${name} 앞으로`} disabled={index === 0} onClick={() => moveForward(index)}>↑</button> {/* 앞으로 */}
+                                                    <button type="button" aria-label={`${name} 빼기`} onClick={() => changeCast(draft.cast.filter((_, position) => position !== index))}>빼기</button> {/* 빼기 */}
+                                                </span> {/* 동작 종료 */}
+                                            </div> {/* 머리 종료 */}
+                                            <div className={styles.castFields}> {/* 인물 입력 */}
+                                                <label>이야기 속 이름<input aria-label={`${name} 이야기 속 이름`} value={member.displayName} maxLength={13} onChange={(event) => updateMember(index, { displayName: event.target.value })} /></label> {/* 이름 */}
+                                                <label>역할<input aria-label={`${name} 역할`} value={member.role} maxLength={121} placeholder="이 이야기에서 맡는 역할" onChange={(event) => updateMember(index, { role: event.target.value })} /></label> {/* 역할 */}
+                                                <label className={styles.wide}>첫 대사<input aria-label={`${name} 첫 대사`} value={member.firstLine} maxLength={301} placeholder="시작 장면에서 건넬 한마디(비워도 됨)" onChange={(event) => updateMember(index, { firstLine: event.target.value })} /></label> {/* 첫 대사 */}
+                                            </div> {/* 입력 종료 */}
+                                        </li> // 인물 항목 종료
+                                    ); // 인물 반환 종료
+                                })} {/* 순회 종료 */}
+                            </ol> // 목록 종료
+                        )} {/* 고른 인물 판정 종료 */}
+                        {error("cast")} {/* 등장인물 오류 */}
+                        <label>시작 장면<textarea value={draft.opening} onChange={(event) => update("opening", event.target.value)} rows={4} aria-describedby="story-opening-hint" /></label> {/* 시작 장면 */}
+                        <p id="story-opening-hint" className={editorStyles.hint}>첫 화면의 내레이션으로 나오고, 등장인물의 첫 대사가 뒤에 이어집니다.</p> {/* 시작 장면 안내 */}
+                        {error("opening")} {/* 시작 장면 오류 */}
+                        <label>내 역할<input value={draft.userRole} onChange={(event) => update("userRole", event.target.value)} maxLength={201} placeholder="예: 오늘 처음 온 전학생" /></label> {/* 내 역할 */}
+                        {error("userRole")} {/* 역할 오류 */}
+                    </EditorStepSection> {/* 단계 2 종료 */}
+                    <EditorStepSection steps={storySteps} step={storySteps[2]} controller={steps}> {/* 단계 3 */}
+                        <WorkExtrasFields value={draft} errors={result.errors} onChange={(patch) => { setDraft((current) => ({ ...current, ...patch })); touch(); }} /> {/* 플레이 가이드·상태창·업데이트 */}
+                    </EditorStepSection> {/* 단계 3 종료 */}
+                    <EditorStepSection steps={storySteps} step={storySteps[3]} controller={steps}> {/* 단계 4 */}
+                        <label>공개 범위<select value={draft.visibility} onChange={(event) => update("visibility", event.target.value as StoryDraft["visibility"])}><option value="private">비공개</option><option value="unlisted">링크 공개</option><option value="public">전체 공개</option></select></label> {/* 공개 범위 */}
+                        <label>이용 등급<select value={draft.contentRating} aria-describedby="story-rating-hint" onChange={(event) => update("contentRating", event.target.value as ContentRating)}>{ratingOptions.map((rating) => <option key={rating} value={rating} disabled={isRatingBelow(rating, required) || (rating === "mature" && !adultVerified)}>{contentRatingLabels[rating]}</option>)}</select></label> {/* 이용 등급 */}
+                        <p id="story-rating-hint" className={editorStyles.hint}>{ratingNotice.length > 0 ? ratingNotice : required === "all" ? "등장인물 중 가장 높은 등급보다 낮게 정할 수 없습니다." : `등장인물 기준 최소 ${contentRatingLabels[required]}입니다.`}</p> {/* 등급 안내 */}
+                        {error("contentRating")} {/* 등급 오류 */}
+                    </EditorStepSection> {/* 단계 4 종료 */}
                     <div className={editorStyles.actions}> {/* 저장 동작 */}
+                        <button type="button" className={editorStyles.secondary} onClick={openTestChat}>시험 대화</button> {/* 시험 대화 */}
                         <button type="button" className={editorStyles.secondary} onClick={() => save("draft")}>임시 저장</button> {/* 임시 저장 */}
                         <button type="button" className={editorStyles.primary} onClick={() => save("published")}>공개 저장</button> {/* 공개 저장 */}
                     </div> {/* 동작 종료 */}
                     <p role="status" aria-label="저장 상태" className={editorStyles.notice}>{notice}</p> {/* 저장 안내 */}
+                    {autosave.savedAt === null || !dirty ? null : <p className={editorStyles.autosave}>작성 중인 내용을 자동 저장했어요 · {formatSavedAt(autosave.savedAt)}</p>} {/* 자동 저장 표시 */}
                     {saved && !dirty ? <Link href={`/stories/${encodeURIComponent(savedId)}` as Route} className={styles.viewLink}>스토리 보기</Link> : null} {/* 상세 링크 */}
                 </form> {/* 폼 종료 */}
                 <StoryPreview draft={draft} characters={state.characters} /> {/* 미리보기 */}
             </div> {/* 작업 종료 */}
+            {testing ? <TestChat title={draft.title.trim()} tags={draft.tags} start={startTestChat} onClose={() => setTesting(false)} llm={llm} /> : null} {/* 시험 대화 */}
         </main> // 본문 종료
     ); // 반환 종료
 } // 함수 종료

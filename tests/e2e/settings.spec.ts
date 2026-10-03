@@ -16,7 +16,11 @@ test("오른쪽 사용자 패널의 토큰 이용 내역 메뉴로 해당 페이
 { // 테스트 시작
     await page.goto("/"); // 메인 열기
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); // 상태 복원 대기
-    await page.keyboard.press("Escape"); // 기본 패널 닫기
+    await expect(async () => // 기본으로 열린 패널 닫기(화면 준비가 끝나기 전에 누른 키가 무시될 수 있어 닫힐 때까지 반복)
+    { // 반복 시작
+        await page.keyboard.press("Escape"); // 패널 닫기
+        await expect(page.getByRole("button", { name: "열린 패널 닫기" })).toHaveCount(0, { timeout: 500 }); // 배경이 사라졌는지 확인
+    }).toPass({ timeout: 10_000 }); // 반복 종료
     await page.getByRole("button", { name: "사용자 패널 열기와 닫기" }).click(); // 사용자 패널 열기
     await page.getByRole("navigation", { name: "사용자 메뉴" }).getByRole("link", { name: /토큰 이용 내역/ }).click(); // 토큰 메뉴 선택
     await expect(page).toHaveURL(/\/settings\/tokens$/); // 토큰 주소 확인

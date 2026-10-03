@@ -151,10 +151,12 @@ describe("프로필의 성인 인증", () => // 프로필 묶음
     it("캐릭터 제작의 19세 이용가는 성인 인증 후에만 고를 수 있다", () => // 제작 등급 검증
     { // 검증 시작
         const first = renderWithApp(<CharacterEditor />); // 인증 전 편집기
+        fireEvent.click(screen.getByRole("button", { name: "전체 펼쳐 보기" })); // 모든 단계를 한 화면에서 확인(기본은 단계별 보기)
         expect(screen.getByRole("option", { name: "19세 이용가" })).toBeDisabled(); // 비활성 확인
         expect(screen.getByText("19세 이용가는 성인 인증 후 선택할 수 있습니다.")).toBeInTheDocument(); // 안내 확인
         first.unmount(); // 첫 편집기 정리
         renderWithApp(<CharacterEditor />, verifiedState(false)); // 인증 후 편집기
+        fireEvent.click(screen.getByRole("button", { name: "전체 펼쳐 보기" })); // 모든 단계를 한 화면에서 확인(기본은 단계별 보기)
         expect(screen.getByRole("option", { name: "19세 이용가" })).toBeEnabled(); // 활성 확인
         fireEvent.change(screen.getByLabelText("이용 등급"), { target: { value: "mature" } }); // 19세 등급 선택
         expect(screen.getByTestId("character-preview")).toHaveTextContent("19세 이용가"); // 미리보기 등급 확인

@@ -28,6 +28,7 @@ test("대화와 출석으로 쓴 토큰과 받은 토큰이 토큰 이용 내역
     const input = page.getByRole("textbox", { name: "메시지" }); // 입력창
     await input.fill("오늘도 왔어"); // 입력
     await input.press("Enter"); // 전송
+    await expect(page.getByRole("region", { name: "상태창" })).toContainText("2턴", { timeout: 15_000 }); // 응답이 끝나 상태창이 2턴으로 바뀜
     await expect(input).toBeEnabled({ timeout: 15_000 }); // 응답 완료
     await page.goto("/rewards"); // 출석과 미션
     await page.getByRole("button", { name: "출석하기 · +5토큰" }).click(); // 출석
