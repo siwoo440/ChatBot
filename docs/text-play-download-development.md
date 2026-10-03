@@ -2376,4 +2376,29 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - E2E: `chat-review.spec.ts`(5: 책갈피 유지와 보관함에서 바로 가기, 검색·카드 이미지 내려받기, 390·820·1440px 넘침). 전체 단위 607개·E2E 77개 통과
 - 화면: 다시 보기 막대, 명장면 카드 창, 보관함 책갈피 탭을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음). 저장한 카드 이미지를 열어 확인.
 
+## 58. 로드맵 7단계 셋째 묶음: 메인 정렬과 필터
+
+### 58.1 규칙 (`src/features/discovery/discovery-filter.ts`)
+
+- `DiscoveryFilter { query, genres, rating, onlyNew, onlyInterest, sort }`, `createDiscoveryFilter()`(아무 조건 없는 추천순).
+- `applyDiscoveryFilter(characters, filter, { talkedIds, interestIds })`: 검색어(이름·소개·세계관·태그) → 장르(하나라도) → 이용 등급 → 처음 만나는 캐릭터 → 관심 목록 순으로 걸고 정렬한다. `filter`가 새 배열을 만들므로 원래 목록은 바뀌지 않는다.
+- 정렬: `recommended`는 들어온 순서 그대로(기본 화면의 추천·랭킹이 이 순서를 쓴다), `popular`는 `popularity` 내림차순, `latest`는 `updatedAt` 내림차순, `name`은 한국어 가나다순. 같으면 이름순.
+- `countActiveFilters`: 검색어 1 + 장르 수 + 등급 1 + 선택 조건 수. 정렬은 세지 않는다.
+- `isDefaultFilter`: 조건이 없고 추천순일 때만 기본 화면.
+- `getTalkedCharacterIds(state)`: 대화방의 캐릭터와 스토리 대화의 등장인물. `getInterestCharacterIds(state)`: 좋아요와 보관을 합친 것.
+
+### 58.2 화면
+
+- `CategoryFilter`: `selected`가 배열. 첫 항목(`전체`)은 고른 장르가 없을 때 켜진다.
+- `DiscoveryHome`: 조건을 `chosen` 한 상태로 모았다. 19+를 끄면 19세 등급 조건은 풀어서 쓴다(`filter`). 조건을 바꾸면 `더 보기`로 늘린 표시 수를 처음으로 돌린다.
+- 정렬과 필터 막대는 `section`(이름 `정렬과 필터`)이다. `.home [role="group"]`에 장르 버튼 스타일이 걸려 있어 `role="group"`을 쓰지 않았다.
+- 찾은 수는 `role="status"`(이름 `찾은 캐릭터`).
+
+### 58.3 검증
+
+- 단위: `discovery-filter`(6: 기본 조건과 조건 수, 장르 전환, 정렬 네 가지, 여러 조건, 대화·관심 정보, 기본 데이터)
+- 컴포넌트: `discovery-home`(8: 여러 장르와 전체, 정렬·조건·지우기 추가)
+- E2E: `discovery-filter.spec.ts`(4: 장르 여러 개 → 이름순 → 관심 목록·처음 만나는 캐릭터 → 지우기, 390·820·1440px 넘침). 전체 단위 615개·E2E 81개 통과
+- 화면: 메인의 기본 화면과 조건을 건 화면을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

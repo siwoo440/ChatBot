@@ -73,4 +73,60 @@ describe("캐릭터 탐색", () => // 탐색 묶음
         expect(screen.queryByRole("region", { name: "유저 추천 캐릭터" })).toBeNull(); // 추천 숨김
         expect(screen.queryByRole("region", { name: "관심 목록" })).toBeNull(); // 관심 숨김
     }); // 검증 종료
+
+    it("장르를 여러 개 고르면 하나라도 맞는 캐릭터를 보여 주고, 전체를 누르면 모두 푼다", async () => // 여러 장르 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 생성
+        renderWithApp(<DiscoveryHome />); // 탐색 렌더
+        const genres = screen.getByRole("group", { name: "캐릭터 카테고리" }); // 장르 버튼
+        const count = screen.getByRole("status", { name: "찾은 캐릭터" }); // 찾은 수
+        const total = Number(/캐릭터 (\d+)명/.exec(count.textContent ?? "")?.[1]); // 전체 수
+        expect(within(genres).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true"); // 처음에는 전체
+        await user.click(within(genres).getByRole("button", { name: "힐링" })); // 힐링
+        const healing = Number(/캐릭터 (\d+)명/.exec(count.textContent ?? "")?.[1]); // 힐링 수
+        expect(count).toHaveTextContent("조건 1개"); // 조건 수
+        await user.click(within(genres).getByRole("button", { name: "SF" })); // SF도
+        const both = Number(/캐릭터 (\d+)명/.exec(count.textContent ?? "")?.[1]); // 둘 중 하나
+        expect(within(genres).getByRole("button", { name: "힐링" })).toHaveAttribute("aria-pressed", "true"); // 힐링 유지
+        expect(within(genres).getByRole("button", { name: "SF" })).toHaveAttribute("aria-pressed", "true"); // SF 추가
+        expect(within(genres).getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "false"); // 전체 해제
+        expect(count).toHaveTextContent("조건 2개"); // 조건 수
+        expect(both).toBeGreaterThan(healing); // 하나라도 맞으면 보여 줌
+        expect(both).toBeLessThan(total); // 전체보다는 적음
+        expect(screen.queryByRole("region", { name: "실시간 랭킹" })).toBeNull(); // 조건을 걸면 기본 영역은 숨김
+        await user.click(within(genres).getByRole("button", { name: "힐링" })); // 힐링 빼기
+        expect(within(genres).getByRole("button", { name: "힐링" })).toHaveAttribute("aria-pressed", "false"); // 빠짐
+        await user.click(within(genres).getByRole("button", { name: "전체" })); // 전체
+        expect(count).toHaveTextContent(`캐릭터 ${total}명`); // 다시 전체
+        expect(screen.getByRole("region", { name: "실시간 랭킹" })).toBeVisible(); // 기본 영역 복귀
+    }); // 검증 종료
+
+    it("정렬을 바꾸고 처음 만나는 캐릭터·관심 목록·이용 등급 조건을 함께 건 뒤 한 번에 지운다", async () => // 정렬과 조건 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 생성
+        const state = createInitialState(); // 초기 상태(리안·세라·노아와 대화 중)
+        state.likedCharacterIds = ["harin", "rian"]; // 하린·리안 좋아요
+        renderWithApp(<DiscoveryHome />, state); // 탐색 렌더
+        const bar = screen.getByRole("region", { name: "정렬과 필터" }); // 정렬과 필터
+        const count = within(bar).getByRole("status", { name: "찾은 캐릭터" }); // 찾은 수
+        expect(within(bar).queryByRole("button", { name: "조건 지우기" })).toBeNull(); // 기본 화면에는 없음
+        expect(within(within(bar).getByRole("combobox", { name: "이용 등급" })).queryByRole("option", { name: "19세 이용가" })).toBeNull(); // 19+를 켜지 않으면 19세 조건 없음
+        await user.selectOptions(within(bar).getByRole("combobox", { name: "정렬" }), "name"); // 이름순
+        const results = screen.getByRole("region", { name: "캐릭터 탐색 결과" }); // 결과 영역
+        const names = within(results).getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent ?? ""); // 카드 이름
+        expect(names).toEqual([...names].sort((left, right) => left.localeCompare(right, "ko"))); // 가나다순
+        expect(screen.queryByRole("region", { name: "실시간 랭킹" })).toBeNull(); // 정렬을 바꾸면 결과만 보여 줌
+        expect(count).not.toHaveTextContent("조건"); // 정렬은 조건 수에 넣지 않음
+        await user.click(within(bar).getByRole("checkbox", { name: "관심 목록만" })); // 관심 목록만
+        expect(within(results).getAllByRole("link").map((link) => link.getAttribute("href")).sort()).toEqual(["/characters/harin", "/characters/rian"]); // 좋아요한 둘
+        await user.click(within(bar).getByRole("checkbox", { name: "처음 만나는 캐릭터만" })); // 대화해 보지 않은 캐릭터만
+        expect(within(results).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["/characters/harin"]); // 리안은 대화 중이라 빠짐
+        expect(count).toHaveTextContent("캐릭터 1명 · 조건 2개"); // 수와 조건
+        await user.selectOptions(within(bar).getByRole("combobox", { name: "이용 등급" }), "teen"); // 15세만
+        expect(count).toHaveTextContent("조건 3개"); // 조건 추가
+        await user.click(within(bar).getByRole("button", { name: "조건 지우기" })); // 지우기
+        expect(within(bar).getByRole("combobox", { name: "정렬" })).toHaveValue("recommended"); // 추천순으로
+        expect(within(bar).getByRole("checkbox", { name: "관심 목록만" })).not.toBeChecked(); // 조건 해제
+        expect(screen.getByRole("region", { name: "실시간 랭킹" })).toBeVisible(); // 기본 화면 복귀
+    }); // 검증 종료
 }); // 묶음 종료

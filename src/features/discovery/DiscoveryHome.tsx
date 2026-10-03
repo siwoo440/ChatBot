@@ -7,6 +7,7 @@ import { canViewMatureContent, getDiscoverableCharacters } from "@/features/adul
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { CategoryFilter } from "@/features/discovery/CategoryFilter"; // 카테고리 필터
 import { CharacterRail } from "@/features/discovery/CharacterRail"; // 캐릭터 레일
+import { applyDiscoveryFilter, countActiveFilters, createDiscoveryFilter, discoverySorts, getInterestCharacterIds, getTalkedCharacterIds, isDefaultFilter, ratingFilters, toggleGenre, type DiscoveryFilter, type DiscoverySort, type RatingFilter } from "@/features/discovery/discovery-filter"; // 정렬과 필터
 import { FeaturedCharacter } from "@/features/discovery/FeaturedCharacter"; // 추천 캐릭터
 import { RankingRail } from "@/features/discovery/RankingRail"; // 랭킹 레일
 import { getInterestCharacters, getRecommendedCharacters } from "@/features/discovery/recommendation-model"; // 유저 추천·관심 목록
@@ -20,23 +21,17 @@ const pageSize = 12; // 페이지 표시 수
 export function DiscoveryHome() // 탐색 홈
 { // 함수 시작
     const { state } = useAppStore(); // 앱 상태 조회
-    const [query, setQuery] = useState(""); // 검색어
-    const [category, setCategory] = useState("전체"); // 선택 카테고리
+    const [chosen, setChosen] = useState<DiscoveryFilter>(createDiscoveryFilter); // 탐색 조건(검색어·장르·등급·선택·정렬)
     const [visibleCount, setVisibleCount] = useState(pageSize); // 표시 항목 수
     const showMature = canViewMatureContent(state, new Date()); // 19세 콘텐츠 표시 여부
     const discoverable = useMemo(() => getDiscoverableCharacters(state.characters, showMature), [showMature, state.characters]); // 추천 가능한 캐릭터
-    const filtered = useMemo(() => // 필터 결과
-    { // 계산 시작
-        const normalized = query.trim().toLowerCase(); // 검색어 정규화
-        return discoverable.filter((character) => // 캐릭터 필터
-        { // 필터 시작
-            const categoryMatch = category === "전체" || character.tags.includes(category); // 카테고리 일치
-            const searchTarget = `${character.name} ${character.summary} ${character.worldSetting} ${character.tags.join(" ")}`.toLowerCase(); // 검색 대상
-            return categoryMatch && (normalized.length === 0 || searchTarget.includes(normalized)); // 복합 결과
-        }); // 필터 종료
-    }, [category, discoverable, query]); // 필터 의존
+    const filter = useMemo<DiscoveryFilter>(() => chosen.rating === "mature" && !showMature ? { ...chosen, rating: "any" } : chosen, [chosen, showMature]); // 19+를 끄면 19세 조건은 풀어 둠
+    const talkedIds = useMemo(() => getTalkedCharacterIds(state), [state]); // 대화해 본 캐릭터
+    const interestIds = useMemo(() => getInterestCharacterIds(state), [state]); // 좋아요·보관한 캐릭터
+    const filtered = useMemo(() => applyDiscoveryFilter(discoverable, filter, { talkedIds, interestIds }), [discoverable, filter, interestIds, talkedIds]); // 조건을 걸고 정렬한 결과
     const publicCount = discoverable.length; // 공개 캐릭터 수
-    const defaultView = query.length === 0 && category === "전체"; // 기본 화면 판정
+    const defaultView = isDefaultFilter(filter); // 기본 화면 판정(조건 없음·추천순)
+    const activeCount = countActiveFilters(filter); // 걸린 조건 수
     const rankingCharacters = defaultView ? filtered.slice(0, 10) : []; // 상위 랭킹 목록
     const browsableCharacters = defaultView ? filtered.slice(10) : filtered; // 탐색 대상 목록
     const visibleCharacters = browsableCharacters.slice(0, visibleCount); // 현재 표시 목록
@@ -44,14 +39,16 @@ export function DiscoveryHome() // 탐색 홈
     const interests = useMemo(() => getInterestCharacters(state, showMature), [showMature, state]); // 관심 목록
     const recommendationLead = recommendation.personalized ? `#${recommendation.basisTags.slice(0, 2).join(" #")} 취향을 바탕으로 골랐어요. 아직 대화하지 않은 캐릭터만 보여 드려요.` : "아직 취향 정보가 적어 인기 캐릭터로 골랐어요. 좋아요나 보관을 누르면 취향에 맞춰 바뀌어요."; // 추천 안내
     const interestLead = interests.length === 0 ? undefined : `좋아요 ${interests.filter((entry) => entry.liked).length} · 보관 ${interests.filter((entry) => entry.bookmarked).length}`; // 관심 안내
-    const updateQuery = (value: string) => // 검색어 변경 함수
+    const change = (patch: Partial<DiscoveryFilter>) => // 조건 변경 함수
     { // 함수 시작
-        setQuery(value); // 검색어 저장
+        setChosen((current) => ({ ...current, ...patch })); // 조건 저장
         setVisibleCount(pageSize); // 표시 수 초기화
     }; // 함수 종료
-    const updateCategory = (value: string) => // 카테고리 변경 함수
+    const updateQuery = (value: string) => change({ query: value }); // 검색어 변경
+    const updateCategory = (value: string) => change({ genres: value === categories[0] ? [] : toggleGenre(filter.genres, value) }); // 장르 넣고 빼기(전체는 모두 해제)
+    const reset = () => // 조건 지우기
     { // 함수 시작
-        setCategory(value); // 카테고리 저장
+        setChosen(createDiscoveryFilter()); // 처음 조건으로
         setVisibleCount(pageSize); // 표시 수 초기화
     }; // 함수 종료
     return ( // 홈 반환
@@ -65,11 +62,19 @@ export function DiscoveryHome() // 탐색 홈
                 </div> {/* 문구 종료 */}
                 <div className={styles.searchBox}> {/* 검색 영역 */}
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg> {/* 검색 아이콘 */}
-                    <input type="search" aria-label="캐릭터와 세계관 검색" placeholder="캐릭터와 세계관 검색" value={query} onChange={(event) => updateQuery(event.target.value)} /> {/* 검색 입력 */}
+                    <input type="search" aria-label="캐릭터와 세계관 검색" placeholder="캐릭터와 세계관 검색" value={filter.query} onChange={(event) => updateQuery(event.target.value)} /> {/* 검색 입력 */}
                 </div> {/* 검색 영역 종료 */}
             </header> {/* 헤더 종료 */}
             {defaultView ? <RewardsBanner /> : null} {/* 출석·미션(기본 화면) */}
-            <CategoryFilter categories={categories} selected={category} onSelect={updateCategory} /> {/* 카테고리 */}
+            <CategoryFilter categories={categories} selected={filter.genres} onSelect={updateCategory} /> {/* 카테고리(여러 개 고를 수 있음) */}
+            <section className={styles.filterBar} aria-label="정렬과 필터"> {/* 정렬과 필터 */}
+                <label>정렬<select value={filter.sort} onChange={(event) => change({ sort: event.target.value as DiscoverySort })}>{discoverySorts.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label> {/* 정렬 */}
+                <label>이용 등급<select value={filter.rating} onChange={(event) => change({ rating: event.target.value as RatingFilter })}>{ratingFilters.filter((item) => item.id !== "mature" || showMature).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label> {/* 이용 등급(19세는 19+를 켰을 때만) */}
+                <label className={styles.filterCheck}><input type="checkbox" checked={filter.onlyNew} onChange={(event) => change({ onlyNew: event.target.checked })} />처음 만나는 캐릭터만</label> {/* 대화해 보지 않은 캐릭터 */}
+                <label className={styles.filterCheck}><input type="checkbox" checked={filter.onlyInterest} onChange={(event) => change({ onlyInterest: event.target.checked })} />관심 목록만</label> {/* 좋아요·보관한 캐릭터 */}
+                <p className={styles.filterCount} role="status" aria-label="찾은 캐릭터">캐릭터 {filtered.length}명{activeCount === 0 ? "" : ` · 조건 ${activeCount}개`}</p> {/* 찾은 수 */}
+                {defaultView ? null : <button type="button" className={styles.filterReset} onClick={reset}>조건 지우기</button>} {/* 지우기 */}
+            </section> {/* 정렬과 필터 종료 */}
             {defaultView && filtered[0] !== undefined ? <FeaturedCharacter character={filtered[0]} /> : null} {/* 추천 영역 */}
             {defaultView && rankingCharacters.length > 0 ? <RankingRail characters={rankingCharacters} /> : null} {/* 랭킹 영역 */}
             <CharacterRail title="캐릭터 탐색 결과" characters={visibleCharacters} /> {/* 검색 결과 */}
