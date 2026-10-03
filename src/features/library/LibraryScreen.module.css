@@ -687,3 +687,85 @@
     .content { animation: none; } /* 전환 제거 */
     .card, .card:hover { transition: none; transform: none; } /* 카드 움직임 제거 */
 } /* 감소 종료 */
+
+.replyList /* 책갈피한 답변 목록 */
+{ /* 목록 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 12px; /* 간격 */
+    margin: 0; /* 여백 제거 */
+    padding: 0; /* 여백 제거 */
+    list-style: none; /* 점 제거 */
+} /* 목록 종료 */
+
+.replyList li /* 책갈피 한 건 */
+{ /* 항목 시작 */
+    display: grid; /* 격자 */
+    grid-template-columns: minmax(0, 1fr) auto; /* 내용·버튼 */
+    gap: 14px; /* 간격 */
+    align-items: center; /* 세로 중앙 */
+    padding: 16px 18px; /* 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-left: 4px solid var(--tone); /* 책갈피 띠 */
+    border-radius: 18px; /* 모서리 */
+    background: light-dark(#ffffff, var(--mv-surface)); /* 배경 */
+} /* 항목 종료 */
+
+.replyList a /* 답변으로 가는 링크 */
+{ /* 링크 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 6px; /* 간격 */
+    min-width: 0; /* 줄임 허용 */
+    color: var(--mv-ink); /* 글자 */
+    text-decoration: none; /* 밑줄 제거 */
+} /* 링크 종료 */
+
+.replyList a strong /* 대화방 이름 */
+{ /* 이름 시작 */
+    color: var(--tone-strong); /* 강조 글자 */
+    font-size: .86rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+} /* 이름 종료 */
+
+.replyList a span /* 답변 글 */
+{ /* 글 시작 */
+    line-height: 1.6; /* 줄 높이 */
+    overflow-wrap: anywhere; /* 긴 글 줄바꿈 */
+} /* 글 종료 */
+
+.replyList a small /* 날짜 */
+{ /* 날짜 시작 */
+    color: var(--mv-muted); /* 보조 글자 */
+} /* 날짜 종료 */
+
+.replyList a:focus-visible, /* 링크 초점 */
+.replyList button:focus-visible /* 버튼 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 3px; /* 간격 */
+} /* 초점 종료 */
+
+.replyList button /* 책갈피 빼기 */
+{ /* 버튼 시작 */
+    min-height: 40px; /* 높이 */
+    padding: 0 14px; /* 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 12px; /* 모서리 */
+    background: light-dark(#ffffff, var(--mv-surface)); /* 배경 */
+    color: var(--mv-muted); /* 글자 */
+    font: inherit; /* 글꼴 상속 */
+    font-weight: 750; /* 굵기 */
+    cursor: pointer; /* 커서 */
+} /* 버튼 종료 */
+
+@media (max-width: 560px) /* 좁은 화면 */
+{ /* 좁은 시작 */
+    .replyList li /* 책갈피 한 건 */
+    { /* 항목 시작 */
+        grid-template-columns: minmax(0, 1fr); /* 한 칸 */
+    } /* 항목 종료 */
+
+    .replyList button /* 책갈피 빼기 */
+    { /* 버튼 시작 */
+        justify-self: start; /* 왼쪽 */
+    } /* 버튼 종료 */
+} /* 좁은 종료 */

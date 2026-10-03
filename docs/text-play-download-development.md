@@ -2336,4 +2336,44 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 화면: 설정 다섯 페이지와 고객 지원을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
 - `editor-lore` 통합 테스트는 글자 입력이 많아 컴퓨터가 바쁠 때 제한 시간(5초)을 넘긴 적이 있어 파일 제한 시간을 20초로, 턴 대기를 5초로 늘렸다.
 
+## 57. 로드맵 7단계 둘째 묶음: 대화 다시 보기
+
+### 57.1 사용자 결정
+
+| 항목 | 결정 |
+| --- | --- |
+| 책갈피 | 답변 하나하나에 붙이고 모아 보기 |
+| 명장면 카드 | 장면 그림 위에 대사를 얹은 이미지로 저장 |
+
+### 57.2 규칙 (`src/features/chat/review-model.ts`)
+
+- `searchMessages(messages, query)`: 안내 메시지를 뺀 메시지에서 `matchesKoreanText`(초성 포함)로 찾아 대화 순서대로 식별자를 돌려준다. `moveMatch(count, current, step)`은 끝에서 처음으로 돈다.
+- `messageAnchor(id)`: 메시지 항목의 `id` 속성(`message-식별자`). 이동할 때 `scrollIntoView`의 대상이다.
+- `getBookmarkedMessages`·`getBookmarkEntries(state)`: 대화방마다 **지금 보는 버전**의 책갈피만 모은다(분기한 버전마다 같은 답변이 겹쳐 나오지 않게). 최근 답변이 앞.
+- `toPlainText`·`createExcerpt`·`toCardText`: 지문 별표와 줄바꿈을 정리하고 길면 `…`로 줄인다.
+- `wrapCardLines(text, maxWidth, measure, maxLines)`: 띄어쓰기에서 먼저 나누고, 한 줄보다 긴 낱말은 글자 단위로 나눈다. 줄 수를 넘으면 마지막 줄에 `…`. 측정 함수를 받아서 캔버스 없이 테스트한다.
+- `sceneCardFileName(title, date)`: `mateverse-scene-작품이름-연월일.png`(서울 날짜, 파일 이름에 못 쓰는 글자는 `-`).
+
+### 57.3 책갈피 저장
+
+- `Message.bookmarked?: boolean`. 검사는 `value.bookmarked === undefined || isBoolean(...)`라 예전 데이터는 그대로 읽는다(버전 올림 없음).
+- 동작 `toggle-message-bookmark { messageId }`: 답변에만 적용. 뺄 때는 항목 자체를 지운다.
+- 채팅 화면에서는 다른 메시지 조작과 같은 길을 쓴다: `applyControllerState(appReducer(controller.snapshot(), 동작))`. 보관함에서는 전역 `dispatch`.
+
+### 57.4 화면
+
+- `ReviewBar`: 검색어·찾은 수(`role="status"`, 이름 `찾은 말`)·이전·다음·`책갈피 N`·닫기. 찾은 메시지는 `onFound`로, 이동은 `onJump`로 채팅 화면에 알린다. 메시지가 새로 오면 찾은 수가 바로 바뀐다. 대화를 내려도 보이게 위쪽에 붙는다(`position: sticky`).
+- `MessageItem`: `li`에 `id`(표식)와 `data-bookmarked`·`data-found`·`data-focus`. 답변에만 `책갈피`(`aria-pressed`)·`명장면 카드` 버튼. 처리 함수가 없으면 버튼을 그리지 않는다(시험 대화에는 나오지 않음).
+- `ChatScreen`: `focus { id, seq }` 상태가 바뀌면 그 메시지로 `scrollIntoView`. 같은 메시지로 다시 가도 `seq`가 달라 이동한다.
+- **바로 가기 주소**: `…&message=식별자`. 페이지가 `initialMessageId`로 넘겨 첫 그리기부터 안다. 처음에는 주소 끝 `#표식`을 읽게 했는데, 다른 화면에서 넘어올 때는 화면을 그리는 시점에 주소가 아직 바뀌지 않아 읽지 못했다(브라우저 테스트에서 발견).
+- `SceneCardDialog`: 미리보기는 CSS, 저장은 `canvas`(배경 그림을 가득 채움 → 아래로 갈수록 어두워지는 막 → 인물·대사·구분선·작품 이름·`Mate Verse`) → `toBlob` → 내려받기. 그림을 못 불러오면 기본 배경만 쓴다.
+- 보관함 `ReplyList`: 링크(대화방 이름·글·시각)와 `책갈피 빼기`.
+
+### 57.5 검증
+
+- 단위: `review-model`(9: 찾기, 이동, 표식, 글 다듬기, 줄 나누기, 파일 이름, 책갈피 전환, 모아 보기, 저장 검사)
+- 통합: `chat-review`(6: 책갈피와 모아 보기, 검색과 이동, 새 답변 반영, 명장면 카드 글 고치기·복사, 바로 가기, 보관함 탭)
+- E2E: `chat-review.spec.ts`(5: 책갈피 유지와 보관함에서 바로 가기, 검색·카드 이미지 내려받기, 390·820·1440px 넘침). 전체 단위 607개·E2E 77개 통과
+- 화면: 다시 보기 막대, 명장면 카드 창, 보관함 책갈피 탭을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음). 저장한 카드 이미지를 열어 확인.
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

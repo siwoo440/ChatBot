@@ -46,6 +46,7 @@ export type AppAction = // 앱 동작
     | { type: "toggle-creator-follow"; creatorId: string } // 제작자 팔로우 전환
     | { type: "add-character-report"; report: CharacterReport } // 캐릭터 신고 추가
     | { type: "remove-character-report"; reportId: string } // 캐릭터 신고 취소
+    | { type: "toggle-message-bookmark"; messageId: string } // 답변 책갈피 전환
     | { type: "set-publication-status"; characterId: string; status: PublicationStatus } // 발행 상태 변경
     | { type: "select-conversation"; conversationId: string | null } // 대화 선택
     | { type: "select-conversation-version"; conversationId: string; versionId: string } // 대화 버전 선택
@@ -246,6 +247,24 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
         } // 추가 범위 종료
         case "remove-character-report": // 캐릭터 신고 취소
             return state.localReports.some((report) => report.id === action.reportId) ? { ...state, localReports: state.localReports.filter((report) => report.id !== action.reportId) } : state; // 그 신고만 제거(없으면 그대로)
+        case "toggle-message-bookmark": // 답변 책갈피 전환
+        { // 전환 범위 시작
+            const target = state.messages.find((message) => message.id === action.messageId); // 대상 메시지
+            if (target === undefined || target.role !== "assistant") // 없는 메시지·답변이 아닌 메시지
+            { // 조건 시작
+                return state; // 기존 상태 반환
+            } // 조건 종료
+            const messages = state.messages.map((message) => // 메시지 순회
+            { // 순회 시작
+                if (message.id !== action.messageId) // 다른 메시지
+                { // 조건 시작
+                    return message; // 그대로
+                } // 조건 종료
+                const { bookmarked, ...rest } = message; // 책갈피 표시 분리
+                return bookmarked === true ? rest : { ...rest, bookmarked: true }; // 빼면 항목을 없애고, 넣으면 표시
+            }); // 순회 종료
+            return { ...state, messages }; // 책갈피 상태 반환
+        } // 전환 범위 종료
         case "set-publication-status": // 발행 상태 변경
             return { ...state, characters: state.characters.map((character) => character.id === action.characterId ? { ...character, publicationStatus: action.status } : character) }; // 발행 상태 반환
         case "select-conversation": // 대화 선택

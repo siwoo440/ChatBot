@@ -414,6 +414,7 @@ export interface Message // 메시지 구조
     scenePath?: string | null; // 장면 경로 기록
     status?: StatusSnapshot | null; // 이 응답 턴의 상태창
     sceneImage?: string | null; // 이 응답에 붙은 상황 이미지
+    bookmarked?: boolean; // 책갈피한 답변(없으면 생략)
     createdAt: string; // 생성 시각
 } // 구조 종료
 

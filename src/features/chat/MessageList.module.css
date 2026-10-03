@@ -336,3 +336,26 @@
     color: var(--mv-muted); /* 회색 */
     font-size: .76rem; /* 크기 */
 } /* 설명 종료 */
+
+.item[data-bookmarked="true"] /* 책갈피한 답변 */
+{ /* 책갈피 시작 */
+    border-left: 4px solid var(--genre); /* 왼쪽 책갈피 띠 */
+} /* 책갈피 종료 */
+
+.item[data-found="true"] /* 검색으로 찾은 메시지 */
+{ /* 찾음 시작 */
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--genre) 45%, transparent); /* 찾음 테두리 */
+} /* 찾음 종료 */
+
+.item[data-focus="true"] /* 지금 보고 있는 메시지(찾은 말·책갈피로 이동) */
+{ /* 초점 시작 */
+    box-shadow: 0 0 0 3px var(--genre), 0 12px 26px var(--genre-glow); /* 강조 테두리 */
+} /* 초점 종료 */
+
+.actions button[aria-pressed="true"] /* 켜진 책갈피 */
+{ /* 켜짐 시작 */
+    border-color: color-mix(in srgb, var(--genre) 55%, var(--mv-line)); /* 장르 테두리 */
+    background: var(--genre-soft); /* 장르 배경 */
+    color: var(--genre-strong); /* 장르 글자 */
+    font-weight: 800; /* 굵기 */
+} /* 켜짐 종료 */

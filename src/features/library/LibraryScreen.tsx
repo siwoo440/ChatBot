@@ -7,6 +7,7 @@ import { useState, type ChangeEvent } from "react"; // 리액트 상태
 import { canViewMatureContent, isMatureCharacter } from "@/features/adult/adult-access"; // 19세 콘텐츠 판정
 import { getCharacterDetailProfile } from "@/features/character/character-detail-model"; // 상세 프로필 조회
 import { createConversationExport, mergeConversationExport, parseConversationExport } from "@/features/conversation/conversation-export"; // 대화 파일 도구
+import { getBookmarkEntries, type BookmarkEntry } from "@/features/chat/review-model"; // 책갈피한 답변
 import { getConversationSummary, type ConversationSummary } from "@/features/conversation/conversation-versioning"; // 대화 요약 조회
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import type { Character, Conversation, Story } from "@/features/core/types"; // 도메인 타입
@@ -15,7 +16,7 @@ import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
 import styles from "@/features/library/LibraryScreen.module.css"; // 보관함 스타일
 
-type LibraryTab = "created" | "drafts" | "stories" | "bookmarks" | "conversations"; // 보관함 탭
+type LibraryTab = "created" | "drafts" | "stories" | "bookmarks" | "conversations" | "replies"; // 보관함 탭
 
 function readTextFile(file: File): Promise<string> // 텍스트 파일 읽기
 { // 함수 시작
@@ -35,6 +36,7 @@ const tabs: Array<{ id: LibraryTab; label: string }> = // 탭 목록
     { id: "stories", label: "내 스토리" }, // 스토리 탭
     { id: "bookmarks", label: "보관 캐릭터" }, // 보관 탭
     { id: "conversations", label: "진행 중인 대화" }, // 대화 탭
+    { id: "replies", label: "책갈피" }, // 책갈피한 답변 탭
 ]; // 목록 종료
 
 export function LibraryScreen() // 보관함 화면
@@ -46,6 +48,7 @@ export function LibraryScreen() // 보관함 화면
     const drafts = state.characters.filter((character) => character.creatorId === state.profile.id && character.publicationStatus === "draft"); // 임시 목록
     const myStories = state.stories.filter((story) => story.creatorId === state.profile.id).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)); // 내 스토리
     const bookmarks = state.bookmarkedCharacterIds.map((id) => state.characters.find((character) => character.id === id)).filter((character): character is Character => character !== undefined); // 보관 목록
+    const replies = getBookmarkEntries(state); // 책갈피한 답변
     const remove = () => // 삭제 실행
     { // 함수 시작
         if (deleteTarget === null) // 대상 부재 판정
@@ -70,10 +73,10 @@ export function LibraryScreen() // 보관함 화면
                 <div className={styles.headerActions}><Link href={"/images" as Route} className={styles.secondaryLink}>이미지 스튜디오</Link><Link href={"/characters/new" as Route}>＋ 새 캐릭터 만들기</Link></div> {/* 이미지·제작 링크 */}
             </header> {/* 상단 종료 */}
             <div className={styles.tabs} role="tablist" aria-label="보관함 분류"> {/* 탭 목록 */}
-                {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-label={tab.label} aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{tab.label}<small>{tab.id === "created" ? created.length : tab.id === "drafts" ? drafts.length : tab.id === "stories" ? myStories.length : tab.id === "bookmarks" ? bookmarks.length : state.conversations.length}</small></button>)} {/* 탭 항목 */}
+                {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-label={tab.label} aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{tab.label}<small>{tab.id === "created" ? created.length : tab.id === "drafts" ? drafts.length : tab.id === "stories" ? myStories.length : tab.id === "bookmarks" ? bookmarks.length : tab.id === "replies" ? replies.length : state.conversations.length}</small></button>)} {/* 탭 항목 */}
             </div> {/* 탭 종료 */}
             <section className={styles.content} role="tabpanel" aria-label={tabs.find((tab) => tab.id === activeTab)?.label}> {/* 탭 내용 */}
-                {activeTab === "conversations" ? <ConversationGrid isLocked={isLocked} isStoryLocked={isStoryLocked} /> : activeTab === "stories" ? <StoryGrid stories={myStories} isStoryLocked={isStoryLocked} /> : <CharacterGrid characters={characters} tab={activeTab} isLocked={isLocked} onDelete={setDeleteTarget} onToggleBookmark={(characterId) => dispatch({ type: "toggle-bookmark", characterId })} onTogglePublication={(character) => dispatch({ type: "set-publication-status", characterId: character.id, status: character.publicationStatus === "draft" ? "published" : "draft" })} />} {/* 탭 콘텐츠 */}
+                {activeTab === "replies" ? <ReplyList entries={replies} onRemove={(messageId) => dispatch({ type: "toggle-message-bookmark", messageId })} /> : activeTab === "conversations" ? <ConversationGrid isLocked={isLocked} isStoryLocked={isStoryLocked} /> : activeTab === "stories" ? <StoryGrid stories={myStories} isStoryLocked={isStoryLocked} /> : <CharacterGrid characters={characters} tab={activeTab} isLocked={isLocked} onDelete={setDeleteTarget} onToggleBookmark={(characterId) => dispatch({ type: "toggle-bookmark", characterId })} onTogglePublication={(character) => dispatch({ type: "set-publication-status", characterId: character.id, status: character.publicationStatus === "draft" ? "published" : "draft" })} />} {/* 탭 콘텐츠 */}
             </section> {/* 내용 종료 */}
             {deleteTarget === null ? null : ( // 삭제 대화상자 조건
                 <div className={styles.dialogBackdrop}> {/* 대화상자 배경 */}
@@ -297,5 +300,23 @@ function ConversationSection({ isLocked, isStoryLocked, stories, title, conversa
                 })} {/* 순회 종료 */}
             </div> {/* 격자 종료 */}
         </section> // 그룹 종료
+    ); // 반환 종료
+} // 함수 종료
+
+function ReplyList({ entries, onRemove }: { entries: BookmarkEntry[]; onRemove(messageId: string): void }) // 책갈피한 답변 목록(누르면 그 답변으로 이동)
+{ // 함수 시작
+    if (entries.length === 0) // 빈 목록 판정
+    { // 조건 시작
+        return <div className={styles.empty}><strong>아직 책갈피한 답변이 없습니다.</strong><p>대화하다 마음에 든 답변 아래의 ‘책갈피’를 누르면 이곳에 모여요.</p><Link href="/">캐릭터 탐색하기</Link></div>; // 빈 화면
+    } // 조건 종료
+    return ( // 목록 반환
+        <ul className={styles.replyList} aria-label="책갈피한 답변"> {/* 책갈피 목록 */}
+            {entries.map((entry) => ( // 책갈피 순회
+                <li key={entry.messageId}> {/* 책갈피 */}
+                    <Link href={entry.href as Route}><strong>{entry.title}</strong><span>{entry.excerpt}</span><small>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(entry.createdAt))}</small></Link> {/* 답변으로 이동 */}
+                    <button type="button" aria-label={`${entry.title} 책갈피 빼기: ${entry.excerpt}`} onClick={() => onRemove(entry.messageId)}>책갈피 빼기</button> {/* 빼기 */}
+                </li> // 책갈피 종료
+            ))} {/* 순회 종료 */}
+        </ul> // 목록 종료
     ); // 반환 종료
 } // 함수 종료

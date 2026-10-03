@@ -199,6 +199,7 @@ export function isMessage(value: unknown): value is Message // 메시지 판정 
         && isString(value.content) // 내용 확인
         && (value.emotion === null || isString(value.emotion)) // 감정 확인
         && (value.sceneEvent === null || isString(value.sceneEvent)) // 장면 사건 확인
+        && (value.bookmarked === undefined || isBoolean(value.bookmarked)) // 책갈피 확인(선택 항목)
         && isString(value.createdAt); // 생성 시각 확인
 } // 함수 종료
 

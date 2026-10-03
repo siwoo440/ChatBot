@@ -3,6 +3,7 @@
 import Image from "next/image"; // 최적화 이미지
 import { useState, type FormEvent, type ReactNode } from "react"; // 리액트 상태
 import type { EditMessageResult } from "@/features/chat/chat-controller"; // 수정 결과 타입
+import { messageAnchor } from "@/features/chat/review-model"; // 메시지 표식
 import { CHAT_MESSAGE_MAX_LENGTH, type MessageVersionGroup } from "@/features/conversation/conversation-versioning"; // 버전 도메인 타입
 import type { Message } from "@/features/core/types"; // 메시지 타입
 import { getMentionedCastMember, parseStoryMessage, STORY_CONTINUE_TEXT, type StoryCastEntry } from "@/features/story/story-model"; // 스토리 대사 나누기
@@ -70,6 +71,10 @@ interface MessageItemProps // 메시지 항목 속성
     onDeleteVersion?(versionId: string): void; // 버전 삭제 처리
     storyCast?: StoryCastEntry[]; // 스토리 모드 등장인물(있으면 인물별로 나눠 표시)
     showSceneImage?: boolean; // 응답 아래 상황 이미지 보기
+    found?: boolean; // 검색으로 찾은 메시지
+    focused?: boolean; // 지금 보고 있는 메시지(찾은 말·책갈피로 이동)
+    onToggleBookmark?(message: Message): void; // 답변 책갈피 전환
+    onSceneCard?(message: Message): void; // 명장면 카드 만들기
 } // 구조 종료
 
 function editError(result: Exclude<EditMessageResult, { ok: true }>): string // 수정 오류 문구 생성
@@ -78,7 +83,7 @@ function editError(result: Exclude<EditMessageResult, { ok: true }>): string // 
     return messages[result.reason]; // 오류 문구 반환
 } // 함수 종료
 
-export function MessageItem({ message, streaming, busy, allowRegenerate, versionGroup, onRegenerate, onEdit, onDelete, onSelectVersion, onDeleteVersion, storyCast, showSceneImage = true }: MessageItemProps) // 메시지 항목
+export function MessageItem({ message, streaming, busy, allowRegenerate, versionGroup, onRegenerate, onEdit, onDelete, onSelectVersion, onDeleteVersion, storyCast, showSceneImage = true, found = false, focused = false, onToggleBookmark, onSceneCard }: MessageItemProps) // 메시지 항목
 { // 함수 시작
     const [editing, setEditing] = useState(false); // 편집 상태
     const [draft, setDraft] = useState(message.content); // 수정 초안
@@ -137,7 +142,7 @@ export function MessageItem({ message, streaming, busy, allowRegenerate, version
     const currentVersionId = versionGroup?.versionIds[versionGroup.currentIndex]; // 현재 버전 식별자
     const canDeleteVersion = showSwitcher && currentVersionId !== undefined && currentVersionId !== versionGroup?.rootVersionId; // 수정 버전 삭제 판정
     return ( // 항목 반환
-        <li className={styles.item} data-role={message.role} data-streaming={streaming ? "true" : undefined}> {/* 메시지 항목 */}
+        <li id={messageAnchor(message.id)} className={styles.item} data-role={message.role} data-streaming={streaming ? "true" : undefined} data-bookmarked={message.bookmarked === true ? "true" : undefined} data-found={found ? "true" : undefined} data-focus={focused ? "true" : undefined}> {/* 메시지 항목(바로 가기 표식 포함) */}
             <strong>{message.role === "user" ? "나" : storyCast === undefined ? "캐릭터" : "스토리"}</strong> {/* 메시지 작성자 */}
             {editing ? <form className={styles.editForm} onSubmit={submit}><label><span className="sr-only">메시지 수정</span><textarea aria-label="메시지 수정" value={draft} maxLength={CHAT_MESSAGE_MAX_LENGTH} disabled={busy} onChange={(event) => setDraft(event.target.value)} /></label><div><button type="submit" disabled={busy}>수정 전송</button><button type="button" disabled={busy} onClick={() => setEditing(false)}>취소</button></div></form> : storyCast !== undefined && message.role === "assistant" ? <StoryAssistantBody content={message.content} streaming={streaming} cast={storyCast} /> : storyCast !== undefined && message.role === "user" ? <StoryUserBody content={message.content} cast={storyCast} /> : <p data-stream-tail="">{message.content.length === 0 && streaming ? "응답 작성 중…" : renderEmphasis(message.content)}</p>} {/* 메시지 내용 */}
             {showSceneImage && message.role === "assistant" && typeof message.sceneImage === "string" && message.sceneImage.length > 0 ? <figure className={styles.sceneImage}><Image src={message.sceneImage} alt="이 장면의 상황 이미지" width={640} height={400} unoptimized={message.sceneImage.startsWith("data:")} /></figure> : null} {/* 상황 이미지 */}
@@ -153,6 +158,8 @@ export function MessageItem({ message, streaming, busy, allowRegenerate, version
                 {message.role === "user" && onEdit !== undefined ? <button type="button" disabled={busy} onClick={() => { setDraft(message.content); setEditing(true); setStatus(""); }}>수정</button> : null} {/* 수정 버튼 */}
                 {onDelete !== undefined ? <button type="button" disabled={busy} onClick={() => onDelete(message)}>삭제</button> : null} {/* 삭제 버튼 */}
                 {allowRegenerate && onRegenerate !== undefined ? <button type="button" disabled={busy} onClick={onRegenerate}>다시 생성</button> : null} {/* 다시 생성 버튼 */}
+                {message.role === "assistant" && !streaming && onToggleBookmark !== undefined ? <button type="button" aria-pressed={message.bookmarked === true} disabled={busy} onClick={() => onToggleBookmark(message)}>책갈피</button> : null} {/* 책갈피 버튼 */}
+                {message.role === "assistant" && !streaming && onSceneCard !== undefined && message.content.trim().length > 0 ? <button type="button" disabled={busy} onClick={() => onSceneCard(message)}>명장면 카드</button> : null} {/* 명장면 카드 버튼 */}
             </div> {/* 동작 종료 */}
             {showSwitcher ? <div className={styles.switcher}><button type="button" aria-label="이전 대화 버전" disabled={busy || versionGroup.currentIndex <= 0} onClick={() => move("previous")}>‹</button><span aria-label={`대화 버전 ${versionGroup.currentIndex + 1}/${versionGroup.versionIds.length}`}>{versionGroup.currentIndex + 1} / {versionGroup.versionIds.length}</span><button type="button" aria-label="다음 대화 버전" disabled={busy || versionGroup.currentIndex >= versionGroup.versionIds.length - 1} onClick={() => move("next")}>›</button>{canDeleteVersion && onDeleteVersion !== undefined ? <button type="button" className={styles.versionDelete} disabled={busy} onClick={() => onDeleteVersion(currentVersionId)}>현재 버전 삭제</button> : null}</div> : null} {/* 버전 전환기 */}
             {status.length > 0 ? <p className={styles.status} role={status.includes("못") || status.includes("부족") || status.includes("같은") || status.includes("찾지") ? "alert" : "status"}>{status}</p> : null} {/* 동작 안내 */}

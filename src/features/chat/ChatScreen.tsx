@@ -15,6 +15,9 @@ import { getMessageCost } from "@/features/chat/chat-tiers"; // 메시지 비용
 import { ChatSettingsPanel, type ChatDialogId } from "@/features/chat/ChatSettingsPanel"; // 채팅방 설정 패널
 import { buildAutoMemories } from "@/features/chat/memory-model"; // 자동 요약 메모리
 import { StatusPanel } from "@/features/chat/StatusPanel"; // 고정 상태창
+import { ReviewBar } from "@/features/chat/ReviewBar"; // 대화 다시 보기
+import { messageAnchor } from "@/features/chat/review-model"; // 메시지 표식
+import { SceneCardDialog } from "@/features/chat/SceneCardDialog"; // 명장면 카드
 import { fromRelationLevel, getRelationStat } from "@/features/chat/relation-model"; // 관계 스탯
 import { AFFECTION_STAT_ID, currentStatValues, formatStatValue } from "@/features/chat/stat-model"; // 스탯 초기값·표시
 import { getStatusPeople } from "@/features/chat/status-model"; // 상태창 인물
@@ -45,6 +48,7 @@ interface ChatScreenProps // 채팅 화면 속성
     storyId?: string; // 스토리 식별자(스토리 모드)
     initialConversationId?: string; // 초기 대화 식별자
     initialVersionId?: string; // 초기 버전 식별자
+    initialMessageId?: string; // 바로 갈 답변(책갈피에서 들어올 때)
     llm?: LLMAdapter; // 대화 어댑터
     images?: ImageGenerationAdapter; // 이미지 어댑터
 } // 구조 종료
@@ -87,7 +91,7 @@ export function ChatScreen(props: ChatScreenProps) // 채팅 화면
     return <ChatConversationScreen {...props} />; // 대화 화면 반환
 } // 함수 종료
 
-function ChatConversationScreen({ characterId: requestedCharacterId, storyId, initialConversationId, initialVersionId, llm, images }: ChatScreenProps) // 대화 화면
+function ChatConversationScreen({ characterId: requestedCharacterId, storyId, initialConversationId, initialVersionId, initialMessageId, llm, images }: ChatScreenProps) // 대화 화면
 { // 함수 시작
     const { state, dispatch, createBackup, commitState } = useAppStore(); // 앱 상태
     const router = useRouter(); // 경로 이동기
@@ -148,6 +152,18 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null); // 스트리밍 메시지
     const [notice, setNotice] = useState(""); // 상태 안내
     const [retryAvailable, setRetryAvailable] = useState(false); // 재시도 가능 상태
+    const [reviewOpen, setReviewOpen] = useState(false); // 대화 다시 보기 열림
+    const [foundIds, setFoundIds] = useState<string[]>([]); // 검색으로 찾은 메시지
+    const [focus, setFocus] = useState<{ id: string; seq: number } | null>(initialMessageId === undefined || initialMessageId.length === 0 ? null : { id: initialMessageId, seq: 0 }); // 지금 보고 있는 메시지(책갈피 주소로 들어오면 그 답변)
+    const [cardMessage, setCardMessage] = useState<Message | null>(null); // 명장면 카드로 만들 답변
+    useEffect(() => // 보고 있는 메시지가 바뀌면 그 자리로 이동
+    { // 효과 시작
+        if (focus !== null) // 대상 있음
+        { // 조건 시작
+            document.getElementById(messageAnchor(focus.id))?.scrollIntoView?.({ block: "center" }); // 화면 가운데로
+        } // 조건 종료
+    }, [focus]); // 대상 의존
+    const jumpTo = useCallback((messageId: string) => setFocus((current) => ({ id: messageId, seq: (current?.seq ?? 0) + 1 })), []); // 메시지로 이동(같은 메시지도 다시 이동)
     const replaceRoute = router.replace; // 주소 교체 함수
     useEffect(() => // 초기 주소 정규화
     { // 효과 시작
@@ -467,12 +483,18 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const relationValue = relationStat === null ? null : fromRelationLevel(relationStat, version.relationshipLevel); // 대표 인물의 관계 스탯 값
     const relationBaselines = relationStat === null || relationLead === undefined || relationValue === null ? [] : [{ statId: relationStat.id, target: relationLead, value: relationValue }]; // 첫 응답 전 관계 스탯 시작 값
     const turn = versionMessages.filter((message) => message.role === "user").length; // 현재 턴
+    const toggleBookmark = (message: Message) => // 답변 책갈피 넣고 빼기
+    { // 함수 시작
+        applyControllerState(appReducer(controller.snapshot(), { type: "toggle-message-bookmark", messageId: message.id })); // 책갈피 반영
+        setNotice(message.bookmarked === true ? "책갈피에서 뺐습니다." : "책갈피에 넣었습니다. 위쪽 ‘다시 보기’에서 모아 볼 수 있어요."); // 안내
+    }; // 함수 종료
     const getSuggestions = () => createSuggestedReplies({ names: storyMode ? conversation.storyCast.map((member) => member.displayName) : [deriveDisplayName(character.name)], emotion: version.emotion, turn, seed: conversation.id }); // 추천 답변
     const canRegenerate = !busy && !retryAvailable && versionMessages.some((message) => message.role === "user"); // 다시 생성 가능
     const commands: ComposerCommand[] = // / 명령어
     [ // 목록 시작
         ...(canRegenerate ? [{ id: "regenerate", label: "/다시", description: "마지막 응답을 다시 생성해요", run: () => void regenerate() }] : []), // 다시 생성
         { id: "scene", label: "/장면", description: "장면 이미지 만들기 · 20토큰", run: () => void generateScene() }, // 장면
+        { id: "review", label: "/검색", description: "이 대화에서 말 찾기와 책갈피 보기", run: () => setReviewOpen(true) }, // 대화 다시 보기
         { id: "memory", label: "/요약", description: "요약 메모리 열기", run: () => openDialog("memory") }, // 요약 메모리
         { id: "note", label: "/노트", description: "유저 노트 열기", run: () => openDialog("note") }, // 유저 노트
         { id: "guide", label: "/가이드", description: "플레이 가이드 보기", run: () => openDialog("guide") }, // 가이드
@@ -485,10 +507,11 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
         <main className={styles.chat} data-layout={layout} data-panel={overlay ? undefined : panelOpen ? "open" : "closed"} data-overlay={overlay ? "true" : undefined} data-mode={conversation.mode} data-genre={getGenreKey(story?.tags ?? character.tags)} data-surface="light" style={{ "--chat-font": getChatFontFamily(state.settings.chatFont), "--chat-font-size": getChatFontSize(state.settings.chatFontSize) } as CSSProperties}> {/* 채팅 본문 */}
             <ChatShortcuts onRegenerate={canRegenerate ? () => void regenerate() : undefined} onShortcuts={() => openDialog("shortcuts")} font={state.settings.chatFont} /> {/* 화면 단축키·글꼴 불러오기 */}
             <section className={styles.story}> {/* 대화 영역(왼쪽 장면 영역 없이 남는 폭을 모두 차지) */}
-                <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? `스토리 모드 · 등장인물 ${conversation.storyCast.length}명` : version.relationshipStage}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? "AI 스토리" : "AI 캐릭터"}>AI</span></h1></div><div className={styles.meta}><TierSelector settings={settings} onSelect={(tier) => updateSettings({ tier })} onSaveOptions={(tierOptions) => updateSettings({ tierOptions })} /><span>{version.emotion}</span><strong>{snapshot.wallet.balance} 토큰</strong><button ref={panelToggleRef} type="button" className={styles.panelToggle} aria-label="채팅방 설정 열기와 닫기" aria-expanded={panelOpen} aria-controls="chat-settings-panel" onClick={() => setPanelOpen(!panelOpen)}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>설정</button></div></header> {/* 대화 상태 */}
+                <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? `스토리 모드 · 등장인물 ${conversation.storyCast.length}명` : version.relationshipStage}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? "AI 스토리" : "AI 캐릭터"}>AI</span></h1></div><div className={styles.meta}><TierSelector settings={settings} onSelect={(tier) => updateSettings({ tier })} onSaveOptions={(tierOptions) => updateSettings({ tierOptions })} /><span>{version.emotion}</span><strong>{snapshot.wallet.balance} 토큰</strong><button type="button" className={styles.panelToggle} aria-expanded={reviewOpen} aria-controls="chat-review-bar" onClick={() => { if (reviewOpen) { setFoundIds([]); } setReviewOpen(!reviewOpen); }}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></svg>다시 보기</button><button ref={panelToggleRef} type="button" className={styles.panelToggle} aria-label="채팅방 설정 열기와 닫기" aria-expanded={panelOpen} aria-controls="chat-settings-panel" onClick={() => setPanelOpen(!panelOpen)}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>설정</button></div></header> {/* 대화 상태 */}
                 <p className={styles.aiNotice} role="note" aria-label="AI 이용 안내">{storyMode ? "AI가 만든 허구의 대화입니다. 등장인물은 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요." : "AI가 만든 허구의 대화입니다. 캐릭터는 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요."}</p> {/* AI 이용 안내 */}
                 {work.playGuide.trim().length === 0 ? null : <PlayGuideCard text={work.playGuide} onOpen={() => openDialog("guide")} />} {/* 플레이 가이드 */}
-                <MessageList messages={versionMessages} showSceneImages={state.settings.showSceneImages} streamingMessageId={streamingMessageId} busy={busy} allowRegenerate={!busy && !retryAvailable} onRegenerate={regenerate} getVersionGroup={(message) => getMessageVersionGroup(snapshot, version.id, message.id)} onEdit={editMessage} onDelete={deleteMessage} onSelectVersion={selectVersion} onDeleteVersion={deleteVersion} storyCast={castEntries} /> {/* 메시지 목록 */}
+                {reviewOpen ? <ReviewBar messages={versionMessages} onFound={setFoundIds} onJump={jumpTo} onClose={() => setReviewOpen(false)} /> : null} {/* 대화 다시 보기(검색·책갈피) */}
+                <MessageList messages={versionMessages} showSceneImages={state.settings.showSceneImages} streamingMessageId={streamingMessageId} busy={busy} allowRegenerate={!busy && !retryAvailable} onRegenerate={regenerate} getVersionGroup={(message) => getMessageVersionGroup(snapshot, version.id, message.id)} onEdit={editMessage} onDelete={deleteMessage} onSelectVersion={selectVersion} onDeleteVersion={deleteVersion} storyCast={castEntries} foundIds={foundIds} focusId={focus?.id ?? null} onToggleBookmark={toggleBookmark} onSceneCard={setCardMessage} /> {/* 메시지 목록 */}
                 <p role="status" className={styles.notice}>{notice}</p> {/* 상태 안내 */}
                 {retryAvailable ? <div className={styles.requestActions}><button type="button" onClick={regenerate}>다시 시도</button></div> : null} {/* 재시도 영역 */}
                 {statusEnabled ? <StatusPanel messages={versionMessages} open={state.settings.statusPanelOpen} onToggle={toggleStatusPanel} initialStats={currentStatValues(work.statusTemplate, statusPeople, null, relationBaselines)} /> : null} {/* 고정 상태창(첫 응답 전에는 스탯 초기값) */}
@@ -519,6 +542,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                 </section> {/* 내 이미지 종료 */}
                 {relationStat !== null && relationValue !== null ? <p className={styles.relation}><b>{`관계 · ${version.relationshipStage}`}</b><em>{`${storyMode ? `${relationLead ?? ""} ` : ""}${relationStat.icon.length === 0 ? "" : `${relationStat.icon} `}${relationStat.name} ${formatStatValue({ value: relationValue, min: relationStat.min, max: relationStat.max })}`}</em><span aria-hidden="true"><span style={{ width: `${version.relationshipLevel}%` }} /></span></p> : storyMode ? null : <p className={styles.relation}>관계 {version.relationshipLevel}/100<span aria-hidden="true"><span style={{ width: `${version.relationshipLevel}%` }} /></span></p>} {/* 관계(관계 스탯이 있으면 대표 인물의 스탯 값과 단계, 없으면 예전 관계 수치) */}
             </aside> {/* 설정 종료 */}
+            {cardMessage === null ? null : <SceneCardDialog title={title} speaker={storyMode ? "스토리" : deriveDisplayName(character.name)} content={cardMessage.content} image={typeof cardMessage.sceneImage === "string" && cardMessage.sceneImage.length > 0 ? cardMessage.sceneImage : version.currentScene} onClose={() => setCardMessage(null)} />} {/* 명장면 카드 */}
         </main> // 본문 종료
     ); // 반환 종료
 } // 함수 종료
