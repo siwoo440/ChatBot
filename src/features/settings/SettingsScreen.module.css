@@ -333,6 +333,230 @@
     color: var(--mv-muted); /* 보조 색상 */
 } /* 보조 종료 */
 
+.tokenChart /* 최근 7일 그래프 */
+{ /* 그래프 시작 */
+    --series-earn: light-dark(#2a78d6, #3987e5); /* 받음(파랑, 밝은·어두운 바탕에서 검증한 색) */
+    --series-spend: light-dark(#eb6834, #d95926); /* 사용(주황) */
+    display: grid; /* 세로 배치 */
+    gap: 10px; /* 간격 */
+    margin: 0; /* 여백 제거 */
+} /* 그래프 종료 */
+
+.tokenChart svg /* 막대 그래프 */
+{ /* 그림 시작 */
+    display: block; /* 블록 */
+    width: 100%; /* 너비 */
+    max-width: 640px; /* 최대 너비 */
+    height: auto; /* 비율 유지 */
+} /* 그림 종료 */
+
+.tokenLegend /* 범례 */
+{ /* 범례 시작 */
+    display: flex; /* 가로 배치 */
+    gap: 14px; /* 간격 */
+    margin: 0; /* 여백 제거 */
+    padding: 0; /* 여백 제거 */
+    color: var(--mv-ink); /* 글자 */
+    font-size: .84rem; /* 크기 */
+    font-weight: 700; /* 굵기 */
+    list-style: none; /* 점 제거 */
+} /* 범례 종료 */
+
+.tokenLegend li /* 범례 항목 */
+{ /* 항목 시작 */
+    display: inline-flex; /* 가로 */
+    gap: 6px; /* 간격 */
+    align-items: center; /* 세로 중앙 */
+} /* 항목 종료 */
+
+.tokenLegend span /* 범례 색 */
+{ /* 색 시작 */
+    width: 12px; /* 너비 */
+    height: 12px; /* 높이 */
+    border-radius: 3px; /* 모서리 */
+    background: var(--series-earn); /* 받음 색 */
+} /* 색 종료 */
+
+.tokenLegend span[data-series="spend"] /* 사용 색 */
+{ /* 사용 시작 */
+    background: var(--series-spend); /* 사용 색 */
+} /* 사용 종료 */
+
+.chartGrid /* 눈금선 */
+{ /* 선 시작 */
+    stroke: var(--mv-line); /* 흐린 선 */
+    stroke-width: 1; /* 두께 */
+} /* 선 종료 */
+
+.chartAxis /* 축 글자 */
+{ /* 글자 시작 */
+    fill: var(--mv-muted); /* 보조 글자 */
+    font-size: 11px; /* 크기 */
+} /* 글자 종료 */
+
+.chartValue /* 오늘 값 */
+{ /* 값 시작 */
+    fill: var(--mv-ink); /* 글자색(막대 색을 입히지 않음) */
+    font-size: 11px; /* 크기 */
+    font-weight: 800; /* 굵기 */
+} /* 값 종료 */
+
+.barEarn /* 받은 막대 */
+{ /* 막대 시작 */
+    fill: var(--series-earn); /* 받음 색 */
+} /* 막대 종료 */
+
+.barSpend /* 쓴 막대 */
+{ /* 막대 시작 */
+    fill: var(--series-spend); /* 사용 색 */
+} /* 막대 종료 */
+
+.chartHit /* 올리면 그날 값(넓은 영역) */
+{ /* 영역 시작 */
+    fill: transparent; /* 투명 */
+} /* 영역 종료 */
+
+.chartHit:hover /* 올린 날 */
+{ /* 올림 시작 */
+    fill: color-mix(in srgb, var(--mv-ink) 6%, transparent); /* 옅은 강조 */
+} /* 올림 종료 */
+
+.chartTable summary /* 표로 보기 */
+{ /* 펼침 시작 */
+    width: fit-content; /* 글자 너비 */
+    color: var(--tone-strong); /* 묶음 글자 */
+    font-size: .86rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+    cursor: pointer; /* 커서 */
+} /* 펼침 종료 */
+
+.chartTable summary:focus-visible /* 표로 보기 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 3px; /* 외곽선 간격 */
+} /* 초점 종료 */
+
+.filterRow /* 기록 종류 필터 */
+{ /* 필터 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 */
+    gap: 8px; /* 간격 */
+} /* 필터 종료 */
+
+.filterRow button /* 필터 버튼 */
+{ /* 버튼 시작 */
+    min-height: 40px; /* 높이 */
+    padding: 0 16px; /* 여백 */
+    border: 1px solid var(--mv-line); /* 테두리 */
+    border-radius: 999px; /* 알약 */
+    background: var(--mv-surface); /* 배경 */
+    color: var(--mv-ink); /* 글자 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .88rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+    cursor: pointer; /* 커서 */
+} /* 버튼 종료 */
+
+.filterRow button[aria-pressed="true"] /* 고른 필터 */
+{ /* 선택 시작 */
+    border-color: var(--tone); /* 묶음 테두리 */
+    background: var(--tone); /* 묶음 채움 */
+    color: #ffffff; /* 흰 글자 */
+} /* 선택 종료 */
+
+.filterRow button:focus-visible /* 필터 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 3px; /* 외곽선 간격 */
+} /* 초점 종료 */
+
+.recordGroup /* 날짜 묶음 */
+{ /* 묶음 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 4px; /* 간격 */
+} /* 묶음 종료 */
+
+.recordGroup h3 /* 날짜 */
+{ /* 날짜 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 */
+    gap: 4px 10px; /* 간격 */
+    align-items: baseline; /* 기준선 */
+    justify-content: space-between; /* 양끝 */
+    margin: 0; /* 여백 제거 */
+    padding: 8px 12px; /* 여백 */
+    border-radius: 12px; /* 모서리 */
+    background: var(--tone-soft); /* 묶음 배경 */
+    color: var(--tone-strong); /* 묶음 글자 */
+    font-size: .92rem; /* 크기 */
+} /* 날짜 종료 */
+
+.recordGroup h3 small /* 그날 합계 */
+{ /* 합계 시작 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .8rem; /* 크기 */
+    font-weight: 700; /* 굵기 */
+} /* 합계 종료 */
+
+.recordList /* 기록 목록 */
+{ /* 목록 시작 */
+    display: grid; /* 세로 배치 */
+    margin: 0; /* 여백 제거 */
+    padding: 0; /* 여백 제거 */
+    list-style: none; /* 번호 제거 */
+} /* 목록 종료 */
+
+.recordList li /* 기록 줄 */
+{ /* 줄 시작 */
+    display: flex; /* 가로 배치 */
+    gap: 12px; /* 간격 */
+    align-items: center; /* 세로 중앙 */
+    justify-content: space-between; /* 양끝 */
+    padding: 10px 12px; /* 여백 */
+    border-bottom: 1px solid var(--mv-line); /* 구분선 */
+} /* 줄 종료 */
+
+.recordList li:last-child /* 마지막 줄 */
+{ /* 마지막 시작 */
+    border-bottom: 0; /* 구분선 제거 */
+} /* 마지막 종료 */
+
+.recordList li div /* 기록 글 */
+{ /* 글 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 2px; /* 간격 */
+    min-width: 0; /* 줄임 허용 */
+} /* 글 종료 */
+
+.recordList li strong /* 기록 이름 */
+{ /* 이름 시작 */
+    color: var(--mv-ink); /* 글자 */
+    font-size: .94rem; /* 크기 */
+} /* 이름 종료 */
+
+.recordList li small /* 기록 설명 */
+{ /* 설명 시작 */
+    overflow: hidden; /* 넘침 숨김 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .8rem; /* 크기 */
+    text-overflow: ellipsis; /* 말줄임 */
+    white-space: nowrap; /* 한 줄 */
+} /* 설명 종료 */
+
+.recordList li b /* 토큰 수 */
+{ /* 수 시작 */
+    flex: none; /* 크기 유지 */
+    color: var(--mv-ink); /* 글자 */
+    font-size: 1rem; /* 크기 */
+    font-variant-numeric: tabular-nums; /* 고정 폭 숫자 */
+    font-weight: 900; /* 굵기 */
+} /* 수 종료 */
+
+.recordList li[data-direction="spend"] b /* 쓴 토큰 */
+{ /* 사용 시작 */
+    color: var(--mv-muted); /* 보조 글자 */
+} /* 사용 종료 */
+
 .table /* 표 */
 { /* 표 시작 */
     width: 100%; /* 전체 너비 */

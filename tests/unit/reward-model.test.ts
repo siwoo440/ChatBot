@@ -141,7 +141,7 @@ describe("오늘의 미션", () => // 미션 묶음
         expect(next.rewards.missions).toEqual({ dateKey: "2026-10-04", progress: { "favorite-work": 1 }, claimed: [], bonusClaimed: false }); // 새 날 기록
     }); // 검증 종료
 
-    it("받은 기록은 최근 100개까지만 남긴다", () => // 기록 한도
+    it("토큰 기록은 한도(최근 300개)까지만 남긴다", () => // 기록 한도
     { // 검증 시작
         const state = createInitialState(); // 초기 상태
         state.tokenRecords = Array.from({ length: TOKEN_RECORD_LIMIT }, (_item, index) => ({ id: `old-${index}`, direction: "earn" as const, source: "attendance" as const, label: "예전 기록", amount: 5, balance: 100, createdAt: "2026-09-01T00:00:00.000Z" })); // 꽉 찬 기록

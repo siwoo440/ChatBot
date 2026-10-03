@@ -2,7 +2,8 @@ import { removeMessageFromVersion, removeVersionTree } from "@/features/conversa
 import { autoOrganizeConversations, CONVERSATION_PIN_LIMIT } from "@/features/conversation/conversation-list-model"; // 고정 한도·자동 정리
 import { DEFAULT_PERSONA_ID } from "@/features/core/defaults"; // 기본 대화 프로필
 import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
-import type { AdultVerification, AppNotification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationFolder, ConversationSettings, ConversationVersion, GeneratedImage, Message, MissionId, Persona, PublicationStatus, Story, TokenWallet, UserProfile } from "@/features/core/types"; // 상태 타입
+import type { AdultVerification, AppNotification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationFolder, ConversationSettings, ConversationVersion, GeneratedImage, Message, MissionId, Persona, PublicationStatus, Story, TokenRecord, TokenWallet, UserProfile } from "@/features/core/types"; // 상태 타입
+import { addTokenRecord, splitChatSpend } from "@/lib/story/token-ledger"; // 토큰 기록
 import { applyInviteConfirmations, createInviteCode, redeemInviteCode, type InviteConfirmation } from "@/features/rewards/referral-model"; // 친구 초대 규칙
 import { checkAttendance, claimMission, claimMissionBonus } from "@/features/rewards/reward-model"; // 출석·미션 규칙
 
@@ -64,6 +65,24 @@ export type AppAction = // 앱 동작
     | { type: "redeem-invite-code"; code: string; now: string } // 친구의 초대 코드로 환영 보너스 받기
     | { type: "apply-invite-confirmations"; friends: InviteConfirmation[]; now: string } // 조건을 채운 친구 반영(서버 연결 뒤 사용)
     | { type: "replace-state"; state: AppState }; // 상태 복원
+
+function recordChatSpend(state: AppState, conversation: Conversation, after: TokenWallet, spent: number): TokenRecord[] // 채팅에서 쓴 토큰 기록(대화·장면 이미지를 나눠 한 건씩)
+{ // 함수 시작
+    const story = conversation.mode === "story" ? state.stories.find((item) => item.id === conversation.storyId) : undefined; // 연결 스토리
+    const work = story?.title ?? state.characters.find((item) => item.id === conversation.characterId)?.name ?? conversation.title; // 작품 이름
+    const parts = splitChatSpend(state.wallet, after, spent); // 대화·장면 이미지로 나눔
+    let records = state.tokenRecords; // 누적 기록
+    let balance = state.wallet.balance; // 기록 뒤 잔액
+    for (const [source, label, amount] of [["chat", "대화", parts.chat], ["scene-image", "장면 이미지 만들기", parts.image]] as const) // 종류 순회
+    { // 순회 시작
+        if (amount > 0) // 쓴 토큰 있음
+        { // 조건 시작
+            balance -= amount; // 잔액 차감
+            records = addTokenRecord(records, { id: `spend-${source}-${conversation.id}-${after.updatedAt}`, direction: "spend", source, label, work, amount, balance, createdAt: after.updatedAt }); // 기록 추가
+        } // 조건 종료
+    } // 순회 종료
+    return records; // 기록 반환
+} // 함수 종료
 
 export function appReducer(state: AppState, action: AppAction): AppState // 앱 리듀서
 { // 함수 시작
@@ -152,7 +171,9 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             { // 조건 시작
                 return state; // 변경 없음
             } // 조건 종료
-            return { ...state, images: [structuredClone(action.image), ...state.images], wallet: structuredClone(action.wallet) }; // 최근 순 추가와 지갑 반영
+            const cost = state.wallet.balance - action.wallet.balance; // 이미지에 쓴 토큰
+            const tokenRecords = cost > 0 ? addTokenRecord(state.tokenRecords, { id: `spend-studio-image-${action.image.id}`, direction: "spend", source: "studio-image", label: "이미지 만들기", work: action.image.prompt.slice(0, 40), amount: cost, balance: action.wallet.balance, createdAt: action.image.createdAt }) : state.tokenRecords; // 쓴 기록
+            return { ...state, images: [structuredClone(action.image), ...state.images], wallet: structuredClone(action.wallet), tokenRecords }; // 최근 순 추가와 지갑·기록 반영
         } // 추가 범위 종료
         case "toggle-image-favorite": // 이미지 즐겨찾기 전환
             return { ...state, images: state.images.map((image) => image.id === action.imageId ? { ...image, favorite: !image.favorite } : image) }; // 즐겨찾기 반영
@@ -341,7 +362,8 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             const messages = [...state.messages.filter((message) => message.conversationId !== action.conversationId), ...chat.messages.filter((message) => message.conversationId === action.conversationId)]; // 채팅 대화 메시지 교체
             const spent = chat.wallet.totalUsed - state.wallet.totalUsed; // 채팅이 그동안 쓴 토큰
             const wallet = spent > 0 ? { ...chat.wallet, balance: state.wallet.balance - spent } : state.wallet; // 쓴 만큼만 차감(그 사이 다른 곳에서 받은 토큰은 유지)
-            return { ...state, conversations, conversationVersions, messages, wallet, selectedConversationId: chat.selectedConversationId }; // 채팅 소유 필드만 반영
+            const tokenRecords = spent > 0 ? recordChatSpend(state, conversation, chat.wallet, spent) : state.tokenRecords; // 쓴 토큰 기록
+            return { ...state, conversations, conversationVersions, messages, wallet, tokenRecords, selectedConversationId: chat.selectedConversationId }; // 채팅 소유 필드만 반영
         } // 병합 범위 종료
         case "spend-token": // 토큰 차감
         { // 차감 범위 시작

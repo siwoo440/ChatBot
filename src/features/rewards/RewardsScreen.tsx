@@ -27,6 +27,7 @@ export function RewardsScreen() // 출석과 미션 화면
     const bonus = getBonusView(state.rewards.missions, today); // 보너스 상태
     const waiting = getClaimableTokens(state.rewards, today); // 지금 받을 수 있는 토큰
     const missionReady = missions.some((view) => view.claimable) || bonus.claimable; // 받을 미션 보상 여부
+    const earned = state.tokenRecords.filter((record) => record.direction === "earn"); // 받은 기록(쓴 기록은 토큰 이용 내역에서)
     const stamp = () => // 출석하기
     { // 함수 시작
         dispatch({ type: "check-attendance", now: new Date().toISOString() }); // 도장과 보상
@@ -98,9 +99,9 @@ export function RewardsScreen() // 출석과 미션 화면
             <InviteSection /> {/* 친구 초대 */}
             <section className={settings.card} aria-labelledby="rewards-record-title"> {/* 받은 기록 */}
                 <h2 id="rewards-record-title">받은 기록</h2> {/* 제목 */}
-                {state.tokenRecords.length === 0 ? <p>아직 받은 토큰이 없어요. 출석 도장부터 찍어 보세요.</p> : ( // 기록 판정
+                {earned.length === 0 ? <p>아직 받은 토큰이 없어요. 출석 도장부터 찍어 보세요.</p> : ( // 기록 판정
                     <ol className={styles.records} aria-label="받은 토큰 기록"> {/* 기록 목록 */}
-                        {state.tokenRecords.slice(0, RECORD_PREVIEW).map((record) => <li key={record.id}><div><strong>{record.label}</strong><small>{formatDateTime(record.createdAt)} · 잔액 {record.balance.toLocaleString()}</small></div><b>+{record.amount}</b></li>)} {/* 기록 */}
+                        {earned.slice(0, RECORD_PREVIEW).map((record) => <li key={record.id}><div><strong>{record.label}</strong><small>{formatDateTime(record.createdAt)} · 잔액 {record.balance.toLocaleString()}</small></div><b>+{record.amount}</b></li>)} {/* 기록 */}
                     </ol> // 기록 목록 종료
                 )} {/* 기록 판정 종료 */}
                 <p className={settings.note}>출석과 미션 기록은 지금 사용하는 브라우저에만 저장돼요. 계정 로그인이 연결되면 다른 기기에서도 이어집니다.</p> {/* 저장 안내 */}

@@ -89,7 +89,7 @@ describe("채팅 병합과 지갑", () => // 지갑 묶음
         const merged = appReducer(rewarded, { type: "merge-chat-state", conversationId: "conversation-rian", state: chat, allowCreate: false }); // 채팅 병합
         expect(merged.wallet.balance).toBe(start.wallet.balance + 5 - 4); // 받은 것 유지, 쓴 것 차감
         expect(merged.wallet.totalUsed).toBe(start.wallet.totalUsed + 4); // 누적 사용
-        expect(merged.tokenRecords).toHaveLength(1); // 받은 기록 유지
+        expect(merged.tokenRecords.map((record) => record.source)).toEqual(["chat", "attendance"]); // 받은 기록은 남고 쓴 기록이 더해짐
         const idle = appReducer(rewarded, { type: "merge-chat-state", conversationId: "conversation-rian", state: chatWith(start, [], 0), allowCreate: false }); // 쓴 토큰 없는 병합
         expect(idle.wallet).toEqual(rewarded.wallet); // 지갑 그대로
     }); // 검증 종료

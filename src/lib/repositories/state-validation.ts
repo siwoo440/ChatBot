@@ -30,7 +30,7 @@ export const statScopes = ["each", "shared"] as const; // 스탯 적용 대상
 export const conversationFilters = ["all", "character", "story"] as const; // 대화 종류 탭
 export const notificationKinds = ["notice", "image", "memory", "reward", "event"] as const; // 알림 종류
 export const storyEventConditions = ["stat-min", "stat-max", "turn"] as const; // 이벤트 조건 종류
-export const tokenRecordSources = ["attendance", "mission", "mission-bonus", "invite-welcome", "invite-friend"] as const; // 토큰 기록 출처
+export const tokenRecordSources = ["attendance", "mission", "mission-bonus", "invite-welcome", "invite-friend", "chat", "scene-image", "studio-image"] as const; // 토큰 기록 출처
 export const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam", "other"] as const; // 신고 사유 목록
 export const contentRatings = ["all", "teen", "mature"] as const; // 이용 등급 목록
 export const adultVerificationMethods = ["mock"] as const; // 성인 인증 방식 목록
@@ -577,7 +577,7 @@ export function isRewardState(value: unknown): boolean // 출석·미션 판정 
 
 export function isTokenRecord(value: unknown): boolean // 토큰 기록 판정 함수
 { // 함수 시작
-    return isRecord(value) && isString(value.id) && value.id.length > 0 && isOneOf(value.direction, ["earn", "spend"]) && isOneOf(value.source, tokenRecordSources) && isString(value.label) && isCount(value.amount) && isFiniteNumber(value.balance) && isString(value.createdAt); // 기록 반환
+    return isRecord(value) && isString(value.id) && value.id.length > 0 && isOneOf(value.direction, ["earn", "spend"]) && isOneOf(value.source, tokenRecordSources) && isString(value.label) && (value.work === undefined || isString(value.work)) && isCount(value.amount) && isFiniteNumber(value.balance) && isString(value.createdAt); // 기록 반환
 } // 함수 종료
 
 export function hasSchemaFifteenFields(value: Record<string, unknown>): boolean // 스키마 15 필드 판정 함수(출석·미션, 토큰 기록)

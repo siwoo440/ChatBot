@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation"; // 경로 이동 도구
 import { ChatComposer, type ComposerCommand } from "@/features/chat/ChatComposer"; // 채팅 입력
 import { buildChatContext } from "@/features/chat/chat-context"; // 대화 맥락
 import { getChatFontFamily, getChatFontSize, loadChatFont } from "@/features/chat/chat-fonts"; // 채팅 글꼴
+import { getMessageCost } from "@/features/chat/chat-tiers"; // 메시지 비용
 import { ChatSettingsPanel, type ChatDialogId } from "@/features/chat/ChatSettingsPanel"; // 채팅방 설정 패널
 import { buildAutoMemories } from "@/features/chat/memory-model"; // 자동 요약 메모리
 import { StatusPanel } from "@/features/chat/StatusPanel"; // 고정 상태창
@@ -436,6 +437,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     }; // 함수 종료
     const generateScene = async () => // 수동 장면 생성
     { // 함수 시작
+        syncContext(); // 최신 지갑 반영(다른 곳에서 받은 토큰)
         const result = await controller.generateManualScene(); // 장면 생성
         sync(); // 상태 동기화
         const made = latestGlobalState.current.settings.showSceneImages ? "새 장면을 만들었습니다." : "새 장면을 만들었습니다. ‘상황 이미지 보기’를 켜면 대화에서 볼 수 있어요."; // 만든 그림은 마지막 응답 아래에 붙음(숨김이면 켜는 방법 안내)
@@ -490,7 +492,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                 <p role="status" className={styles.notice}>{notice}</p> {/* 상태 안내 */}
                 {retryAvailable ? <div className={styles.requestActions}><button type="button" onClick={regenerate}>다시 시도</button></div> : null} {/* 재시도 영역 */}
                 {statusEnabled ? <StatusPanel messages={versionMessages} open={state.settings.statusPanelOpen} onToggle={toggleStatusPanel} initialStats={currentStatValues(work.statusTemplate, statusPeople, null, relationBaselines)} /> : null} {/* 고정 상태창(첫 응답 전에는 스탯 초기값) */}
-                <ChatComposer busy={busy} onSend={send} onCancel={cancel} storyCast={storyMode ? conversation.storyCast : undefined} onContinue={storyMode ? continueStory : undefined} getSuggestions={getSuggestions} commands={commands} onGenerateScene={() => void generateScene()} /> {/* 메시지 입력(장면 이미지 생성 버튼 포함) */}
+                <ChatComposer busy={busy} onSend={send} onCancel={cancel} storyCast={storyMode ? conversation.storyCast : undefined} onContinue={storyMode ? continueStory : undefined} getSuggestions={getSuggestions} commands={commands} onGenerateScene={() => void generateScene()} messageCost={getMessageCost(settings)} affordable={snapshot.wallet.balance >= getMessageCost(settings)} /> {/* 메시지 입력(장면 이미지 생성 버튼·예상 비용 포함) */}
             </section> {/* 대화 종료 */}
             {overlay && panelOpen ? <button type="button" className={styles.panelScrim} aria-hidden="true" tabIndex={-1} onClick={() => setPanelOpen(false)} /> : null} {/* 서랍 배경(누르면 닫기) */}
             <aside id="chat-settings-panel" className={styles.controls} aria-label="채팅방 설정" hidden={!overlay && !panelOpen} aria-hidden={overlay && !panelOpen ? true : undefined}> {/* 채팅방 설정(열고 닫기) */}

@@ -1,12 +1,13 @@
 // 일일 출석과 오늘의 미션 규칙: 화면·저장과 떨어진 순수 함수라 나중에 서버로 그대로 옮길 수 있다.
 import type { AppState, AttendanceState, DailyMissionState, MissionId, RewardState, TokenRecord, TokenRecordSource } from "@/features/core/types"; // 상태 타입
+import { addTokenRecord, TOKEN_RECORD_LIMIT } from "@/lib/story/token-ledger"; // 토큰 기록
 import { getDailyUsage } from "@/lib/story/token-policy"; // 오늘 사용량
 import { getDateKey } from "@/lib/time/date-key"; // 한국 시간 날짜 키
 
 export const ATTENDANCE_CYCLE = 7; // 도장판 칸 수
 export const attendanceRewards: readonly number[] = [5, 5, 5, 5, 5, 5, 20]; // 1~7일차 보상(일주일 50토큰)
 export const MISSION_BONUS = 5; // 오늘의 미션을 모두 채운 보너스
-export const TOKEN_RECORD_LIMIT = 100; // 토큰 기록 보관 수
+export { TOKEN_RECORD_LIMIT }; // 토큰 기록 보관 수(받음·사용이 같은 목록을 씀)
 
 export interface MissionDefinition // 미션 정의
 { // 구조 시작
@@ -141,7 +142,7 @@ export function grantTokens(state: AppState, grant: { id: string; source: TokenR
     const daily = getDailyUsage(state.wallet, new Date(grant.now)); // 날짜가 바뀌었으면 사용량 0부터
     const wallet = { ...state.wallet, balance: state.wallet.balance + grant.amount, dailyChatUsed: daily.chat, dailyImageUsed: daily.image, updatedAt: grant.now }; // 잔액 증가
     const record: TokenRecord = { id: grant.id, direction: "earn", source: grant.source, label: grant.label, amount: grant.amount, balance: wallet.balance, createdAt: grant.now }; // 받은 기록
-    return { ...state, wallet, tokenRecords: [record, ...state.tokenRecords.filter((item) => item.id !== grant.id)].slice(0, TOKEN_RECORD_LIMIT), rewards: { ...state.rewards, totalEarned: state.rewards.totalEarned + grant.amount } }; // 지급 상태
+    return { ...state, wallet, tokenRecords: addTokenRecord(state.tokenRecords, record), rewards: { ...state.rewards, totalEarned: state.rewards.totalEarned + grant.amount } }; // 지급 상태
 } // 함수 종료
 
 export function checkAttendance(state: AppState, now: string): AppState // 출석하기

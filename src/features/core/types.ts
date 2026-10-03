@@ -22,7 +22,7 @@ export type ConversationFilter = "all" | "character" | "story"; // 왼쪽 창 �
 export type NotificationKind = "notice" | "image" | "memory" | "reward" | "event"; // 알림 종류(reward: 출석·미션 보상, event: 스탯 조건 이벤트)
 export type StoryEventCondition = "stat-min" | "stat-max" | "turn"; // 이벤트 조건(스탯 이상·스탯 이하·턴)
 export type MissionId = "send-messages" | "start-conversation" | "favorite-work"; // 오늘의 미션 식별자
-export type TokenRecordSource = "attendance" | "mission" | "mission-bonus" | "invite-welcome" | "invite-friend"; // 토큰 기록 출처(출석·미션·친구 초대, 토큰 사용 내역 단계에서 사용 출처를 더함)
+export type TokenRecordSource = "attendance" | "mission" | "mission-bonus" | "invite-welcome" | "invite-friend" | "chat" | "scene-image" | "studio-image"; // 토큰 기록 출처(받음: 출석·미션·친구 초대, 사용: 대화·장면 이미지·이미지 스튜디오)
 export type StatMode = "rule" | "ai" | "both"; // 스탯 수치를 정하는 방법(규칙·AI 판단·둘 다)
 export type StatScope = "each" | "shared"; // 스탯 적용 대상(인물마다 따로·하나만)
 
@@ -445,12 +445,13 @@ export interface ReferralState // 친구 초대 상태
     friends: InvitedFriend[]; // 초대한 친구(최근 순)
 } // 구조 종료
 
-export interface TokenRecord // 토큰 기록(지금은 받은 기록만, 토큰 사용 내역 단계에서 사용 기록 추가)
+export interface TokenRecord // 토큰 기록(받음·사용, 최근 순)
 { // 구조 시작
     id: string; // 기록 식별자
     direction: "earn" | "spend"; // 받음·사용
     source: TokenRecordSource; // 출처
     label: string; // 표시 이름
+    work?: string; // 쓴 곳(작품 이름·이미지 설명, 받은 기록에는 없음)
     amount: number; // 토큰 수
     balance: number; // 기록 뒤 잔액
     createdAt: string; // 기록 시각

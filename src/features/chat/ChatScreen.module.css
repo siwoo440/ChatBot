@@ -201,6 +201,28 @@
     border-top: 1px solid var(--mv-line); /* 구분선 */
 } /* 양식 종료 */
 
+.story > form > label /* 입력 칸(전송 열의 두 줄을 차지) */
+{ /* 입력 칸 시작 */
+    grid-row: 1 / span 2; /* 두 줄 */
+} /* 입력 칸 종료 */
+
+.sendCost /* 보내기 전 예상 비용 */
+{ /* 비용 시작 */
+    grid-column: 2; /* 전송 열 */
+    grid-row: 1; /* 버튼 위 */
+    align-self: end; /* 아래 정렬 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .72rem; /* 작은 글자 */
+    font-weight: 700; /* 굵기 */
+    text-align: center; /* 가운데 */
+    white-space: nowrap; /* 한 줄 */
+} /* 비용 종료 */
+
+.sendCost[data-short="true"] /* 토큰 부족 */
+{ /* 부족 시작 */
+    color: light-dark(#be123c, #f27997); /* 위험 글자 */
+} /* 부족 종료 */
+
 .story > form textarea /* 메시지 입력 */
 { /* 입력 시작 */
     width: 100%; /* 입력 너비 */
@@ -230,6 +252,8 @@
 
 .story > form > button /* 전송·중단 버튼 */
 { /* 버튼 시작 */
+    grid-column: 2; /* 전송 열 */
+    grid-row: 2; /* 비용 아래 */
     min-width: 76px; /* 최소 너비 */
     min-height: 52px; /* 입력과 같은 높이 */
     padding: 0 18px; /* 내부 여백 */

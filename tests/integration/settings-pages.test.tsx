@@ -96,7 +96,7 @@ describe("설정 페이지", () => // 페이지 묶음
     { // 테스트 시작
         renderWithApp(<TokenSettings />); // 토큰 화면 렌더링
         expect(within(screen.getByRole("region", { name: "토큰 요약" })).getByText("1,240")).toBeInTheDocument(); // 잔액 확인
-        const table = screen.getByRole("table"); // 비용 표 조회
+        const table = screen.getByRole("table", { name: "항목별 비용" }); // 비용 표 조회
         expect(within(table).getAllByRole("row")).toHaveLength(6); // 머리와 비용 다섯 줄 확인(자동 장면 이미지는 없앰)
         expect(within(table).getByText("1 토큰")).toBeInTheDocument(); // 일반 대화 비용 확인
         expect(screen.getByRole("button", { name: "충전 준비 중" })).toBeDisabled(); // 충전 비활성 확인
