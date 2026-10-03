@@ -42,7 +42,7 @@ describe("메인 탐색 정렬과 필터", () => // 필터 묶음
 
     it("장르는 하나라도 맞으면 통과하고, 다른 조건과는 모두 맞아야 한다", () => // 여러 조건
     { // 검증 시작
-        const characters = [make("힐링이", { tags: ["힐링"], contentRating: "all" }), make("판타지", { tags: ["판타지"], contentRating: "teen" }), make("둘다", { tags: ["힐링", "판타지"], contentRating: "teen", summary: "숲의 마법사" }), make("현대", { tags: ["현대"], contentRating: "all" })]; // 네 캐릭터
+        const characters = [make("힐링이", { tags: ["힐링"], contentRating: "all" }), make("판타지", { tags: ["판타지"], contentRating: "teen" }), make("둘다", { tags: ["힐링", "판타지"], contentRating: "teen", name: "숲의 마법사 둘다" }), make("현대", { tags: ["현대"], contentRating: "all" })]; // 네 캐릭터
         const base = createDiscoveryFilter(); // 처음 조건
         expect(ids(applyDiscoveryFilter(characters, { ...base, genres: ["힐링", "판타지"] }, none))).toEqual(["힐링이", "판타지", "둘다"]); // 장르 둘 중 하나
         expect(ids(applyDiscoveryFilter(characters, { ...base, genres: ["힐링", "판타지"], rating: "teen" }, none))).toEqual(["판타지", "둘다"]); // 장르와 등급

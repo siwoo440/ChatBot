@@ -581,6 +581,87 @@
     content: "♥"; /* 하트 문자 */
 } /* 하트 종료 */
 
+.tagSearch /* 태그로 좁히기 */
+{ /* 영역 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 10px; /* 간격 */
+    margin-bottom: 18px; /* 아래 여백 */
+    padding: 14px 16px; /* 안쪽 여백 */
+    border: 1px solid light-dark(#ddd6fe, #30275b); /* 테두리 */
+    border-radius: 18px; /* 모서리 */
+    background: light-dark(rgb(255 255 255 / 86%), rgb(28 25 38 / 86%)); /* 배경 */
+} /* 영역 종료 */
+
+.tagSearch ul /* 태그 목록 */
+{ /* 목록 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 */
+    gap: 8px; /* 간격 */
+    margin: 0; /* 여백 제거 */
+    padding: 0; /* 여백 제거 */
+    list-style: none; /* 점 제거 */
+} /* 목록 종료 */
+
+.tagSearch p /* 안내 */
+{ /* 안내 시작 */
+    margin: 0; /* 여백 제거 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .86rem; /* 크기 */
+    font-weight: 700; /* 굵기 */
+    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
+} /* 안내 종료 */
+
+.tagSearch button /* 태그 버튼 */
+{ /* 버튼 시작 */
+    display: inline-flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    gap: 6px; /* 간격 */
+    min-height: 40px; /* 누르기 쉬운 높이 */
+    padding: 0 14px; /* 여백 */
+    border: 1px solid light-dark(#ddd6fe, #30275b); /* 테두리 */
+    border-radius: 999px; /* 알약 */
+    background: light-dark(#ffffff, var(--mv-surface)); /* 배경 */
+    color: light-dark(#5b21b6, #c4b5fd); /* 글자 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .9rem; /* 크기 */
+    font-weight: 750; /* 굵기 */
+    cursor: pointer; /* 커서 */
+    overflow-wrap: anywhere; /* 긴 태그 줄바꿈 */
+} /* 버튼 종료 */
+
+.tagSearch button:hover /* 태그 올림 */
+{ /* 올림 시작 */
+    border-color: light-dark(#7c3aed, #a273f2); /* 강조 테두리 */
+} /* 올림 종료 */
+
+.tagSearch button small /* 작품 수 */
+{ /* 수 시작 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .78rem; /* 작은 글자 */
+    font-weight: 700; /* 굵기 */
+    font-variant-numeric: tabular-nums; /* 숫자 폭 고정 */
+} /* 수 종료 */
+
+.tagChosen button /* 고른 태그 */
+{ /* 고른 태그 시작 */
+    border-color: light-dark(#6d28d9, #7c3aed); /* 강조 테두리 */
+    background: light-dark(#6d28d9, #5b21b6); /* 채움 */
+    color: #ffffff; /* 흰 글자 */
+} /* 고른 태그 종료 */
+
+.tagChosen button span /* 빼기 표시 */
+{ /* 표시 시작 */
+    font-size: 1rem; /* 크기 */
+    line-height: 1; /* 줄 높이 */
+    opacity: .85; /* 살짝 흐리게 */
+} /* 표시 종료 */
+
+.tagSearch button:focus-visible /* 태그 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 2px; /* 간격 */
+} /* 초점 종료 */
+
 .filterBar /* 정렬과 필터 */
 { /* 막대 시작 */
     display: flex; /* 가로 배치 */

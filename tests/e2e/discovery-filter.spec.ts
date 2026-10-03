@@ -52,6 +52,49 @@ test("메인에서 장르 여러 개와 조건을 함께 걸고 정렬을 바꾼
     await expect(bar.getByRole("button", { name: "조건 지우기" })).toHaveCount(0); // 지우기 버튼 사라짐
 }); // 테스트 종료
 
+test("메인 검색창에서 #태그를 여러 개 골라 작품을 좁혀 간다", async ({ page }) => // 태그 검색 흐름 검증
+{ // 테스트 시작
+    await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
+    await seed(page); // 준비
+    await page.goto("/"); // 메인
+    const search = page.getByRole("searchbox", { name: "제목과 작가 검색" }); // 검색창
+    const count = page.getByRole("region", { name: "정렬과 필터" }).getByRole("status", { name: "찾은 캐릭터" }); // 찾은 수
+    const read = async () => Number(/캐릭터 (\d+)명/.exec(await count.innerText())?.[1]); // 찾은 수 읽기
+    const total = await read(); // 전체 수
+    await search.fill("#판"); // 태그 입력 시작
+    const panel = page.getByRole("region", { name: "태그로 좁히기" }); // 태그 영역
+    await expect(panel.getByRole("list", { name: "태그 제안" }).getByRole("button").first()).toHaveAccessibleName(/^#판타지 태그 더하기/); // 첫 제안
+    await search.press("Enter"); // 첫 제안 고르기
+    await expect(search).toHaveValue(""); // 입력 중이던 토막 지워짐
+    await expect(panel.getByRole("button", { name: "#판타지 태그 빼기" })).toBeVisible(); // 칩
+    const fantasy = await read(); // 판타지 작품 수
+    expect(fantasy).toBeLessThan(total); // 줄어듦
+    await panel.getByRole("button", { name: /^#미스터리 태그 더하기/ }).click(); // 미스터리도
+    await expect(count).toContainText("조건 2개"); // 조건 수
+    const both = await read(); // 둘 다 가진 작품 수
+    expect(both).toBeGreaterThan(0); // 결과 있음
+    expect(both).toBeLessThan(fantasy); // 더 좁혀짐
+    await expect(page.getByRole("region", { name: "캐릭터 탐색 결과" }).getByRole("link", { name: /달빛 기록관의 노아/ })).toBeVisible(); // 둘 다 가진 노아
+    await search.fill("#감성 "); // 다 적고 띄어쓰기
+    await expect(panel.getByRole("button", { name: "#감성 태그 빼기" })).toBeVisible(); // 정확히 같은 태그라 칩으로
+    expect(await read()).toBeLessThanOrEqual(both); // 더 좁혀지거나 그대로
+    await panel.getByRole("button", { name: "#판타지 태그 빼기" }).click(); // 판타지 빼기
+    await expect(panel.getByRole("button", { name: "#판타지 태그 빼기" })).toHaveCount(0); // 빠짐
+    await page.getByRole("button", { name: "조건 지우기" }).click(); // 지우기
+    await expect(page.getByRole("region", { name: "태그로 좁히기" })).toHaveCount(0); // 태그 영역 사라짐
+    expect(await read()).toBe(total); // 처음으로
+    const results = page.getByRole("region", { name: "캐릭터 탐색 결과" }); // 결과
+    await search.fill("아카이브 스튜디오"); // #이 없으면 작가 이름으로
+    await expect(results.getByRole("link", { name: /새벽 도서관의 리안/ })).toBeVisible(); // 그 작가의 작품
+    await search.fill("ㅎㄹ"); // 제목 초성(하린)
+    await expect(results.getByRole("link", { name: /퇴근길 카페의 하린/ })).toBeVisible(); // 제목으로 찾음
+    await search.fill("판타지"); // 태그 이름을 #없이
+    await expect(results.getByRole("link", { name: /새벽 도서관의 리안/ })).toHaveCount(0); // 태그는 #을 붙여야 찾음
+    await search.fill("리안 #판"); // 제목과 태그를 함께
+    await expect(results.getByRole("link")).toHaveCount(1); // 리안만
+    await expect(results.getByRole("link", { name: /새벽 도서관의 리안/ })).toBeVisible(); // 리안
+}); // 테스트 종료
+
 for (const width of [390, 820, 1440]) // 화면 너비 순회
 { // 순회 시작
     test(`${width}px 메인의 정렬과 필터는 조건을 걸어도 가로로 넘치지 않는다`, async ({ page }) => // 넘침 검증
@@ -67,5 +110,11 @@ for (const width of [390, 820, 1440]) // 화면 너비 순회
         await bar.getByRole("checkbox", { name: "처음 만나는 캐릭터만" }).check(); // 조건
         await expect(bar.getByRole("button", { name: "조건 지우기" })).toBeVisible(); // 지우기 버튼
         expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0); // 조건을 건 화면 넘침 없음
+        await bar.getByRole("button", { name: "조건 지우기" }).click(); // 조건을 지우고 태그 검색으로
+        const search = page.getByRole("searchbox", { name: "제목과 작가 검색" }); // 검색창
+        await search.fill("#힐링 "); // 태그 고르기
+        await search.fill("#"); // 이어서 좁힐 태그 보기
+        await expect(page.getByRole("region", { name: "태그로 좁히기" }).getByRole("list", { name: "태그 제안" })).toBeVisible(); // 제안 목록
+        expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0); // 태그 영역 넘침 없음
     }); // 테스트 종료
 } // 순회 종료

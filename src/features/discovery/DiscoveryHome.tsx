@@ -2,12 +2,13 @@
 
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 링크
-import { useMemo, useState } from "react"; // 리액트 상태
+import { useMemo, useState, type KeyboardEvent } from "react"; // 리액트 상태
 import { canViewMatureContent, getDiscoverableCharacters } from "@/features/adult/adult-access"; // 19세 콘텐츠 필터
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { CategoryFilter } from "@/features/discovery/CategoryFilter"; // 카테고리 필터
 import { CharacterRail } from "@/features/discovery/CharacterRail"; // 캐릭터 레일
-import { applyDiscoveryFilter, countActiveFilters, createDiscoveryFilter, discoverySorts, getInterestCharacterIds, getTalkedCharacterIds, isDefaultFilter, ratingFilters, toggleGenre, type DiscoveryFilter, type DiscoverySort, type RatingFilter } from "@/features/discovery/discovery-filter"; // 정렬과 필터
+import { absorbTags, addTag, applyDiscoveryFilter, countActiveFilters, createDiscoveryFilter, discoverySorts, getInterestCharacterIds, getTalkedCharacterIds, isDefaultFilter, parseSearchQuery, ratingFilters, removePendingTag, suggestTags, TAG_FILTER_LIMIT, toggleGenre, type DiscoveryFilter, type DiscoverySort, type RatingFilter } from "@/features/discovery/discovery-filter"; // 정렬과 필터·태그 검색
+import { buildTagStats } from "@/features/explore/explore-model"; // 태그 통계
 import { FeaturedCharacter } from "@/features/discovery/FeaturedCharacter"; // 추천 캐릭터
 import { RankingRail } from "@/features/discovery/RankingRail"; // 랭킹 레일
 import { getInterestCharacters, getRecommendedCharacters } from "@/features/discovery/recommendation-model"; // 유저 추천·관심 목록
@@ -32,6 +33,18 @@ export function DiscoveryHome() // 탐색 홈
     const publicCount = discoverable.length; // 공개 캐릭터 수
     const defaultView = isDefaultFilter(filter); // 기본 화면 판정(조건 없음·추천순)
     const activeCount = countActiveFilters(filter); // 걸린 조건 수
+    const knownTags = useMemo(() => buildTagStats(discoverable).map((stat) => stat.tag), [discoverable]); // 공개 작품에 쓰인 태그
+    const pendingTag = parseSearchQuery(filter.query).pending; // 검색창에 입력 중인 #태그
+    const tagFull = filter.tags.length >= TAG_FILTER_LIMIT; // 태그 한도 도달
+    const tagSuggestions = useMemo(() => // 이어서 좁힐 태그(입력 중인 토막을 뺀 지금 결과 기준)
+    { // 계산 시작
+        if (tagFull || (pendingTag === null && filter.tags.length === 0)) // 한도 도달·태그 검색 중이 아님
+        { // 조건 시작
+            return []; // 제안 없음
+        } // 조건 종료
+        const base = pendingTag === null ? filtered : applyDiscoveryFilter(discoverable, { ...filter, query: removePendingTag(filter.query) }, { talkedIds, interestIds }); // 제안 기준 작품
+        return suggestTags(base, filter.tags, pendingTag); // 제안 반환
+    }, [discoverable, filter, filtered, interestIds, pendingTag, tagFull, talkedIds]); // 제안 의존
     const rankingCharacters = defaultView ? filtered.slice(0, 10) : []; // 상위 랭킹 목록
     const browsableCharacters = defaultView ? filtered.slice(10) : filtered; // 탐색 대상 목록
     const visibleCharacters = browsableCharacters.slice(0, visibleCount); // 현재 표시 목록
@@ -44,7 +57,21 @@ export function DiscoveryHome() // 탐색 홈
         setChosen((current) => ({ ...current, ...patch })); // 조건 저장
         setVisibleCount(pageSize); // 표시 수 초기화
     }; // 함수 종료
-    const updateQuery = (value: string) => change({ query: value }); // 검색어 변경
+    const updateQuery = (value: string) => change(absorbTags(value, filter.tags, knownTags)); // 검색어 변경(다 적은 #태그는 칩으로)
+    const pickTag = (tag: string) => change({ tags: addTag(filter.tags, tag), query: removePendingTag(filter.query) }); // 제안한 태그 고르기(입력 중인 토막은 지움)
+    const removeTag = (tag: string) => change({ tags: filter.tags.filter((item) => item !== tag) }); // 고른 태그 빼기
+    const handleSearchKey = (event: KeyboardEvent<HTMLInputElement>) => // 검색창 키 처리
+    { // 함수 시작
+        if (event.key === "Enter" && !event.nativeEvent.isComposing && pendingTag !== null && tagSuggestions[0] !== undefined) // Enter로 첫 제안 고르기
+        { // 조건 시작
+            event.preventDefault(); // 기본 동작 차단
+            pickTag(tagSuggestions[0].tag); // 첫 제안
+        } // 조건 종료
+        else if (event.key === "Backspace" && filter.query.length === 0 && filter.tags.length > 0) // 빈 검색창에서 지우기
+        { // 조건 시작
+            removeTag(filter.tags[filter.tags.length - 1]); // 마지막 태그 빼기
+        } // 조건 종료
+    }; // 함수 종료
     const updateCategory = (value: string) => change({ genres: value === categories[0] ? [] : toggleGenre(filter.genres, value) }); // 장르 넣고 빼기(전체는 모두 해제)
     const reset = () => // 조건 지우기
     { // 함수 시작
@@ -62,9 +89,21 @@ export function DiscoveryHome() // 탐색 홈
                 </div> {/* 문구 종료 */}
                 <div className={styles.searchBox}> {/* 검색 영역 */}
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg> {/* 검색 아이콘 */}
-                    <input type="search" aria-label="캐릭터와 세계관 검색" placeholder="캐릭터와 세계관 검색" value={filter.query} onChange={(event) => updateQuery(event.target.value)} /> {/* 검색 입력 */}
+                    <input type="search" aria-label="제목과 작가 검색" aria-describedby="tag-search-hint" placeholder="제목·작가 검색, #태그로 좁히기" value={filter.query} onChange={(event) => updateQuery(event.target.value)} onKeyDown={handleSearchKey} /> {/* 검색 입력(#태그 지원) */}
+                    <span id="tag-search-hint" className="sr-only">그냥 적으면 작품 제목과 작가 이름에서 찾습니다. #을 붙여 태그를 적으면 태그 후보가 나옵니다. 태그를 여러 개 고르면 모두 가진 작품만 남습니다.</span> {/* 태그 검색 안내 */}
                 </div> {/* 검색 영역 종료 */}
             </header> {/* 헤더 종료 */}
+            {filter.tags.length === 0 && pendingTag === null ? null : ( // 태그 검색 판정
+                <section className={styles.tagSearch} aria-label="태그로 좁히기"> {/* 태그로 좁히기 */}
+                    {filter.tags.length === 0 ? null : <ul className={styles.tagChosen} aria-label="고른 태그">{filter.tags.map((tag) => <li key={tag}><button type="button" aria-label={`#${tag} 태그 빼기`} onClick={() => removeTag(tag)}>#{tag}<span aria-hidden="true">×</span></button></li>)}</ul>} {/* 고른 태그(모두 가진 작품만 남음) */}
+                    {tagFull ? <p>태그는 {TAG_FILTER_LIMIT}개까지 함께 고를 수 있어요.</p> : tagSuggestions.length === 0 ? <p role="status" aria-label="태그 안내">{pendingTag !== null && pendingTag.length > 0 ? `‘#${pendingTag}’에 맞는 태그가 없어요.` : "더 좁힐 태그가 없어요."}</p> : ( // 제안 판정
+                        <> {/* 제안 묶음 */}
+                            <p>{filter.tags.length === 0 ? "태그를 골라 주세요. Enter를 누르면 첫 태그를 골라요." : "이어서 좁히기"}</p> {/* 제안 안내 */}
+                            <ul aria-label="태그 제안">{tagSuggestions.map((stat) => <li key={stat.tag}><button type="button" aria-label={`#${stat.tag} 태그 더하기, 작품 ${stat.count}개`} onClick={() => pickTag(stat.tag)}>#{stat.tag}<small>{stat.count}</small></button></li>)}</ul> {/* 태그 제안(지금 남은 작품 기준 작품 수) */}
+                        </> // 제안 묶음 종료
+                    )} {/* 제안 판정 종료 */}
+                </section> // 태그로 좁히기 종료
+            )} {/* 태그 검색 판정 종료 */}
             {defaultView ? <RewardsBanner /> : null} {/* 출석·미션(기본 화면) */}
             <CategoryFilter categories={categories} selected={filter.genres} onSelect={updateCategory} /> {/* 카테고리(여러 개 고를 수 있음) */}
             <section className={styles.filterBar} aria-label="정렬과 필터"> {/* 정렬과 필터 */}

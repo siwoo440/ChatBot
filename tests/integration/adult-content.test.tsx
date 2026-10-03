@@ -52,7 +52,7 @@ describe("헤더 19+ 스위치", () => // 스위치 묶음
         const user = userEvent.setup(); // 사용자 동작 준비
         renderWithApp(<><AdultContentSwitch /><AdultProbe /><DiscoveryHome /></>); // 스위치와 메인 렌더
         expect(screen.getByText(/94명의 메이트/)).toBeInTheDocument(); // 숨김 상태 수 확인
-        await user.type(screen.getByRole("searchbox", { name: "캐릭터와 세계관 검색" }), "단서 렌즈"); // 19세 캐릭터 검색
+        await user.type(screen.getByRole("searchbox", { name: "제목과 작가 검색" }), "태오"); // 19세 캐릭터를 제목으로 검색
         expect(screen.getByText("조건에 맞는 캐릭터가 없습니다.")).toBeInTheDocument(); // 검색 숨김 확인
         const toggle = screen.getByRole("switch", { name: "19+ 콘텐츠 보기" }); // 스위치 조회
         expect(toggle).toHaveAttribute("aria-checked", "false"); // 꺼짐 확인
