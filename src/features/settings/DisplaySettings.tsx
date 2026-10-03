@@ -19,7 +19,7 @@ export function DisplaySettings() // 화면 레이아웃 화면
     }; // 함수 종료
     return ( // 화면 반환
         <> {/* 화면 설정 */}
-            <SettingsPageHeader kicker="PREFERENCES · DISPLAY" title="화면 레이아웃" description="기기 모드와 채팅 화면의 장면·이야기·조작 영역 배치를 정합니다. 바꾸면 바로 저장됩니다." /> {/* 페이지 머리말 */}
+            <SettingsPageHeader kicker="PREFERENCES · DISPLAY" title="화면 레이아웃" description="기기 모드와 채팅 화면의 대화·채팅방 설정 영역 배치를 정합니다. 바꾸면 바로 저장됩니다." /> {/* 페이지 머리말 */}
             <section className={styles.section} aria-labelledby="display-form-title"> {/* 화면 설정 영역 */}
                 <h2 id="display-form-title">화면 설정</h2> {/* 영역 제목 */}
                 <label>플랫폼 모드<select value={state.settings.platformMode} onChange={(event) => update({ platformMode: event.target.value as PlatformMode })}><option value="auto">자동</option><option value="mobile">모바일</option><option value="tablet">태블릿</option><option value="desktop">데스크톱</option></select></label> {/* 플랫폼 선택 */}

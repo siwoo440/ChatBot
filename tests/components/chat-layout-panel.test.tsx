@@ -28,6 +28,16 @@ describe("채팅 화면 배치와 채팅방 설정 패널", () => // 묶음
         expect(screen.queryByRole("combobox", { name: "채팅 레이아웃" })).toBeNull(); // 채팅방 설정에는 배치 선택이 없음(오른쪽 패널과 중복)
     }); // 검증 종료
 
+    it.each([["캐릭터", { characterId: "rian" }], ["스토리", { storyId: "story-moonlit-archive" }]])("%s 대화 화면에는 왼쪽 장면 영역이 없고 대화 영역과 채팅방 설정만 둔다", (_mode, props) => // 장면 영역 제거 검증
+    { // 검증 시작
+        const { container } = renderWithApp(<ChatScreen {...props} />); // 렌더
+        const main = container.querySelector("main"); // 채팅 본문
+        expect(screen.queryByRole("img", { name: /현재 장면/ })).toBeNull(); // 장면 그림 없음
+        expect(screen.queryByText(/이야기 장면$/)).toBeNull(); // 장면 설명 없음
+        expect(Array.from(main?.children ?? []).map((item) => item.tagName)).toEqual(["SECTION", "ASIDE"]); // 대화 영역과 채팅방 설정만
+        expect(main?.firstElementChild).toContainElement(screen.getByRole("textbox", { name: "메시지" })); // 첫 영역이 대화
+    }); // 검증 종료
+
     it("넓은 화면에서는 채팅방 설정 열을 접고 펴며 펼침 상태를 저장한다", async () => // 접기 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자

@@ -86,11 +86,25 @@ test("390px에서 채팅방 설정은 오른쪽 서랍으로 열리고 Esc로 �
     await expect(toggle).toBeFocused(); // 초점 복귀
 }); // 검증 종료
 
-test("관계 스탯 값이 INFO·오른쪽 관계 표시·왼쪽 대화방 카드에 같은 값으로 보이고 새 장면 그림을 쓴다", async ({ page }) => // 관계 스탯 검증
+test("왼쪽 장면 영역 없이 대화 영역이 화면을 넓게 쓰고, 장면 이미지는 입력창 아래 버튼으로 만든다", async ({ page }) => // 장면 영역 제거 검증
+{ // 검증 시작
+    await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
+    await openRianChat(page); // 열기
+    await expect(page.getByRole("img", { name: /현재 장면/ })).toHaveCount(0); // 장면 그림 없음
+    const story = await page.locator("main > section").first().boundingBox(); // 대화 영역
+    const panel = await page.locator("#chat-settings-panel").boundingBox(); // 채팅방 설정
+    expect(story !== null && panel !== null && story.x <= 24 && story.width >= 1100 && panel.x >= story.x + story.width).toBe(true); // 대화가 왼쪽 끝부터 넓게, 설정은 그 오른쪽
+    await page.getByRole("button", { name: "채팅방 설정 닫기" }).click(); // 설정 접기
+    const wide = await page.locator("main > section").first().boundingBox(); // 접은 뒤 대화 영역
+    expect(wide !== null && wide.width >= 1360).toBe(true); // 화면 전체 폭
+    await page.getByRole("button", { name: "장면 이미지 생성 · 20토큰" }).click(); // 장면 만들기
+    await expect(page.getByRole("img", { name: "이 장면의 상황 이미지" })).toHaveAttribute("src", /fallback-scene\.webp/); // 새 장면 그림이 마지막 응답 아래에
+}); // 검증 종료
+
+test("관계 스탯 값이 INFO·오른쪽 관계 표시·왼쪽 대화방 카드에 같은 값으로 보인다", async ({ page }) => // 관계 스탯 검증
 { // 검증 시작
     await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
     await openRianChat(page); // 열기(리안 대화: 관계 34)
-    await expect(page.getByRole("img", { name: "새벽 도서관의 리안의 현재 장면" })).toHaveAttribute("src", /dawn-letter\.webp/); // 새 장면 그림
     await expect(page.getByText("관계 · 아는 사이", { exact: true })).toBeVisible(); // 시작 관계 단계
     await expect(page.getByText("❤️ 호감도 34/100", { exact: true })).toBeVisible(); // 시작 관계 값
     await send(page, "선물 가져왔어, 고마워"); // 선물 +5, 고마워 +2, AI 최대 +5

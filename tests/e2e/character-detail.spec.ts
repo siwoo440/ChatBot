@@ -47,7 +47,8 @@ test("탐색부터 두 개의 하린 대화를 시작하고 보관함에서 각�
     await page.getByRole("radio", { name: /마감 뒤의 한 잔/ }).click(); // 둘째 프리셋 선택
     await page.getByRole("button", { name: "히어로 새 대화 시작" }).click(); // 첫 대화 시작
     await expect(page).toHaveURL(/\/chat\/harin\?conversation=.*&version=.*/); // 대화 주소 확인
-    await expect(page.getByRole("img", { name: "퇴근길 카페의 하린의 현재 장면" })).toBeVisible(); // 장면 이미지 확인
+    await expect(page.getByRole("heading", { level: 1, name: /퇴근길 카페의 하린/ })).toBeVisible(); // 대화 화면 확인
+    await expect(page.getByRole("img", { name: /현재 장면/ })).toHaveCount(0); // 왼쪽 장면 영역 없음
     await page.goto("/characters/harin"); // 상세 재방문
     await expect(page.getByRole("button", { name: "최근 대화 이어하기", exact: true })).toBeVisible(); // 이어하기 노출 확인
     await page.getByRole("button", { name: "최근 대화 이어하기", exact: true }).click(); // 최근 대화 이동

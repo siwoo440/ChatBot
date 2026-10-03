@@ -21,7 +21,6 @@ import { createSuggestedReplies } from "@/features/chat/suggestion-model"; // �
 import { TierSelector } from "@/features/chat/TierSelector"; // 모델 등급 선택
 import { ChatController, type ChatProgress, type EditMessageResult, type SendResult } from "@/features/chat/chat-controller"; // 채팅 제어기
 import { MessageList } from "@/features/chat/MessageList"; // 메시지 목록
-import { SceneViewer } from "@/features/chat/SceneViewer"; // 장면 보기
 import { ensureConversationForCharacter, getCharacterDetailProfile, resolveConversationRoute } from "@/features/character/character-detail-model"; // 대화 준비·상세 프로필
 import { createSessionHref, deriveDisplayName, ensureConversationForStory, getStoryCastEntries, isStoryLocked, resolveStoryConversationRoute, STORY_CONTINUE_TEXT } from "@/features/story/story-model"; // 스토리 대화 준비
 import { getConversationVersion, getMessageVersionGroup, getVersionMessages, removeVersionTree } from "@/features/conversation/conversation-versioning"; // 버전 도메인 함수
@@ -415,7 +414,8 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     { // 함수 시작
         const result = await controller.generateManualScene(); // 장면 생성
         sync(); // 상태 동기화
-        setNotice(result.ok ? "새 장면을 만들었습니다." : result.reason === "insufficient-token" ? "이미지를 만들 토큰이 부족합니다." : "장면을 만들지 못했습니다."); // 안내 갱신
+        const made = latestGlobalState.current.settings.showSceneImages ? "새 장면을 만들었습니다." : "새 장면을 만들었습니다. ‘상황 이미지 보기’를 켜면 대화에서 볼 수 있어요."; // 만든 그림은 마지막 응답 아래에 붙음(숨김이면 켜는 방법 안내)
+        setNotice(result.ok ? made : result.reason === "insufficient-token" ? "이미지를 만들 토큰이 부족합니다." : "장면을 만들지 못했습니다."); // 안내 갱신
     }; // 함수 종료
     const storyMode = conversation.mode === "story"; // 스토리 모드 여부
     const story = storyMode ? snapshot.stories.find((item) => item.id === conversation.storyId) : undefined; // 연결 스토리
@@ -458,11 +458,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     return ( // 채팅 반환
         <main className={styles.chat} data-layout={layout} data-panel={overlay ? undefined : panelOpen ? "open" : "closed"} data-overlay={overlay ? "true" : undefined} data-mode={conversation.mode} data-genre={getGenreKey(story?.tags ?? character.tags)} data-surface="light" style={{ "--chat-font": getChatFontFamily(state.settings.chatFont), "--chat-font-size": getChatFontSize(state.settings.chatFontSize) } as CSSProperties}> {/* 채팅 본문 */}
             <ChatShortcuts onRegenerate={canRegenerate ? () => void regenerate() : undefined} onShortcuts={() => openDialog("shortcuts")} font={state.settings.chatFont} /> {/* 화면 단축키·글꼴 불러오기 */}
-            <section className={styles.scene}> {/* 장면 영역 */}
-                <SceneViewer src={version.currentScene} name={title} /> {/* 현재 장면 */}
-                <button type="button" className={styles.sceneButton} onClick={generateScene}>장면 이미지 생성 · 20</button> {/* 이미지 버튼 */}
-            </section> {/* 장면 종료 */}
-            <section className={styles.story}> {/* 대화 영역 */}
+            <section className={styles.story}> {/* 대화 영역(왼쪽 장면 영역 없이 남는 폭을 모두 차지) */}
                 <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? `스토리 모드 · 등장인물 ${conversation.storyCast.length}명` : version.relationshipStage}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? "AI 스토리" : "AI 캐릭터"}>AI</span></h1></div><div className={styles.meta}><TierSelector settings={settings} onSelect={(tier) => updateSettings({ tier })} onSaveOptions={(tierOptions) => updateSettings({ tierOptions })} /><span>{version.emotion}</span><strong>{snapshot.wallet.balance} 토큰</strong><button ref={panelToggleRef} type="button" className={styles.panelToggle} aria-label="채팅방 설정 열기와 닫기" aria-expanded={panelOpen} aria-controls="chat-settings-panel" onClick={() => setPanelOpen(!panelOpen)}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>설정</button></div></header> {/* 대화 상태 */}
                 <p className={styles.aiNotice} role="note" aria-label="AI 이용 안내">{storyMode ? "AI가 만든 허구의 대화입니다. 등장인물은 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요." : "AI가 만든 허구의 대화입니다. 캐릭터는 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요."}</p> {/* AI 이용 안내 */}
                 {work.playGuide.trim().length === 0 ? null : <PlayGuideCard text={work.playGuide} onOpen={() => openDialog("guide")} />} {/* 플레이 가이드 */}
@@ -470,7 +466,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                 <p role="status" className={styles.notice}>{notice}</p> {/* 상태 안내 */}
                 {retryAvailable ? <div className={styles.requestActions}><button type="button" onClick={regenerate}>다시 시도</button></div> : null} {/* 재시도 영역 */}
                 {statusEnabled ? <StatusPanel messages={versionMessages} open={state.settings.statusPanelOpen} onToggle={toggleStatusPanel} initialStats={currentStatValues(work.statusTemplate, statusPeople, null, relationBaselines)} /> : null} {/* 고정 상태창(첫 응답 전에는 스탯 초기값) */}
-                <ChatComposer busy={busy} onSend={send} onCancel={cancel} storyCast={storyMode ? conversation.storyCast : undefined} onContinue={storyMode ? continueStory : undefined} getSuggestions={getSuggestions} commands={commands} /> {/* 메시지 입력 */}
+                <ChatComposer busy={busy} onSend={send} onCancel={cancel} storyCast={storyMode ? conversation.storyCast : undefined} onContinue={storyMode ? continueStory : undefined} getSuggestions={getSuggestions} commands={commands} onGenerateScene={() => void generateScene()} /> {/* 메시지 입력(장면 이미지 생성 버튼 포함) */}
             </section> {/* 대화 종료 */}
             {overlay && panelOpen ? <button type="button" className={styles.panelScrim} aria-hidden="true" tabIndex={-1} onClick={() => setPanelOpen(false)} /> : null} {/* 서랍 배경(누르면 닫기) */}
             <aside id="chat-settings-panel" className={styles.controls} aria-label="채팅방 설정" hidden={!overlay && !panelOpen} aria-hidden={overlay && !panelOpen ? true : undefined}> {/* 채팅방 설정(열고 닫기) */}

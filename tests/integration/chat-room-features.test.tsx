@@ -52,6 +52,30 @@ async function send(user: ReturnType<typeof userEvent.setup>, text: string) // E
 
 describe("채팅방 설정과 고정 상태창", () => // 기능 묶음
 { // 묶음 시작
+    it("장면 이미지 생성 버튼은 입력창 아래 입력 보조에 있고, 만든 그림은 마지막 응답 아래에 붙는다", async () => // 장면 버튼 위치 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구
+        renderChat(); // 렌더
+        const balance = () => Number(screen.getByLabelText("상태 확인").textContent?.split("|")[0]); // 잔액 읽기
+        const before = balance(); // 만들기 전 잔액
+        const tools = screen.getByRole("group", { name: "입력 보조" }); // 입력 보조
+        await user.click(within(tools).getByRole("button", { name: "장면 이미지 생성 · 20토큰" })); // 장면 만들기
+        expect((await screen.findByRole("img", { name: "이 장면의 상황 이미지" })).getAttribute("src")).toContain("fallback-scene.webp"); // 마지막 응답 아래 그림
+        expect(screen.getByText("새 장면을 만들었습니다.")).toBeVisible(); // 안내
+        await waitFor(() => expect(balance()).toBe(before - 20)); // 20토큰 차감
+    }); // 검증 종료
+
+    it("상황 이미지 보기를 끈 채 장면 이미지를 만들면 켜는 방법을 알려 준다", async () => // 숨김 안내 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구
+        const state = createInitialState(); // 초기 상태
+        state.settings.showSceneImages = false; // 상황 이미지 숨김
+        renderWithApp(<ChatScreen characterId="rian" llm={new MockLLMAdapter({ delayMs: 0 })} images={new MockImageAdapter()} />, state); // 렌더
+        await user.click(screen.getByRole("button", { name: "장면 이미지 생성 · 20토큰" })); // 장면 만들기
+        expect(await screen.findByText("새 장면을 만들었습니다. ‘상황 이미지 보기’를 켜면 대화에서 볼 수 있어요.")).toBeVisible(); // 켜는 방법 안내
+        expect(screen.queryByRole("img", { name: "이 장면의 상황 이미지" })).toBeNull(); // 대화에는 숨김
+    }); // 검증 종료
+
     it("INFO 상태창은 응답마다 고정 자리에서 갱신되고 이전 턴 상태창을 넘겨 볼 수 있다", async () => // 상태창 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구

@@ -1,8 +1,8 @@
 .chat /* 채팅 화면 */
 { /* 화면 시작 */
     display: grid; /* 그리드 배치 */
-    grid-template-areas: "scene story controls"; /* 기본 영역 */
-    grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.2fr) minmax(190px, 0.5fr); /* 기본 열 */
+    grid-template-areas: "story controls"; /* 기본 영역(대화·채팅방 설정) */
+    grid-template-columns: minmax(0, 1fr) var(--chat-controls, 220px); /* 대화가 남는 폭을 모두 차지 */
     gap: 18px; /* 영역 간격 */
     min-height: calc(100vh - 64px); /* 화면 높이 */
     overflow-x: clip; /* 장식 가로 넘침 자르기 */
@@ -10,61 +10,6 @@
     background: radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--genre) 16%, transparent), transparent 34%), radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--genre) 10%, transparent), transparent 36%), var(--mv-canvas); /* 장르색 은은한 배경 */
     color: var(--mv-ink); /* 기본 글자 */
 } /* 화면 종료 */
-
-.scene /* 장면 영역 */
-{ /* 장면 시작 */
-    grid-area: scene; /* 장면 위치 */
-    display: grid; /* 세로 배치 */
-    align-content: start; /* 위 정렬 */
-    gap: 12px; /* 요소 간격 */
-    min-width: 0; /* 줄임 허용 */
-} /* 장면 종료 */
-
-.scene figure /* 장면 그림 */
-{ /* 그림 시작 */
-    margin: 0; /* 기본 여백 제거 */
-    overflow: hidden; /* 모서리 자르기 */
-    border: 1px solid var(--mv-line); /* 테두리 */
-    border-radius: 22px; /* 둥근 모서리 */
-    background: var(--mv-surface); /* 배경 */
-    box-shadow: 0 18px 40px var(--genre-glow); /* 장르 그림자 */
-} /* 그림 종료 */
-
-.scene img /* 장면 이미지 */
-{ /* 이미지 시작 */
-    display: block; /* 블록 표시 */
-    width: 100%; /* 이미지 너비 */
-    height: min(65vh, 620px); /* 이미지 높이 */
-    object-fit: cover; /* 이미지 채움 */
-} /* 이미지 종료 */
-
-.scene figcaption /* 장면 설명 */
-{ /* 설명 시작 */
-    padding: 10px 14px; /* 내부 여백 */
-    color: var(--genre-strong); /* 장르 진한 글자 */
-    font-size: .86rem; /* 작은 글자 */
-    font-weight: 700; /* 굵은 글자 */
-    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
-} /* 설명 종료 */
-
-.sceneButton /* 장면 생성 버튼 */
-{ /* 버튼 시작 */
-    justify-self: start; /* 왼쪽 정렬 */
-    min-height: 42px; /* 터치 높이 */
-    padding: 0 16px; /* 내부 여백 */
-    border: 1px solid color-mix(in srgb, var(--genre) 35%, var(--mv-surface)); /* 테두리 */
-    border-radius: 999px; /* 알약 모양 */
-    background: var(--mv-surface); /* 흰 배경 */
-    color: var(--genre-strong); /* 장르 진한 글자 */
-    font-weight: 800; /* 굵은 글자 */
-    cursor: pointer; /* 클릭 커서 */
-    transition: background 150ms ease; /* 전환 */
-} /* 버튼 종료 */
-
-.sceneButton:hover /* 장면 버튼 올림 */
-{ /* 올림 시작 */
-    background: var(--genre-soft); /* 장르 연한 배경 */
-} /* 올림 종료 */
 
 .story /* 대화 영역 */
 { /* 대화 시작 */
@@ -653,63 +598,22 @@
     font-weight: 800; /* 굵은 글자 */
 } /* 표제 종료 */
 
-.chat[data-layout="M1"], /* 모바일 균형 */
-.chat[data-layout="M2"], /* 모바일 장면 */
-.chat[data-layout="M3"] /* 모바일 채팅 */
-{ /* 모바일 시작 */
-    grid-template-areas: "scene" "story" "controls"; /* 모바일 영역 */
-    grid-template-columns: 1fr; /* 단일 열 */
-} /* 모바일 종료 */
+.chat[data-layout="T1"], /* 태블릿 가로 */
+.chat[data-layout="D3"] /* 데스크톱 초광폭 */
+{ /* 중간 시작 */
+    --chat-controls: 280px; /* 중간 설정 열 */
+} /* 중간 종료 */
 
-.chat[data-layout="M2"] .scene img /* 모바일 이미지 강조 */
-{ /* 이미지 시작 */
-    height: 72vh; /* 강조 높이 */
-} /* 이미지 종료 */
-
-.chat[data-layout="M3"] .scene /* 모바일 채팅 강조 */
-{ /* 장면 시작 */
-    display: none; /* 장면 숨김 */
-} /* 장면 종료 */
-
-.chat[data-layout="T1"] /* 태블릿 가로 */
-{ /* 태블릿 시작 */
-    grid-template-areas: "scene story" "controls story"; /* 태블릿 영역 */
-    grid-template-columns: 1fr 1fr; /* 이열 배치 */
-} /* 태블릿 종료 */
-
-.chat[data-layout="T2"], /* 태블릿 세로 */
-.chat[data-layout="T3"] /* 태블릿 정보 */
-{ /* 태블릿 시작 */
-    grid-template-areas: "scene controls" "story story"; /* 태블릿 영역 */
-    grid-template-columns: 2fr 1fr; /* 정보 배치 */
-} /* 태블릿 종료 */
-
-.chat[data-layout="D1"] /* 데스크톱 집중 */
-{ /* 집중 시작 */
-    grid-template-columns: minmax(300px, 0.8fr) minmax(480px, 1.4fr) 220px; /* 중앙 강조 */
-} /* 집중 종료 */
-
-.chat[data-layout="D2"] /* 데스크톱 삼열 */
-{ /* 삼열 시작 */
-    grid-template-columns: repeat(3, minmax(0, 1fr)); /* 균등 삼열 */
-} /* 삼열 종료 */
-
-.chat[data-layout="D3"] /* 데스크톱 시네마틱 */
-{ /* 시네마틱 시작 */
-    grid-template-areas: "scene scene" "story controls"; /* 시네마틱 영역 */
-    grid-template-columns: 1fr 280px; /* 하단 정보 */
-} /* 시네마틱 종료 */
-
-.chat[data-layout="D3"] .scene img /* 시네마틱 이미지 */
-{ /* 이미지 시작 */
-    height: 58vh; /* 시네마틱 높이 */
-} /* 이미지 종료 */
+.chat[data-layout="D2"] /* 데스크톱 넓은 화면 */
+{ /* 넓은 화면 시작 */
+    --chat-controls: 320px; /* 넓은 설정 열 */
+} /* 넓은 화면 종료 */
 
 @media (max-width: 760px) /* 모바일 안전망 */
 { /* 미디어 시작 */
     .chat /* 채팅 화면 */
     { /* 화면 시작 */
-        grid-template-areas: "scene" "story" "controls"; /* 단일 영역 */
+        grid-template-areas: "story" "controls"; /* 단일 영역 */
         grid-template-columns: 1fr; /* 단일 열 */
         padding: 12px; /* 모바일 여백 */
     } /* 화면 종료 */
@@ -865,36 +769,10 @@
     color: var(--mv-muted); /* 회색 */
 } /* 설명 종료 */
 
-
-.chat[data-panel="closed"] /* 채팅방 설정 접음(넓은 화면) */
-{ /* 접음 시작 */
-    grid-template-areas: "scene story"; /* 장면·대화 */
-    grid-template-columns: minmax(280px, 0.8fr) minmax(420px, 1.6fr); /* 대화를 넓게 */
-} /* 접음 종료 */
-
-.chat[data-panel="closed"][data-layout="D1"] /* 집중 접음 */
-{ /* 집중 시작 */
-    grid-template-columns: minmax(300px, 0.7fr) minmax(520px, 1.6fr); /* 중앙 강조 */
-} /* 집중 종료 */
-
-.chat[data-panel="closed"][data-layout="D2"], /* 삼열 접음 */
-.chat[data-panel="closed"][data-layout="T1"] /* 태블릿 가로 접음 */
-{ /* 이열 시작 */
-    grid-template-areas: "scene story"; /* 장면·대화 */
-    grid-template-columns: repeat(2, minmax(0, 1fr)); /* 균등 이열 */
-} /* 이열 종료 */
-
-.chat[data-panel="closed"][data-layout="D3"], /* 시네마틱 접음 */
-.chat[data-panel="closed"][data-layout="T2"], /* 태블릿 세로 접음 */
-.chat[data-panel="closed"][data-layout="T3"] /* 태블릿 정보 접음 */
-{ /* 단일 시작 */
-    grid-template-areas: "scene" "story"; /* 위아래 */
-    grid-template-columns: minmax(0, 1fr); /* 단일 열 */
-} /* 단일 종료 */
-
+.chat[data-panel="closed"], /* 채팅방 설정 접음(넓은 화면) */
 .chat[data-overlay="true"] /* 모바일 서랍 배치 */
 { /* 서랍 배치 시작 */
-    grid-template-areas: "scene" "story"; /* 설정은 서랍으로 */
+    grid-template-areas: "story"; /* 대화만(설정은 접히거나 서랍으로) */
     grid-template-columns: minmax(0, 1fr); /* 단일 열 */
 } /* 서랍 배치 종료 */
 

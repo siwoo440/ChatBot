@@ -23,9 +23,10 @@ interface ChatComposerProps // 채팅 입력 속성
     onContinue?(): Promise<void>; // 입력 없이 이야기 진행
     getSuggestions?(): string[]; // 추천 답변 만들기
     commands?: ComposerCommand[]; // / 명령어
+    onGenerateScene?(): void; // 장면 이미지 만들기(마지막 응답 아래에 붙음)
 } // 구조 종료
 
-export function ChatComposer({ busy, onSend, onCancel, storyCast, onContinue, getSuggestions, commands = [] }: ChatComposerProps) // 채팅 입력
+export function ChatComposer({ busy, onSend, onCancel, storyCast, onContinue, getSuggestions, commands = [], onGenerateScene }: ChatComposerProps) // 채팅 입력
 { // 함수 시작
     const [text, setText] = useState(""); // 입력 내용
     const [target, setTarget] = useState("all"); // 말 걸 상대(전체 또는 캐릭터 식별자)
@@ -146,9 +147,10 @@ export function ChatComposer({ busy, onSend, onCancel, storyCast, onContinue, ge
                 <label><span className="sr-only">메시지</span><textarea ref={inputRef} value={text} maxLength={CHAT_MESSAGE_MAX_LENGTH} onChange={(event) => setText(event.target.value)} onKeyDown={handleInputKey} placeholder={storyCast === undefined ? "이야기를 이어가세요 (/ 명령어)" : "대사나 행동을 적어 상황극을 이어가세요 (/ 명령어)"} disabled={busy} /></label> {/* 메시지 입력 */}
                 {busy ? <button type="button" onClick={onCancel}>응답 중단</button> : <button type="submit" disabled={text.trim().length === 0}>전송</button>} {/* 요청 제어 버튼 */}
             </form> {/* 양식 종료 */}
-            <div className={styles.composerTools}> {/* 입력 보조 */}
+            <div className={styles.composerTools} role="group" aria-label="입력 보조"> {/* 입력 보조 */}
                 <button type="button" aria-label="지문 넣기" title="지문(*행동*) 넣기 · Alt+8" disabled={busy} onClick={insertAction}>*</button> {/* 지문 */}
                 <button type="button" aria-label="명령어 열기" title="명령어 · 빈 입력창에서 /" aria-expanded={commandOpen} disabled={busy || commands.length === 0} onClick={() => setCommandOpen(!commandOpen)}>/</button> {/* 명령어 */}
+                {onGenerateScene === undefined ? null : <button type="button" aria-label="장면 이미지 생성 · 20토큰" title="마지막 응답 아래에 장면 이미지를 만들어요 · 20토큰" disabled={busy} onClick={onGenerateScene}>장면 이미지 · 20</button>} {/* 장면 이미지 */}
                 <button type="button" className={styles.suggestButton} aria-expanded={suggestions !== null} disabled={busy || getSuggestions === undefined} onClick={toggleSuggestions}>추천답변</button> {/* 추천 답변 */}
             </div> {/* 보조 종료 */}
         </> // 입력 묶음 종료

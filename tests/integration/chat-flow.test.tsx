@@ -657,7 +657,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         expect(screen.getByText("오늘 기록할 이야기가 많아.")).toBeVisible(); // 메시지 유지 확인
     }); // 검증 종료
 
-    it("내 이미지를 고르면 토큰 없이 현재 장면을 바꾸고 작품 등급보다 높은 이미지는 보이지 않는다", async () => // 내 이미지 장면 검증
+    it("내 이미지를 고르면 토큰 없이 마지막 응답 아래 장면 그림으로 붙고 작품 등급보다 높은 이미지는 보이지 않는다", async () => // 내 이미지 장면 검증
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구 생성
         const state = createInitialState(); // 초기 상태
@@ -668,7 +668,8 @@ describe("채팅 흐름", () => // 채팅 묶음
         const panel = screen.getByRole("region", { name: "내 이미지로 장면 바꾸기" }); // 내 이미지 패널
         expect(within(panel).queryByRole("button", { name: "비 오는 교실의 긴장 장면으로" })).toBeNull(); // 15세 이미지 제외
         await user.click(within(panel).getByRole("button", { name: "새벽 도서관 창가 장면으로" })); // 장면 바꾸기
-        expect(screen.getByRole("img", { name: "새벽 도서관의 리안의 현재 장면" })).toHaveAttribute("src", plain.src); // 장면 반영
+        expect(screen.getByRole("img", { name: "이 장면의 상황 이미지" })).toHaveAttribute("src", plain.src); // 마지막 응답 아래 장면 그림
+        expect(within(panel).getByRole("button", { name: "새벽 도서관 창가 장면으로" })).toHaveAttribute("data-current", "true"); // 지금 장면 표시
         expect(screen.getByLabelText("리안 버전 상태")).toHaveTextContent(`:${state.wallet.balance}`); // 토큰 차감 없음
         expect(screen.getByText("내 이미지로 장면을 바꿨습니다.")).toBeVisible(); // 안내 확인
     }); // 검증 종료
