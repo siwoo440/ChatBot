@@ -37,6 +37,16 @@ describe("작성 중 자동 저장 보관", () => // 보관 묶음
         expect(coerceDraft(base, "글자")).toBe(base); // 묶음이 아니면 기준 값
     }); // 검증 종료
 
+    it("설정집·예시 대화가 없는 예전 보관분은 빈 목록으로, 모양이 다른 항목은 기준 값으로 읽는다", () => // 설정집 모양 맞추기
+    { // 검증 시작
+        const withLore = { ...base, lorebook: [] as unknown[], examples: [] as unknown[] }; // 설정집이 있는 기준 초안
+        const entry = { id: "lore-1", title: "금서 구역", keywords: ["금서"], content: "사서만 들어갈 수 있다." }; // 올바른 설정
+        const example = { id: "example-1", user: "오늘 뭐 해?", reply: "책을 정리하고 있었어." }; // 올바른 예시
+        expect(coerceDraft(withLore, { name: "리안" })).toMatchObject({ name: "리안", lorebook: [], examples: [] }); // 예전 보관분
+        expect(coerceDraft(withLore, { lorebook: [entry], examples: [example] })).toMatchObject({ lorebook: [entry], examples: [example] }); // 올바른 값은 유지
+        expect(coerceDraft(withLore, { lorebook: [{ ...entry, keywords: "금서" }], examples: [{ ...example, reply: 7 }] })).toMatchObject({ lorebook: [], examples: [] }); // 다른 모양은 기준 값
+    }); // 검증 종료
+
     it("깨진 보관 값은 없는 것으로 본다", () => // 깨진 값
     { // 검증 시작
         localStorage.setItem("mateverse:draft:character:new", "{깨진 값"); // 깨진 JSON

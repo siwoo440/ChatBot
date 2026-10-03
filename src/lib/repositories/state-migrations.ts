@@ -9,7 +9,7 @@ import { deriveDisplayName } from "@/features/story/story-model"; // 짧은 이�
 import { upgradeScenePath } from "@/lib/assets/scene-paths"; // 장면 그림 경로
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
 import { mockStories } from "@/mocks/story-fixtures"; // 예시 스토리
-import { contentRatings, isAppState, isOneOf, isRecord, isString, isVersionEightState, isVersionElevenState, isVersionFifteenState, isVersionFiveState, isVersionFourState, isVersionFourteenState, isVersionNineState, isVersionSevenState, isVersionSixState, isVersionSixteenState, isVersionTenState, isVersionThirteenState, isVersionThreeState, isVersionTwelveState, isVersionTwoState, publicationStatuses } from "@/lib/repositories/state-validation"; // 데이터 검사
+import { contentRatings, isAppState, isOneOf, isRecord, isString, isVersionEightState, isVersionElevenState, isVersionFifteenState, isVersionFiveState, isVersionFourState, isVersionFourteenState, isVersionNineState, isVersionSevenState, isVersionSeventeenState, isVersionSixState, isVersionSixteenState, isVersionTenState, isVersionThirteenState, isVersionThreeState, isVersionTwelveState, isVersionTwoState, publicationStatuses } from "@/lib/repositories/state-validation"; // 데이터 검사
 
 export function migrateVersionSix(value: Record<string, unknown>): AppState | null // 버전 6 변환 함수
 { // 함수 시작
@@ -202,6 +202,17 @@ export function migrateVersionSixteen(value: Record<string, unknown>): AppState 
     const builtInIds = new Set([...mockCharacters.map((character) => character.id), ...mockStories.map((story) => story.id)]); // 기본 작품
     const withEvents = <T extends { id: string; statusTemplate: StatusTemplate }>(work: T) => ({ ...work, events: builtInIds.has(work.id) ? createDefaultEvents(work.statusTemplate) : [] }); // 기본 작품은 예시 이벤트, 직접 만든 작품은 빈 목록
     const candidate: unknown = { ...value, schemaVersion: 17, characters: (value.characters as Character[]).map(withEvents), stories: (value.stories as Story[]).map(withEvents) }; // 버전 17 후보
+    return isVersionSeventeenState(candidate) ? migrateVersionSeventeen(candidate) : null; // 연속 변환 반환
+} // 함수 종료
+
+export function migrateVersionSeventeen(value: Record<string, unknown>): AppState | null // 버전 17 변환 함수(키워드 설정집·예시 대화 추가)
+{ // 함수 시작
+    if (!isVersionSeventeenState(value)) // 버전 17 유효성 판정
+    { // 잘못된 상태 시작
+        return null; // 변환 중단
+    } // 잘못된 상태 종료
+    const withLore = <T extends object>(work: T) => ({ ...work, lorebook: [], examples: [] }); // 설정집·예시 대화는 빈 목록에서 시작
+    const candidate: unknown = { ...value, schemaVersion: 18, characters: (value.characters as Character[]).map(withLore), stories: (value.stories as Story[]).map(withLore) }; // 버전 18 후보
     return isAppState(candidate) ? candidate : null; // 유효 변환 반환
 } // 함수 종료
 
@@ -396,8 +407,12 @@ export function migrateParsedState(parsed: unknown): AppState | null // 분석 �
     } // 버전 15 종료
     if (parsed.schemaVersion === 16) // 버전 16 판정
     { // 버전 16 시작
-        return migrateVersionSixteen(parsed); // 버전 17 변환
+        return migrateVersionSixteen(parsed); // 버전 18 변환
     } // 버전 16 종료
+    if (parsed.schemaVersion === 17) // 버전 17 판정
+    { // 버전 17 시작
+        return migrateVersionSeventeen(parsed); // 버전 18 변환
+    } // 버전 17 종료
     return null; // 지원하지 않는 상태 반환
 } // 함수 종료
 

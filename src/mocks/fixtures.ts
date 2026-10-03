@@ -244,4 +244,6 @@ export const validCharacterDraft: CharacterDraft = // 유효 초안 기준값
     statusTemplate: createDefaultStatusTemplate(true), // 상태창 형식
     updates: [], // 업데이트 기록
     events: [], // 스탯 조건 이벤트
+    lorebook: [], // 키워드 설정집
+    examples: [], // 예시 대화
 }; // 초안 종료

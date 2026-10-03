@@ -1,4 +1,5 @@
 import { normalizeEvents, pruneEvents, validateEvents } from "@/features/chat/event-model"; // 이벤트 정리·검증
+import { normalizeExamples, normalizeLorebook, validateExamples, validateLorebook } from "@/features/chat/lore-model"; // 설정집·예시 대화 정리·검증
 import { normalizeRelationStatId } from "@/features/chat/relation-model"; // 관계 스탯 지정 정리
 import { normalizeStats, validateStats } from "@/features/chat/stat-model"; // 스탯 정리·검증
 import type { WorkExtras } from "@/features/core/defaults"; // 작품 추가 필드
@@ -13,7 +14,7 @@ export type WorkExtrasErrors = Partial<Record<keyof WorkExtras, string>>; // 추
 
 export function normalizeWorkExtras<T extends WorkExtras>(draft: T): T // 추가 필드 정리
 { // 함수 시작
-    return { ...draft, events: normalizeEvents(pruneEvents(draft.events, draft.statusTemplate.stats)), playGuide: draft.playGuide.trim(), statusTemplate: { ...draft.statusTemplate, customLabels: draft.statusTemplate.customLabels.map((label) => label.trim()).filter(Boolean).slice(0, 2), stats: normalizeStats(draft.statusTemplate.stats), relationStatId: normalizeRelationStatId(draft.statusTemplate) }, updates: draft.updates.map((update) => ({ ...update, version: update.version.trim(), note: update.note.trim() })) }; // 정리 반환
+    return { ...draft, events: normalizeEvents(pruneEvents(draft.events, draft.statusTemplate.stats)), lorebook: normalizeLorebook(draft.lorebook), examples: normalizeExamples(draft.examples), playGuide: draft.playGuide.trim(), statusTemplate: { ...draft.statusTemplate, customLabels: draft.statusTemplate.customLabels.map((label) => label.trim()).filter(Boolean).slice(0, 2), stats: normalizeStats(draft.statusTemplate.stats), relationStatId: normalizeRelationStatId(draft.statusTemplate) }, updates: draft.updates.map((update) => ({ ...update, version: update.version.trim(), note: update.note.trim() })) }; // 정리 반환
 } // 함수 종료
 
 export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추가 필드 검증
@@ -44,6 +45,16 @@ export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추�
     if (eventError !== null) // 이벤트 오류
     { // 조건 시작
         errors.events = eventError; // 이벤트 오류 문구
+    } // 조건 종료
+    const loreError = validateLorebook(normalizeLorebook(draft.lorebook)); // 설정집 검증(빈 항목은 빼고)
+    if (loreError !== null) // 설정집 오류
+    { // 조건 시작
+        errors.lorebook = loreError; // 설정집 오류 문구
+    } // 조건 종료
+    const exampleError = validateExamples(normalizeExamples(draft.examples)); // 예시 대화 검증(빈 쌍은 빼고)
+    if (exampleError !== null) // 예시 오류
+    { // 조건 시작
+        errors.examples = exampleError; // 예시 오류 문구
     } // 조건 종료
     return errors; // 오류 반환
 } // 함수 종료

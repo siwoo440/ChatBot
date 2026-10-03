@@ -4,7 +4,7 @@ import { buildAutoMemories, getConversationMemories, selectPromptMemories } from
 import { buildStatJudgeInput, computeStats, createAffectionStat, createStat, currentStatValues, judgeStatsMock, validateStats } from "@/features/chat/stat-model"; // 스탯
 import { composeStatus, formatStatusText, formatStoryTime, getStatusRows } from "@/features/chat/status-model"; // 상태창
 import { createSuggestedReplies, getStyleSample } from "@/features/chat/suggestion-model"; // 추천 답변·문체
-import { validateWorkExtras } from "@/features/character/work-extras"; // 작품 추가 필드
+import { normalizeWorkExtras, validateWorkExtras } from "@/features/character/work-extras"; // 작품 추가 필드
 import { createDefaultConversationSettings, createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본값
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 
@@ -146,8 +146,14 @@ describe("추천 답변·문체·작품 추가 필드", () => // 기타 묶음
 
     it("플레이 가이드 길이, 직접 항목 길이, 업데이트 기록 형식을 검증한다", () => // 추가 필드 검증
     { // 검증 시작
-        const ok = { playGuide: "가이드", statusTemplate: createDefaultStatusTemplate(true), updates: [{ id: "u", version: "V2", date: "2026-10-01", note: "새 장면" }], events: [] }; // 정상
+        const ok = { playGuide: "가이드", statusTemplate: createDefaultStatusTemplate(true), updates: [{ id: "u", version: "V2", date: "2026-10-01", note: "새 장면" }], events: [], lorebook: [{ id: "l", title: "달빛 도서관", keywords: ["도서관"], content: "자정에만 열린다." }], examples: [{ id: "e", user: "안녕", reply: "어서 와." }] }; // 정상
         expect(validateWorkExtras(ok)).toEqual({}); // 통과
+        expect(validateWorkExtras({ ...ok, lorebook: [{ ...ok.lorebook[0], keywords: [] }] }).lorebook).toBe("설정 1의 키워드를 1~5개(각 20자 이하) 적어 주세요."); // 설정집 오류
+        expect(validateWorkExtras({ ...ok, examples: [{ ...ok.examples[0], reply: " " }] }).examples).toBe("예시 1의 답을 1~500자로 적어 주세요."); // 예시 대화 오류
+        expect(validateWorkExtras({ ...ok, lorebook: [...ok.lorebook, { id: "blank", title: " ", keywords: [" "], content: "" }], examples: [...ok.examples, { id: "blank", user: "", reply: " " }] })).toEqual({}); // 아무것도 적지 않은 항목은 오류로 보지 않음
+        const normalized = normalizeWorkExtras({ ...ok, lorebook: [{ id: "l", title: " 달빛 도서관 ", keywords: [" 도서관 ", "도서관", ""], content: " 자정에만 열린다. " }, { id: "blank", title: "", keywords: [], content: "" }], examples: [{ id: "e", user: " 안녕 ", reply: " 어서 와. " }, { id: "blank", user: "", reply: "" }] }); // 정리
+        expect(normalized.lorebook).toEqual(ok.lorebook); // 공백·중복 키워드·빈 항목 정리
+        expect(normalized.examples).toEqual(ok.examples); // 공백·빈 쌍 정리
         expect(validateWorkExtras({ ...ok, playGuide: "가".repeat(2001) }).playGuide).toBeDefined(); // 가이드 길이
         expect(validateWorkExtras({ ...ok, statusTemplate: { ...ok.statusTemplate, customLabels: ["가".repeat(11)] } }).statusTemplate).toBeDefined(); // 항목 길이
         expect(validateWorkExtras({ ...ok, updates: [{ ...ok.updates[0], note: " " }] }).updates).toBeDefined(); // 빈 내용

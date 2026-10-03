@@ -102,6 +102,21 @@ export interface TriggeredEvent // 한 턴에 일어난 이벤트(그 응답의 
     notify: boolean; // 알림함에 알리기
 } // 구조 종료
 
+export interface LoreEntry // 키워드 설정집 항목(대화에 키워드가 나오면 AI에게만 넘기는 배경 설정)
+{ // 구조 시작
+    id: string; // 항목 식별자
+    title: string; // 설정 이름
+    keywords: string[]; // 키워드(최근 대화에 나오면 이 설정을 넘김)
+    content: string; // 설정 내용
+} // 구조 종료
+
+export interface ExampleDialogue // 예시 대화(말투를 보여 주는 한 쌍)
+{ // 구조 시작
+    id: string; // 예시 식별자
+    user: string; // 사용자 말
+    reply: string; // 작품의 답
+} // 구조 종료
+
 export interface StatusTemplate // 상태창 형식
 { // 구조 시작
     enabled: boolean; // 상태창 사용
@@ -191,6 +206,8 @@ export interface Story // 스토리(여러 인물 또는 한 명과 펼치는 �
     statusTemplate: StatusTemplate; // 상태창 형식
     updates: WorkUpdate[]; // 업데이트 기록
     events: StoryEvent[]; // 스탯 조건 이벤트
+    lorebook: LoreEntry[]; // 키워드 설정집
+    examples: ExampleDialogue[]; // 예시 대화
     createdAt: string; // 생성 시각
     updatedAt: string; // 수정 시각
 } // 구조 종료
@@ -234,6 +251,8 @@ export interface Character // 캐릭터 구조
     statusTemplate: StatusTemplate; // 상태창 형식
     updates: WorkUpdate[]; // 업데이트 기록
     events: StoryEvent[]; // 스탯 조건 이벤트
+    lorebook: LoreEntry[]; // 키워드 설정집
+    examples: ExampleDialogue[]; // 예시 대화
     createdAt: string; // 생성 시각
     updatedAt: string; // 수정 시각
 } // 구조 종료
@@ -255,6 +274,8 @@ export interface CharacterDraft // 캐릭터 초안 구조
     statusTemplate: StatusTemplate; // 상태창 형식
     updates: WorkUpdate[]; // 업데이트 기록
     events: StoryEvent[]; // 스탯 조건 이벤트
+    lorebook: LoreEntry[]; // 키워드 설정집
+    examples: ExampleDialogue[]; // 예시 대화
 } // 구조 종료
 
 export interface Conversation // 대화방 구조
@@ -499,7 +520,7 @@ export interface GeneratedImage // 이미지 스튜디오 생성 이미지
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 17; // 스키마 버전
+    schemaVersion: 18; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록

@@ -2239,4 +2239,56 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - E2E: `editor-tools.spec.ts`(4: 단계별 작성 → 새로고침 → 이어 쓰기 → 시험 대화 → 공개 저장 → 토큰 미사용, 390·820·1440px 넘침), `story-mode.spec.ts`(단계 이동 반영). 전체 단위 551개·E2E 61개 통과
 - 화면: 새 캐릭터·새 스토리 편집기와 시험 대화 창을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
 
+## 55. 로드맵 6단계 둘째 묶음: 키워드 설정집·예시 대화
+
+### 55.1 사용자 결정
+
+| 항목 | 결정 |
+| --- | --- |
+| 설정집 | 작품마다 20개, 항목당 내용 500자 |
+| 예시 대화 | 작품마다 5쌍 |
+
+구현하면서 정한 값: 설정 이름 20자, 키워드 항목당 5개(각 20자), 최근 메시지 4개에서 찾기, 한 번에 5개까지 넘기기, 예시의 사용자 말 200자·답 500자.
+
+### 55.2 규칙 (`src/features/chat/lore-model.ts`)
+
+- 한도 상수: `LORE_LIMIT`·`LORE_TITLE_LIMIT`·`LORE_CONTENT_LIMIT`·`LORE_KEYWORD_LIMIT`·`LORE_KEYWORD_LENGTH`·`LORE_SCAN_MESSAGES`·`LORE_ACTIVE_LIMIT`·`EXAMPLE_LIMIT`·`EXAMPLE_USER_LIMIT`·`EXAMPLE_REPLY_LIMIT`.
+- `cleanKeywords`: 앞뒤 공백·빈 값·같은 말(대소문자 무시) 제거. 편집 중에는 쉼표로 나눈 그대로 두고(입력하던 쉼표·띄어쓰기가 사라지지 않게) 저장·검증·찾기 때 정리한다.
+- `normalizeLorebook`·`normalizeExamples`: 공백 정리, 아무것도 적지 않은 항목은 버린다.
+- `validateLorebook`·`validateExamples`: 첫 오류 문구를 몇 번째 항목인지와 함께 돌려준다.
+- `matchLore(lorebook, messages)`: 안내(system) 메시지를 뺀 최근 4개에서 키워드를 찾는다(대소문자 무시, 부분 일치). 가장 최근에 나온 설정이 앞, 같으면 적은 순서. 내용이 빈 설정은 제외, 5개까지.
+- `toLorePrompt`·`toExamplePrompt`: AI 입력 모양(`{ title, keywords, content }`, `{ user, reply }`).
+- `findExampleReply`: 예시와 같은 말(공백 차이 무시)이면 예시 답. 연습용 모델만 쓴다.
+
+### 55.3 대화 연결
+
+- `ChatContext`에 `lorebook`·`examples`(대화의 작품에서 복사). 스토리 모드는 스토리의 것만 쓴다(등장 캐릭터의 설정집은 쓰지 않음).
+- `ChatController.createLLMInput`: `options.lore = toLorePrompt(matchLore(context.lorebook, 이번 입력 메시지))`, `options.examples = toExamplePrompt(context.examples)`.
+- `ChatReplyOptions`에 `lore`·`examples` 추가(필수 항목). 실제 AI 어댑터는 이 둘을 프롬프트에 넣는다.
+- `MockLLMAdapter`: `decorateReply(base, options, key, story, lastMessage)`. **방금 한 말**에 키워드가 있는 설정 하나만 답에 드러낸다. AI 답에 설정 이름이 들어가면 그 답이 다시 키워드로 잡히므로, 넘어온 설정을 매번 드러내면 같은 문장이 매 턴 되풀이된다. 설정 자체는 최근 4개 안에 있는 동안 계속 넘어간다(보통 3턴).
+
+### 55.4 편집 화면 (`LoreEditor.tsx`)
+
+- `WorkLoreFields`(두 묶음 `키워드 설정집`·`예시 대화`와 오류 문구), `LoreEditor`, `ExampleEditor`.
+- 설정 카드(`LoreCard`)는 이름이나 내용이 빈 설정만 펼쳐서 시작한다. 접으면 `키워드: …`와 글자 수만 보인다. 버튼 글자는 `펼치기`·`접기`·`삭제`로 짧게 두고, 읽어 주는 이름(`aria-label`)에 설정 이름을 붙인다(`금서 구역 펼치기`, `금서 구역 설정 삭제`).
+- 예시 답 칸 이름은 캐릭터 `캐릭터 답`, 스토리 `이야기 답`.
+- 단계 정의의 `fields`에 `lorebook`·`examples`를 넣어, 오류가 나면 그 단계로 옮긴다.
+- 시험 대화: `usedLore = matchLore(작품 설정집, 마지막으로 보낸 말까지의 메시지)`. 안내 문구는 입력 폼 안 첫 줄에 두어 입력창과 함께 늘 보인다. 폼은 `bottom: -18px`로 붙인다(대화상자 내용의 아래 여백 띠로 뒤 내용이 비치던 것을 덮음).
+
+### 55.5 저장 구조 (앱 상태 버전 18)
+
+- `LoreEntry { id, title, keywords: string[], content }`, `ExampleDialogue { id, user, reply }`. `Character`·`Story`·초안에 `lorebook`·`examples`.
+- `WorkExtras`에 두 항목 추가, `withWorkDefaults`는 빈 목록.
+- 검사: `isLoreEntry`·`isExampleDialogue`·`hasWorkLore`(개수 한도, 식별자 중복), `isVersionSeventeenState`.
+- 변환: `migrateVersionSixteen` → `migrateVersionSeventeen`(모든 작품에 빈 목록) → 버전 18. 기본 작품에도 예시 설정을 넣지 않았다(기존 대화의 연습용 답이 달라지지 않게).
+- `coerceDraft`: 자동 저장 보관분의 설정집·예시 대화가 다른 모양이면 기준 값.
+
+### 55.6 검증
+
+- 단위: `lore-model`(9), `lore-flow`(5: 맥락, 키워드가 나온 설정만 넘김, 범위를 벗어나면 넘기지 않음·되풀이 없음, 예시 답, 스토리), `local-storage-gateway`(버전 17 변환, 잘못된 설정집 거부), `mock-adapters`, `chat-features-model`, `draft-storage`
+- 통합: `editor-lore`(7: 저장·빈 항목 버림, 오류 단계, 접기·펼치기·삭제, 한도, 스토리, 시험 대화의 참고한 설정·예시 답, 설정집 없는 작품)
+- E2E: `editor-lore.spec.ts`(5: 새 캐릭터에 적고 시험 대화 뒤 저장·고치기 화면, 실제 대화, 390·820·1440px 넘침). 전체 단위 576개·E2E 66개 통과(E2E 연속 6회)
+- 화면: 설정집·예시 대화 편집과 시험 대화 창을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
+- **E2E 주의**: 대화 화면은 버전까지 적은 주소로 연다(HANDOFF `E2E 실행 주의사항`). `rewards`·`story-events`·`token-history`·`editor-lore`의 주소를 바꿨다.
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

@@ -1,5 +1,5 @@
 // 작성 중 자동 저장: 편집기에서 쓰던 내용을 브라우저에 따로 보관해 창을 닫아도 이어서 쓸 수 있게 한다(앱 상태와 별개).
-import { isStatusTemplate, isStoryEvent, isWorkUpdate } from "@/lib/repositories/state-validation"; // 저장 값 검사
+import { isExampleDialogue, isLoreEntry, isStatusTemplate, isStoryEvent, isWorkUpdate } from "@/lib/repositories/state-validation"; // 저장 값 검사
 
 const prefix = "mateverse:draft:"; // 저장 키 앞머리
 
@@ -45,6 +45,14 @@ export function coerceDraft<T extends object>(base: T, raw: unknown): T // 보�
     if ("updates" in result && !(result.updates as unknown[]).every(isWorkUpdate)) // 업데이트 기록이 예전 모양
     { // 조건 시작
         result.updates = (base as Record<string, unknown>).updates; // 기본값
+    } // 조건 종료
+    if ("lorebook" in result && !(result.lorebook as unknown[]).every(isLoreEntry)) // 설정집이 다른 모양
+    { // 조건 시작
+        result.lorebook = (base as Record<string, unknown>).lorebook; // 기본값
+    } // 조건 종료
+    if ("examples" in result && !(result.examples as unknown[]).every(isExampleDialogue)) // 예시 대화가 다른 모양
+    { // 조건 시작
+        result.examples = (base as Record<string, unknown>).examples; // 기본값
     } // 조건 종료
     return result as T; // 맞춘 초안
 } // 함수 종료

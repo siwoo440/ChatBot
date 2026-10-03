@@ -23,7 +23,7 @@ async function seed(page: Page): Promise<void> // 패널을 닫은 초기 상태
 test("대화와 출석으로 쓴 토큰과 받은 토큰이 토큰 이용 내역에 남고 새로고침 뒤에도 보인다", async ({ page }) => // 기록 흐름 검증
 { // 테스트 시작
     await seed(page); // 준비
-    await page.goto("/chat/rian?conversation=conversation-rian"); // 리안 대화
+    await page.goto("/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 리안 대화(버전까지 적은 주소: 주소를 정리하느라 화면을 다시 만드는 사이에 보낸 말이 사라지지 않게)
     await expect(page.getByText("1토큰 사용")).toBeVisible(); // 보내기 전 예상 비용
     const input = page.getByRole("textbox", { name: "메시지" }); // 입력창
     await input.fill("오늘도 왔어"); // 입력
@@ -49,7 +49,7 @@ for (const width of [390, 820, 1440]) // 화면 너비 순회
     { // 테스트 시작
         await page.setViewportSize({ width, height: 900 }); // 화면 크기
         await seed(page); // 준비
-        await page.goto("/chat/rian?conversation=conversation-rian"); // 리안 대화
+        await page.goto("/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 리안 대화(버전까지 적은 주소: 주소를 정리하느라 화면을 다시 만드는 사이에 보낸 말이 사라지지 않게)
         await expect(page.getByText("1토큰 사용")).toBeVisible(); // 예상 비용
         expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0); // 넘침 없음
         await page.goto("/settings/tokens"); // 토큰 이용 내역

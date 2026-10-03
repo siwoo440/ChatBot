@@ -13,6 +13,8 @@ export interface ChatReplyOptions // 대화방 설정에서 온 응답 조건
     memories: string[]; // 요약 메모리
     playGuide: string; // 플레이 가이드
     stats: Array<{ name: string; target: string | null; value: number; min: number; max: number }>; // 지금 스탯 값(역할극에 반영)
+    lore: Array<{ title: string; keywords: string[]; content: string }>; // 최근 대화에 키워드가 나온 설정집 내용(가장 최근 것부터)
+    examples: Array<{ user: string; reply: string }>; // 말투를 보여 주는 예시 대화
 } // 구조 종료
 import type { StoryPromptContext } from "@/lib/story/mock-story-writer"; // 스토리 문맥
 

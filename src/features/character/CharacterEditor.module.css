@@ -522,6 +522,56 @@
     cursor: pointer; /* 커서 */
 } /* 삭제 종료 */
 
+.loreField /* 설정집·예시 대화의 긴 입력 */
+{ /* 입력 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 6px; /* 간격 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: 13px; /* 글자 크기 */
+    font-weight: 700; /* 굵기 */
+} /* 입력 종료 */
+
+.cardActions /* 카드 아래 동작 줄 */
+{ /* 줄 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 좁으면 줄바꿈 */
+    align-items: center; /* 세로 중앙 */
+    justify-content: flex-end; /* 오른쪽 */
+    gap: 8px; /* 간격 */
+} /* 줄 종료 */
+
+.cardActions .smallButton /* 접기·펼치기 */
+{ /* 버튼 시작 */
+    min-height: 40px; /* 삭제 버튼과 같은 높이 */
+} /* 버튼 종료 */
+
+.loreCount /* 글자 수 */
+{ /* 글자 수 시작 */
+    margin-right: auto; /* 왼쪽으로 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: 12px; /* 작은 글자 */
+    font-weight: 700; /* 굵기 */
+    font-variant-numeric: tabular-nums; /* 숫자 폭 고정 */
+} /* 글자 수 종료 */
+
+.testLore /* 시험 대화에서 이번 답변에 쓰인 설정·한도 안내 */
+{ /* 안내 시작 */
+    grid-column: 1 / -1; /* 입력 줄 위에 한 줄 전체 */
+    margin: 0; /* 여백 제거 */
+    padding: 8px 12px; /* 안쪽 여백 */
+    border: 1px dashed var(--mv-line); /* 점선 테두리 */
+    border-radius: 12px; /* 모서리 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .84rem; /* 크기 */
+    line-height: 1.5; /* 줄 높이 */
+    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
+} /* 안내 종료 */
+
+.testLore strong /* 설정 이름 */
+{ /* 이름 시작 */
+    color: var(--mv-ink); /* 본문 글자 */
+} /* 이름 종료 */
+
 .updateList /* 기록 목록 */
 { /* 목록 시작 */
     display: grid; /* 세로 배치 */
@@ -938,7 +988,7 @@
 { /* 입력 시작 */
     display: grid; /* 격자 */
     position: sticky; /* 내용이 길어도 입력창은 늘 보이게 */
-    bottom: 0; /* 대화상자 내용 아래에 붙임 */
+    bottom: -18px; /* 대화상자 내용의 아래 여백까지 덮어 붙임(뒤 내용이 비치지 않게) */
     z-index: 1; /* 메시지·상태창 위 */
     grid-template-columns: minmax(0, 1fr) auto; /* 입력·버튼 */
     gap: 10px; /* 간격 */

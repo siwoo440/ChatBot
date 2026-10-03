@@ -2,6 +2,7 @@
 import { isConversationVersionGraphValid } from "@/features/conversation/conversation-versioning"; // 버전 그래프 검증
 import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, GeneratedImage, Message, Story, StoryCastMember, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { EVENT_LIMIT } from "@/features/chat/event-model"; // 이벤트 개수 한도
+import { EXAMPLE_LIMIT, LORE_LIMIT } from "@/features/chat/lore-model"; // 설정집·예시 대화 개수 한도
 import { STAT_LIMIT } from "@/features/chat/stat-model"; // 스탯 개수 한도
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { INVITE_QUALIFY_MESSAGES, isInviteCode } from "@/features/rewards/referral-model"; // 초대 코드 형식
@@ -448,6 +449,21 @@ export function hasWorkEvents(value: unknown): boolean // 작품의 이벤트 �
     return (value.events as Array<{ condition: string; statId: string | null }>).every((event) => event.condition === "turn" || (event.statId !== null && statIds.has(event.statId))); // 조건 스탯 확인
 } // 함수 종료
 
+export function isLoreEntry(value: unknown): boolean // 설정집 항목 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.id) && value.id.length > 0 && isString(value.title) && isStringArray(value.keywords) && isString(value.content); // 항목 반환
+} // 함수 종료
+
+export function isExampleDialogue(value: unknown): boolean // 예시 대화 판정 함수
+{ // 함수 시작
+    return isRecord(value) && isString(value.id) && value.id.length > 0 && isString(value.user) && isString(value.reply); // 예시 반환
+} // 함수 종료
+
+export function hasWorkLore(value: unknown): boolean // 작품의 설정집·예시 대화 판정 함수(개수, 식별자 중복)
+{ // 함수 시작
+    return isRecord(value) && Array.isArray(value.lorebook) && value.lorebook.length <= LORE_LIMIT && value.lorebook.every(isLoreEntry) && hasUniqueIds(value.lorebook) && Array.isArray(value.examples) && value.examples.length <= EXAMPLE_LIMIT && value.examples.every(isExampleDialogue) && hasUniqueIds(value.examples); // 판정 반환
+} // 함수 종료
+
 export function isStatusSnapshot(value: unknown): boolean // 상태창 값 판정 함수(버전 13: 스탯)
 { // 함수 시작
     return hasStatusSnapshotBase(value) && Array.isArray(value.stats) && value.stats.every(isStatValue) && (value.events === undefined || (Array.isArray(value.events) && value.events.every(isTriggeredEvent))); // 스탯 값·이벤트 기록 확인
@@ -600,6 +616,11 @@ export function isReferralState(value: unknown): boolean // 친구 초대 판정
 
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
 { // 함수 시작
+    return hasVersionedGraph(value, 18) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14) && hasSchemaFifteenFields(value) && isReferralState(value.referral) && (value.characters as unknown[]).every(hasWorkEvents) && (value.stories as unknown[]).every(hasWorkEvents) && (value.characters as unknown[]).every(hasWorkLore) && (value.stories as unknown[]).every(hasWorkLore); // 버전 18 상태 반환
+} // 함수 종료
+
+export function isVersionSeventeenState(value: unknown): value is Record<string, unknown> // 버전 17 상태 판정 함수
+{ // 함수 시작
     return hasVersionedGraph(value, 17) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14) && hasSchemaFifteenFields(value) && isReferralState(value.referral) && (value.characters as unknown[]).every(hasWorkEvents) && (value.stories as unknown[]).every(hasWorkEvents); // 버전 17 상태 반환
 } // 함수 종료
 
@@ -653,7 +674,7 @@ export function isVersionSevenState(value: unknown): value is VersionSevenState 
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인

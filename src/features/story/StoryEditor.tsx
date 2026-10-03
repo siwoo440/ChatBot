@@ -20,6 +20,7 @@ import { matchesKoreanText } from "@/features/conversation/conversation-list-mod
 import { canUseImageForRating, findImageBySource } from "@/features/images/image-model"; // 내 이미지 도구
 import { createStoryConversation, STORY_CAST_LIMIT } from "@/features/story/story-model"; // 스토리 대화 시작·등장인물 최대 수
 import { WorkExtrasFields } from "@/features/character/WorkExtrasFields"; // 플레이 가이드·상태창·업데이트 입력
+import { WorkLoreFields } from "@/features/character/LoreEditor"; // 키워드 설정집·예시 대화 입력
 import { createEmptyStoryDraft, createStoryCastMember, getCastRequiredRating, getStoryCandidates, getStoryCoverChoices, isRatingBelow, normalizeStoryDraft, storyCoverOptions, toStoryDraft, validateStoryDraft, type StoryDraft, type StoryValidationResult } from "@/features/story/story-validation"; // 초안 도구
 import editorStyles from "@/features/character/CharacterEditor.module.css"; // 공통 편집기 스타일
 import styles from "@/features/story/StoryEditor.module.css"; // 스토리 편집기 스타일
@@ -29,7 +30,7 @@ const ratingOptions: ContentRating[] = ["all", "teen", "mature"]; // 등급 선�
 const storySteps: EditorStepDefinition[] = // 스토리 편집 단계
 [ // 단계 시작
     { id: "basic", label: "기본 정보", hint: "제목과 한 줄 소개, 태그, 표지를 정해요.", fields: ["title", "summary", "tags", "coverImage"] }, // 기본 정보
-    { id: "story", label: "이야기와 등장인물", hint: "줄거리와 등장인물, 시작 장면, 내 역할을 정해요.", fields: ["synopsis", "cast", "opening", "userRole"] }, // 이야기와 등장인물
+    { id: "story", label: "이야기와 등장인물", hint: "줄거리와 등장인물, 시작 장면, 내 역할과 설정집, 예시 대화를 정해요.", fields: ["synopsis", "cast", "opening", "userRole", "lorebook", "examples"] }, // 이야기와 등장인물
     { id: "play", label: "진행 설정", hint: "플레이 가이드와 상태창, 스탯, 이벤트, 업데이트 기록을 정해요.", fields: ["playGuide", "statusTemplate", "events", "updates"] }, // 진행 설정
     { id: "publish", label: "공개 설정", hint: "누가 볼 수 있는지와 이용 등급을 정하고 저장해요.", fields: ["visibility", "contentRating"] }, // 공개 설정
 ]; // 단계 종료
@@ -294,6 +295,7 @@ export function StoryEditor({ storyId, initialImageId, llm }: { storyId?: string
                         {error("opening")} {/* 시작 장면 오류 */}
                         <label>내 역할<input value={draft.userRole} onChange={(event) => update("userRole", event.target.value)} maxLength={201} placeholder="예: 오늘 처음 온 전학생" /></label> {/* 내 역할 */}
                         {error("userRole")} {/* 역할 오류 */}
+                        <WorkLoreFields value={draft} errors={result.errors} replyLabel="이야기 답" onChange={(patch) => { setDraft((current) => ({ ...current, ...patch })); touch(); }} /> {/* 키워드 설정집·예시 대화 */}
                     </EditorStepSection> {/* 단계 2 종료 */}
                     <EditorStepSection steps={storySteps} step={storySteps[2]} controller={steps}> {/* 단계 3 */}
                         <WorkExtrasFields value={draft} errors={result.errors} onChange={(patch) => { setDraft((current) => ({ ...current, ...patch })); touch(); }} /> {/* 플레이 가이드·상태창·업데이트 */}

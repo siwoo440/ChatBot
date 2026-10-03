@@ -18,7 +18,7 @@ async function openRianChat(page: Page): Promise<void> // 패널을 닫고 리�
         window.localStorage.setItem(key, value); // 상태 저장
         window.localStorage.setItem(guard, "true"); // 준비 기록
     }, { key: stateKey, guard: seedKey, value: JSON.stringify(state) }); // 인자
-    await page.goto("/chat/rian?conversation=conversation-rian"); // 리안 대화
+    await page.goto("/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 리안 대화(버전까지 적은 주소: 주소를 정리하느라 화면을 다시 만드는 사이에 보낸 말이 사라지지 않게)
     await expect(page.getByRole("heading", { level: 1, name: "새벽 도서관의 리안" })).toBeVisible(); // 화면 확인
 } // 함수 종료
 

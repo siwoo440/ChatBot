@@ -19,6 +19,7 @@ import type { LLMAdapter } from "@/lib/adapters/llm-adapter"; // 대화 계약
 import { useUnsavedChangesGuard } from "@/features/core/useUnsavedChangesGuard"; // 이탈 경고
 import { createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본 상태창
 import { WorkExtrasFields } from "@/features/character/WorkExtrasFields"; // 플레이 가이드·상태창·업데이트 입력
+import { WorkLoreFields } from "@/features/character/LoreEditor"; // 키워드 설정집·예시 대화 입력
 import type { Character, CharacterDraft, PublicationStatus } from "@/features/core/types"; // 캐릭터 타입
 import { canUseImageForRating, findImageBySource, isGeneratedImageSource } from "@/features/images/image-model"; // 내 이미지 도구
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
@@ -44,6 +45,8 @@ function createEmptyDraft(): CharacterDraft // 빈 초안 생성
         statusTemplate: createDefaultStatusTemplate(true), // 상태창 형식
         updates: [], // 업데이트 기록
         events: [], // 스탯 조건 이벤트
+        lorebook: [], // 키워드 설정집
+        examples: [], // 예시 대화
     }); // 초안 종료
 } // 함수 종료
 
@@ -66,13 +69,15 @@ function toDraft(character: Character): CharacterDraft // 캐릭터 초안 변�
         statusTemplate: structuredClone(character.statusTemplate), // 상태창 형식 복사
         updates: structuredClone(character.updates), // 업데이트 기록 복사
         events: structuredClone(character.events), // 이벤트 복사
+        lorebook: structuredClone(character.lorebook), // 설정집 복사
+        examples: structuredClone(character.examples), // 예시 대화 복사
     }); // 초안 종료
 } // 함수 종료
 
 const characterSteps: EditorStepDefinition[] = // 캐릭터 편집 단계
 [ // 단계 시작
     { id: "basic", label: "기본 정보", hint: "이름과 소개, 태그, 대표 이미지를 정해요.", fields: ["name", "summary", "description", "tags", "coverImage"] }, // 기본 정보
-    { id: "persona", label: "성격과 세계관", hint: "성격과 첫 인사, 세계관, AI에게만 알려 줄 내용을 적어요.", fields: ["personality", "greeting", "worldSetting", "prompt"] }, // 성격과 세계관
+    { id: "persona", label: "성격과 세계관", hint: "성격과 첫 인사, 세계관, AI에게만 알려 줄 내용과 설정집, 예시 대화를 적어요.", fields: ["personality", "greeting", "worldSetting", "prompt", "lorebook", "examples"] }, // 성격과 세계관
     { id: "play", label: "진행 설정", hint: "플레이 가이드와 상태창, 스탯, 이벤트, 업데이트 기록을 정해요.", fields: ["playGuide", "statusTemplate", "events", "updates"] }, // 진행 설정
     { id: "publish", label: "공개 설정", hint: "누가 볼 수 있는지와 이용 등급을 정하고 저장해요.", fields: ["visibility", "contentRating"] }, // 공개 설정
 ]; // 단계 종료
@@ -239,6 +244,7 @@ export function CharacterEditor({ characterId, initialImageId, llm }: { characte
                         {error("worldSetting")} {/* 세계관 오류 */}
                         <label>제작자용 비공개 프롬프트<textarea value={draft.prompt} onChange={(event) => update("prompt", event.target.value)} rows={4} /></label> {/* 프롬프트 입력 */}
                         {error("prompt")} {/* 프롬프트 오류 */}
+                        <WorkLoreFields value={draft} errors={result.errors} replyLabel="캐릭터 답" onChange={(patch) => { setDraft((current) => ({ ...current, ...patch })); setDirty(true); setNotice(""); }} /> {/* 키워드 설정집·예시 대화 */}
                     </EditorStepSection> {/* 단계 2 종료 */}
                     <EditorStepSection steps={characterSteps} step={characterSteps[2]} controller={steps}> {/* 단계 3 */}
                         <WorkExtrasFields value={draft} errors={result.errors} onChange={(patch) => { setDraft((current) => ({ ...current, ...patch })); setDirty(true); setNotice(""); }} /> {/* 플레이 가이드·상태창·업데이트 */}

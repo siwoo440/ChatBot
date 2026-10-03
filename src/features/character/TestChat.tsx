@@ -3,6 +3,7 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react"; // 리액트 도구
 import { ChatController } from "@/features/chat/chat-controller"; // 채팅 제어기
 import { ChatDialog } from "@/features/chat/ChatDialog"; // 대화상자
+import { matchLore } from "@/features/chat/lore-model"; // 키워드가 나온 설정 찾기
 import { MessageList } from "@/features/chat/MessageList"; // 메시지 목록
 import { StatusPanel } from "@/features/chat/StatusPanel"; // 상태창
 import { getConversationVersion, getVersionMessages } from "@/features/conversation/conversation-versioning"; // 버전 조회
@@ -50,6 +51,9 @@ export function TestChat({ title, tags, start, onClose, llm }: TestChatProps) //
     const messages = conversation === undefined || version === null ? [] : getVersionMessages(snapshot, conversation.id, version.id); // 메시지
     const turns = messages.filter((message) => message.role === "user").length; // 진행한 턴
     const full = turns >= TEST_CHAT_TURN_LIMIT; // 한도 도달
+    const lorebook = (conversation === undefined ? undefined : conversation.mode === "story" ? snapshot.stories.find((story) => story.id === conversation.storyId) : snapshot.characters.find((character) => character.id === conversation.characterId))?.lorebook ?? []; // 이 작품의 설정집
+    const lastUser = messages.map((message) => message.role).lastIndexOf("user"); // 마지막으로 보낸 말
+    const usedLore = lastUser < 0 ? [] : matchLore(lorebook, messages.slice(0, lastUser + 1)); // 마지막 답변에 넘긴 설정(보낸 말까지의 최근 대화 기준)
     const send = async (event?: FormEvent) => // 보내기
     { // 함수 시작
         event?.preventDefault(); // 기본 제출 차단
@@ -95,8 +99,9 @@ export function TestChat({ title, tags, start, onClose, llm }: TestChatProps) //
             <div className={styles.testChat} data-genre={getGenreKey(tags)}> {/* 대화 영역 */}
                 <MessageList messages={messages} streamingMessageId={streaming} busy={busy} showSceneImages storyCast={conversation?.mode === "story" ? getStoryCastEntries(snapshot, conversation.storyCast) : undefined} /> {/* 메시지 */}
                 <StatusPanel messages={messages} open onToggle={() => undefined} /> {/* 상태창(스탯·칭호·그래프) */}
-                {full ? <p className={styles.hint}>시험 대화는 {TEST_CHAT_TURN_LIMIT}턴까지예요. ‘처음부터 다시’로 새로 해 볼 수 있어요.</p> : null} {/* 한도 안내 */}
-                <form className={styles.testForm} onSubmit={send}> {/* 입력 */}
+                <form className={styles.testForm} onSubmit={send}> {/* 입력(안내와 함께 늘 보이게 아래에 붙임) */}
+                    {lorebook.length === 0 || turns === 0 ? null : <p className={styles.testLore}>{usedLore.length === 0 ? "이번 답변에는 설정집을 쓰지 않았어요. 최근 대화에 키워드가 나오지 않았어요." : <>이번 답변에 참고한 설정: <strong>{usedLore.map((entry) => entry.title).join(", ")}</strong></>}</p>} {/* 쓰인 설정(제작자만 보는 확인용) */}
+                    {full ? <p className={styles.testLore}>시험 대화는 {TEST_CHAT_TURN_LIMIT}턴까지예요. ‘처음부터 다시’로 새로 해 볼 수 있어요.</p> : null} {/* 한도 안내 */}
                     <label><span className="sr-only">시험 메시지</span><textarea value={text} rows={2} placeholder="시험해 볼 말을 적어 보세요" disabled={busy || full} onChange={(event) => setText(event.target.value)} onKeyDown={handleKey} /></label> {/* 시험 메시지 */}
                     <button type="submit" className={panels.primaryButton} disabled={busy || full || text.trim().length === 0}>보내기</button> {/* 보내기 */}
                 </form> {/* 입력 종료 */}

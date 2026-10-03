@@ -114,7 +114,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     { // 실패 시작
         throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
     } // 실패 종료
-    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 17) // 미래 버전 판정
+    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 18) // 미래 버전 판정
     { // 미래 버전 시작
         throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
     } // 미래 버전 종료

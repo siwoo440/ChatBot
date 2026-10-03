@@ -43,7 +43,7 @@ test("메인 카드로 들어가 출석하면 토큰을 받고 새로고침 뒤�
 test("대화에서 메시지를 보내면 미션 진행이 오르고 오른쪽 패널 카드에 반영된다", async ({ page }) => // 미션 진행 검증
 { // 테스트 시작
     await seed(page); // 준비
-    await page.goto("/chat/rian?conversation=conversation-rian"); // 리안 대화
+    await page.goto("/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 리안 대화(버전까지 적은 주소: 주소를 정리하느라 화면을 다시 만드는 사이에 보낸 말이 사라지지 않게)
     const input = page.getByRole("textbox", { name: "메시지" }); // 입력창
     await input.fill("오늘도 왔어"); // 입력
     await input.press("Enter"); // 전송

@@ -2,7 +2,7 @@ import { createDefaultEvents } from "@/features/chat/event-model"; // 예시 이
 import { AFFECTION_STAT_ID, createAffectionStat } from "@/features/chat/stat-model"; // 기본 호감도 스탯
 import type { Character, ChatTierId, ConversationSettings, Persona, ReferralState, RewardState, StatusTemplate, TierOption, UserProfile } from "@/features/core/types"; // 도메인 타입
 
-export type WorkExtras = Pick<Character, "playGuide" | "statusTemplate" | "updates" | "events">; // 작품 공통 추가 필드
+export type WorkExtras = Pick<Character, "playGuide" | "statusTemplate" | "updates" | "events" | "lorebook" | "examples">; // 작품 공통 추가 필드
 
 export const DEFAULT_PERSONA_ID = "persona-default"; // 기본 대화 프로필 식별자
 
@@ -44,5 +44,5 @@ export function createDefaultPlayGuide(name: string, summary: string): string //
 export function withWorkDefaults<T extends { summary: string; name?: string; title?: string }>(work: T): T & WorkExtras // 작품 기본 필드 채우기(플레이 가이드·상태창·업데이트 기록)
 { // 함수 시작
     const statusTemplate = createDefaultStatusTemplate(true); // 기본 상태창
-    return { ...work, playGuide: createDefaultPlayGuide(work.name ?? work.title ?? "상대", work.summary), statusTemplate, updates: [], events: createDefaultEvents(statusTemplate) }; // 기본 필드 반환(예시 이벤트 포함)
+    return { ...work, playGuide: createDefaultPlayGuide(work.name ?? work.title ?? "상대", work.summary), statusTemplate, updates: [], events: createDefaultEvents(statusTemplate), lorebook: [], examples: [] }; // 기본 필드 반환(예시 이벤트 포함, 설정집·예시 대화는 비움)
 } // 함수 종료
