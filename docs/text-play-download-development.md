@@ -2047,4 +2047,56 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - E2E: `rewards.spec.ts`(5: 메인 카드 → 출석 → 새로고침 유지, 채팅 → 미션 진행, 390·820·1440px 넘침·외부 요청 없음). 전체 단위 483개·E2E 46개 통과
 - 화면: 메인·보상 페이지·오른쪽 패널·스토리 홈·토큰 페이지를 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
 
+## 51. 로드맵 3단계: 친구 초대
+
+사용자 요청으로 로드맵에 넣은 단계다. 초대 링크로 서비스를 추천하고 토큰을 보상으로 준다(Mock, 브라우저 저장).
+
+### 51.1 사용자 결정
+
+| 항목 | 결정 |
+| --- | --- |
+| 지금 만들 범위 | 초대 링크·코드, 공유, 초대받은 사람 보너스까지. 초대한 사람 보상은 규칙과 화면만 준비하고 로그인 연결 뒤 지급 |
+| 보상 크기 | 초대받은 사람 30토큰, 초대한 사람은 친구 1명당 30토큰(한 달 최대 10명) |
+| 초대한 사람 보상 조건 | 친구가 들어와 메시지를 5번 보냈을 때(가짜 초대 방지) |
+| 위치 | 출석과 미션 페이지 안 `친구 초대` 칸, 오른쪽 패널 링크 |
+
+### 51.2 규칙 (`src/features/rewards/referral-model.ts`)
+
+- 코드: `generateInviteCode(random)`은 `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` 32자에서 여덟 글자를 뽑는다(가능하면 `crypto.getRandomValues`). `normalizeInviteCode`(대문자, 글자·숫자만), `isInviteCode`, `formatInviteCode`(`ABCD-2345`), `buildInviteLink(origin, code)`.
+- `createInviteCode(state, code, now)`: 코드가 없을 때 한 번만. 실제 서비스에서는 서버가 겹치지 않는 코드를 준다.
+- `checkInviteRedeem(referral, 입력)`: `invalid`(형식) → `used`(이미 받음) → `own`(내 코드) → `ok`.
+- `redeemInviteCode`: `ok`일 때 받은 코드·시각을 기록하고 30토큰 지급(기록 식별자 `invite-welcome`, 출처 `invite-welcome`).
+- `recordInviteeMessages(referral, 양)`: 초대받은 사람만 0~5로 센다. `reward-tracker`가 메시지 미션과 같은 자리에서 부른다.
+- `applyInviteConfirmations(state, 친구 목록, now)`: 내 코드가 없으면 무시, 이미 반영한 친구는 건너뜀, 이번 달(한국 시간) 보상이 10명 미만이면 30토큰 지급(기록 식별자 `invite-friend-친구식별자`), 넘으면 `rewardedAt: null`로 기록만. 친구 기록은 최근 200명.
+- `getInviteSummary`: 초대한 친구 수, 이번 달 보상 수, 한도, 남은 수.
+- 지급은 2단계의 `grantTokens`(지갑·토큰 기록·받은 합계)를 그대로 쓴다.
+
+### 51.3 화면
+
+- `InviteSection`(`/rewards`의 `#invite`, `scroll-margin-top`으로 헤더에 가리지 않음): 설명, 준비 안내(초대한 사람 보상은 로그인 뒤), `내 초대 링크 만들기` → 코드·링크(읽기 전용 입력)·`링크 복사`·`코드 복사`·`공유하기`(`navigator.share`가 있을 때), 초대 현황(친구 수·이번 달 보상), 친구 목록(있을 때), `초대받았나요?`(코드 입력 또는 받은 뒤 조건 진행 막대).
+- `InviteLanding`(`/invite/[code]`, `StatusScreen` 종류 `invite`): 올바른 코드 → `초대 받고 30토큰 받기`, 받은 뒤 → 잔액과 다음 할 일, 잘못된 코드·내 코드·이미 받음은 각각 안내. 페이지 메타데이터는 검색 제외(`robots.index: false`).
+- `UserPanel`: 출석·미션 카드 아래 `친구 초대`(`/rewards#invite`).
+- `StatusScreen`: 종류 `invite`(분홍, 기호 🎁). 주요 버튼 올림 색을 `color-mix(강조색 82%, black)`으로 바꿔 다크 모드에서도 흰 글자가 보이게 했다.
+
+### 51.4 저장 구조 (앱 상태 버전 16)
+
+- `AppState.referral: { code, createdAt, redeemedCode, redeemedAt, qualifyingMessages, friends: [{ id, nickname, qualifiedAt, rewardedAt }] }`
+- 검사 `isReferralState`: 코드 형식, 받은 코드가 내 코드와 다름, 조건 0~5, 친구 식별자 비어 있지 않고 중복 없음.
+- 토큰 기록 출처에 `invite-welcome`·`invite-friend` 추가.
+- `migrateVersionFifteen`: 빈 친구 초대 추가. 14 이하도 연쇄 변환. 미래 버전은 17 이상.
+
+### 51.5 한계와 로그인 단계에서 할 일
+
+- 지금은 초대한 사람의 브라우저가 친구의 가입을 알 수 없다. `apply-invite-confirmations`를 부르는 곳이 없어 초대한 사람 보상은 지급되지 않는다.
+- 초대받은 사람이 데이터를 지우면 환영 보너스를 다시 받을 수 있다.
+- 서버가 생기면: 초대 코드를 계정에 묶어 발급, 초대받은 계정의 가입·메시지 5번 확인, 한 기기·한 사람 중복 차단, 조건을 채운 친구 목록을 내려 `apply-invite-confirmations` 호출.
+- 링크 미리보기 그림(`openGraph.images`)과 초대 화면 그림은 그림을 받은 뒤 넣는다(`docs/image-requests.md` 5번).
+
+### 51.6 검증
+
+- 단위: `referral-model`(9: 코드 만들기·다듬기·한 번만, 환영 보너스, 거절, 조건 세기, 친구 보상, 코드 없음, 월 한도), `local-storage-gateway`(버전 15 → 16, 잘못된 친구 초대 거부)
+- 통합: `referral`(6: 링크 만들기와 복사, 코드 입력과 오류, 친구 목록, 위치, 초대 링크 화면 받기, 예외 안내)
+- E2E: `referral.spec.ts`(3: 초대 링크 → 받기 → 기록 → 다시 받기 불가, 오른쪽 패널 → 링크 만들기 → 새로고침 유지 → 내 링크 안내, 390px 넘침). 전체 단위 500개·E2E 49개 통과
+- 화면: 초대 링크 화면·친구 초대 칸·오른쪽 패널을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

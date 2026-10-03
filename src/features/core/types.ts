@@ -21,7 +21,7 @@ export type ColorTheme = "light" | "dark"; // 사이트 색 테마(밝게·어�
 export type ConversationFilter = "all" | "character" | "story"; // 왼쪽 창 대화 종류 탭
 export type NotificationKind = "notice" | "image" | "memory" | "reward"; // 알림 종류(reward: 출석·미션 보상)
 export type MissionId = "send-messages" | "start-conversation" | "favorite-work"; // 오늘의 미션 식별자
-export type TokenRecordSource = "attendance" | "mission" | "mission-bonus"; // 토큰 기록 출처(4단계에서 사용 출처를 더함)
+export type TokenRecordSource = "attendance" | "mission" | "mission-bonus" | "invite-welcome" | "invite-friend"; // 토큰 기록 출처(출석·미션·친구 초대, 토큰 사용 내역 단계에서 사용 출처를 더함)
 export type StatMode = "rule" | "ai" | "both"; // 스탯 수치를 정하는 방법(규칙·AI 판단·둘 다)
 export type StatScope = "each" | "shared"; // 스탯 적용 대상(인물마다 따로·하나만)
 
@@ -396,7 +396,25 @@ export interface RewardState // 출석·미션 상태
     totalEarned: number; // 지금까지 받은 토큰
 } // 구조 종료
 
-export interface TokenRecord // 토큰 기록(지금은 받은 기록만, 4단계에서 사용 기록 추가)
+export interface InvitedFriend // 내 초대로 들어와 조건을 채운 친구
+{ // 구조 시작
+    id: string; // 친구 식별자(서버가 정함)
+    nickname: string; // 표시 이름
+    qualifiedAt: string; // 조건(메시지 5번)을 채운 시각
+    rewardedAt: string | null; // 보상을 받은 시각(한 달 한도를 넘으면 없음)
+} // 구조 종료
+
+export interface ReferralState // 친구 초대 상태
+{ // 구조 시작
+    code: string | null; // 내 초대 코드(만들기 전에는 없음)
+    createdAt: string | null; // 코드를 만든 시각
+    redeemedCode: string | null; // 내가 입력한 친구의 초대 코드(한 번만)
+    redeemedAt: string | null; // 환영 보너스를 받은 시각
+    qualifyingMessages: number; // 초대받은 뒤 보낸 메시지(0~5, 초대해 준 친구의 보상 조건)
+    friends: InvitedFriend[]; // 초대한 친구(최근 순)
+} // 구조 종료
+
+export interface TokenRecord // 토큰 기록(지금은 받은 기록만, 토큰 사용 내역 단계에서 사용 기록 추가)
 { // 구조 시작
     id: string; // 기록 식별자
     direction: "earn" | "spend"; // 받음·사용
@@ -449,7 +467,7 @@ export interface GeneratedImage // 이미지 스튜디오 생성 이미지
 
 export interface AppState // 앱 상태 구조
 { // 구조 시작
-    schemaVersion: 15; // 스키마 버전
+    schemaVersion: 16; // 스키마 버전
     providerMode: ProviderMode; // 공급자 설정
     profile: UserProfile; // 사용자 프로필
     characters: Character[]; // 캐릭터 목록
@@ -463,6 +481,7 @@ export interface AppState // 앱 상태 구조
     messages: Message[]; // 메시지 목록
     wallet: TokenWallet; // 토큰 지갑
     rewards: RewardState; // 출석·미션
+    referral: ReferralState; // 친구 초대
     tokenRecords: TokenRecord[]; // 토큰 기록(최근 순)
     settings: AppSettings; // 사용자 설정
     bookmarkedCharacterIds: string[]; // 보관 캐릭터

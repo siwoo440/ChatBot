@@ -52,6 +52,7 @@ export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate
                     <span className="user-panel-rewards-meta">도장 {attendance.stamped}/{ATTENDANCE_CYCLE} · 미션 {bonus.done}/{bonus.total}{rewardCount > 0 ? ` · 받을 보상 ${rewardCount}개` : ""}</span> {/* 진행 */}
                 </Link> // 카드 종료
             )} {/* 카드 판정 종료 */}
+            {rewards === undefined ? null : <Link href={"/rewards#invite" as Route} className="user-panel-invite" onClick={onNavigate}><span>친구 초대</span><span aria-hidden="true">›</span></Link>} {/* 친구 초대 칸으로 */}
             <nav className="user-panel-menu" aria-label="사용자 메뉴"> {/* 사용자 메뉴 */}
                 {settingsNavigation.map((group) => ( // 메뉴 묶음 순회
                     <section key={group.id} className="user-panel-group" aria-labelledby={`user-${group.id}-title`}> {/* 메뉴 묶음 */}

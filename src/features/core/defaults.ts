@@ -1,5 +1,5 @@
 import { AFFECTION_STAT_ID, createAffectionStat } from "@/features/chat/stat-model"; // 기본 호감도 스탯
-import type { Character, ChatTierId, ConversationSettings, Persona, RewardState, StatusTemplate, TierOption, UserProfile } from "@/features/core/types"; // 도메인 타입
+import type { Character, ChatTierId, ConversationSettings, Persona, ReferralState, RewardState, StatusTemplate, TierOption, UserProfile } from "@/features/core/types"; // 도메인 타입
 
 export type WorkExtras = Pick<Character, "playGuide" | "statusTemplate" | "updates">; // 작품 공통 추가 필드
 
@@ -8,6 +8,11 @@ export const DEFAULT_PERSONA_ID = "persona-default"; // 기본 대화 프로필 
 export function createDefaultRewardState(): RewardState // 출석·미션 처음 상태
 { // 함수 시작
     return { attendance: { lastDate: null, cycleDay: 0, totalDays: 0 }, missions: { dateKey: null, progress: {}, claimed: [], bonusClaimed: false }, totalEarned: 0 }; // 빈 상태 반환
+} // 함수 종료
+
+export function createDefaultReferralState(): ReferralState // 친구 초대 처음 상태
+{ // 함수 시작
+    return { code: null, createdAt: null, redeemedCode: null, redeemedAt: null, qualifyingMessages: 0, friends: [] }; // 빈 상태 반환
 } // 함수 종료
 
 export function createDefaultStatusTemplate(enabled = true): StatusTemplate // 기본 상태창 형식

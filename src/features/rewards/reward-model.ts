@@ -136,7 +136,7 @@ export function recordMissionProgress(rewards: RewardState, missionId: MissionId
     return { rewards: { ...rewards, missions: { ...today, progress: { ...today.progress, [missionId]: after } } }, completedNow: after >= definition.target }; // 기록 반환
 } // 함수 종료
 
-function grantTokens(state: AppState, grant: { id: string; source: TokenRecordSource; label: string; amount: number; now: string }): AppState // 토큰 지급(지갑·받은 기록·받은 합계)
+export function grantTokens(state: AppState, grant: { id: string; source: TokenRecordSource; label: string; amount: number; now: string }): AppState // 토큰 지급(지갑·받은 기록·받은 합계)
 { // 함수 시작
     const daily = getDailyUsage(state.wallet, new Date(grant.now)); // 날짜가 바뀌었으면 사용량 0부터
     const wallet = { ...state.wallet, balance: state.wallet.balance + grant.amount, dailyChatUsed: daily.chat, dailyImageUsed: daily.image, updatedAt: grant.now }; // 잔액 증가

@@ -3,6 +3,7 @@ import { isConversationVersionGraphValid } from "@/features/conversation/convers
 import type { AdultVerification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationStartSettings, ConversationVersion, GeneratedImage, Message, Story, StoryCastMember, TokenWallet, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { STAT_LIMIT } from "@/features/chat/stat-model"; // 스탯 개수 한도
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
+import { INVITE_QUALIFY_MESSAGES, isInviteCode } from "@/features/rewards/referral-model"; // 초대 코드 형식
 import { STORY_CAST_LIMIT } from "@/features/story/story-model"; // 등장인물 최대 수
 
 export const platformModes = ["auto", "mobile", "tablet", "desktop"] as const; // 플랫폼 목록
@@ -27,7 +28,7 @@ export const statModes = ["rule", "ai", "both"] as const; // 스탯 정하는 �
 export const statScopes = ["each", "shared"] as const; // 스탯 적용 대상
 export const conversationFilters = ["all", "character", "story"] as const; // 대화 종류 탭
 export const notificationKinds = ["notice", "image", "memory", "reward"] as const; // 알림 종류
-export const tokenRecordSources = ["attendance", "mission", "mission-bonus"] as const; // 토큰 기록 출처
+export const tokenRecordSources = ["attendance", "mission", "mission-bonus", "invite-welcome", "invite-friend"] as const; // 토큰 기록 출처
 export const reportReasons = ["incorrect-rating", "harmful-content", "copyright", "spam", "other"] as const; // 신고 사유 목록
 export const contentRatings = ["all", "teen", "mature"] as const; // 이용 등급 목록
 export const adultVerificationMethods = ["mock"] as const; // 성인 인증 방식 목록
@@ -557,7 +558,25 @@ export function hasSchemaFifteenFields(value: Record<string, unknown>): boolean 
     return isRewardState(value.rewards) && Array.isArray(value.tokenRecords) && value.tokenRecords.every(isTokenRecord) && hasUniqueIds(value.tokenRecords); // 판정 반환
 } // 함수 종료
 
+export function isReferralState(value: unknown): boolean // 친구 초대 판정 함수
+{ // 함수 시작
+    if (!isRecord(value) || !Array.isArray(value.friends)) // 묶음 확인
+    { // 조건 시작
+        return false; // 거부
+    } // 조건 종료
+    const codeValid = value.code === null || (isString(value.code) && isInviteCode(value.code)); // 내 코드
+    const redeemedValid = value.redeemedCode === null || (isString(value.redeemedCode) && isInviteCode(value.redeemedCode) && value.redeemedCode !== value.code); // 받은 코드(내 코드와 다름)
+    const timesValid = (value.createdAt === null || isString(value.createdAt)) && (value.redeemedAt === null || isString(value.redeemedAt)); // 시각
+    const friendsValid = value.friends.every((friend) => isRecord(friend) && isString(friend.id) && friend.id.length > 0 && isString(friend.nickname) && isString(friend.qualifiedAt) && (friend.rewardedAt === null || isString(friend.rewardedAt))) && hasUniqueIds(value.friends); // 친구 기록
+    return codeValid && redeemedValid && timesValid && friendsValid && isCount(value.qualifyingMessages) && value.qualifyingMessages <= INVITE_QUALIFY_MESSAGES; // 판정 반환
+} // 함수 종료
+
 export function isAppState(value: unknown): value is AppState // 앱 상태 판정 함수
+{ // 함수 시작
+    return hasVersionedGraph(value, 16) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14) && hasSchemaFifteenFields(value) && isReferralState(value.referral); // 버전 16 상태 반환
+} // 함수 종료
+
+export function isVersionFifteenState(value: unknown): value is Record<string, unknown> // 버전 15 상태 판정 함수
 { // 함수 시작
     return hasVersionedGraph(value, 15) && hasSchemaEightFields(value) && hasSchemaNineFields(value) && hasSchemaTenFields(value) && hasSchemaElevenFields(value) && hasSchemaTwelveFields(value, 14) && hasSchemaFifteenFields(value); // 버전 15 상태 반환
 } // 함수 종료
@@ -602,7 +621,7 @@ export function isVersionSevenState(value: unknown): value is VersionSevenState 
     return hasVersionedGraph(value, 7); // 버전 7 상태 반환
 } // 함수 종료
 
-export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
+export function hasVersionedGraph(value: unknown, schemaVersion: 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16): value is Record<string, unknown> // 버전 7 이후 공통 구조 판정 함수
 { // 함수 시작
     if (!hasAppStateData(value) // 공통 상태 확인
         || value.schemaVersion !== schemaVersion // 버전 확인

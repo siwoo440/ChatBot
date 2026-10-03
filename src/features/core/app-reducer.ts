@@ -3,6 +3,7 @@ import { autoOrganizeConversations, CONVERSATION_PIN_LIMIT } from "@/features/co
 import { DEFAULT_PERSONA_ID } from "@/features/core/defaults"; // 기본 대화 프로필
 import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
 import type { AdultVerification, AppNotification, AppSettings, AppState, Character, CharacterMemory, CharacterReport, Conversation, ConversationFolder, ConversationSettings, ConversationVersion, GeneratedImage, Message, MissionId, Persona, PublicationStatus, Story, TokenWallet, UserProfile } from "@/features/core/types"; // 상태 타입
+import { applyInviteConfirmations, createInviteCode, redeemInviteCode, type InviteConfirmation } from "@/features/rewards/referral-model"; // 친구 초대 규칙
 import { checkAttendance, claimMission, claimMissionBonus } from "@/features/rewards/reward-model"; // 출석·미션 규칙
 
 export const NOTIFICATION_LIMIT = 30; // 알림 보관 최대 수
@@ -59,6 +60,9 @@ export type AppAction = // 앱 동작
     | { type: "check-attendance"; now: string } // 출석하기
     | { type: "claim-mission"; missionId: MissionId; now: string } // 미션 보상 받기
     | { type: "claim-mission-bonus"; now: string } // 미션 모두 완료 보너스 받기
+    | { type: "create-invite-code"; code: string; now: string } // 내 초대 코드 만들기
+    | { type: "redeem-invite-code"; code: string; now: string } // 친구의 초대 코드로 환영 보너스 받기
+    | { type: "apply-invite-confirmations"; friends: InviteConfirmation[]; now: string } // 조건을 채운 친구 반영(서버 연결 뒤 사용)
     | { type: "replace-state"; state: AppState }; // 상태 복원
 
 export function appReducer(state: AppState, action: AppAction): AppState // 앱 리듀서
@@ -350,6 +354,12 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             return claimMission(state, action.missionId, action.now); // 보상 지급
         case "claim-mission-bonus": // 모두 완료 보너스 받기
             return claimMissionBonus(state, action.now); // 보너스 지급
+        case "create-invite-code": // 내 초대 코드 만들기
+            return createInviteCode(state, action.code, action.now); // 코드 저장
+        case "redeem-invite-code": // 친구의 초대 코드로 환영 보너스 받기
+            return redeemInviteCode(state, action.code, action.now); // 보너스 지급
+        case "apply-invite-confirmations": // 조건을 채운 친구 반영
+            return applyInviteConfirmations(state, action.friends, action.now); // 친구 보상
         case "replace-state": // 상태 교체
             return structuredClone(action.state); // 복원 상태 반환
         default: // 기본 분기

@@ -3,7 +3,7 @@ import type { AppState } from "@/features/core/types"; // 도메인 타입
 import { addMissingBuiltInStories, migrateParsedState } from "@/lib/repositories/state-migrations"; // 버전 변환
 import { isAppState, isFiniteNumber, isOneOf, isRecord, isString } from "@/lib/repositories/state-validation"; // 데이터 검사
 
-export { addMissingBuiltInStories, migrateVersionEight, migrateVersionEleven, migrateVersionFive, migrateVersionFourteen, migrateVersionNine, migrateVersionSeven, migrateVersionSix, migrateVersionTen, migrateVersionThirteen, migrateVersionTwelve } from "@/lib/repositories/state-migrations"; // 기존 이름 유지(버전 변환)
+export { addMissingBuiltInStories, migrateVersionEight, migrateVersionEleven, migrateVersionFifteen, migrateVersionFive, migrateVersionFourteen, migrateVersionNine, migrateVersionSeven, migrateVersionSix, migrateVersionTen, migrateVersionThirteen, migrateVersionTwelve } from "@/lib/repositories/state-migrations"; // 기존 이름 유지(버전 변환)
 export { isAppState } from "@/lib/repositories/state-validation"; // 기존 이름 유지(데이터 검사)
 
 const stateKey = "mateverse:v1:state"; // 상태 저장 키
@@ -114,7 +114,7 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     { // 실패 시작
         throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
     } // 실패 종료
-    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 15) // 미래 버전 판정
+    if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 16) // 미래 버전 판정
     { // 미래 버전 시작
         throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
     } // 미래 버전 종료

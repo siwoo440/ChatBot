@@ -38,6 +38,13 @@
     --tone-strong: light-dark(#78350f, #f2b593); /* 제한 진한 글자 */
 } /* 제한 종료 */
 
+.panel[data-tone="invite"] /* 친구 초대 */
+{ /* 초대 시작 */
+    --tone: #be185d; /* 초대 강조색 */
+    --tone-soft: light-dark(#fce7f3, #38162a); /* 초대 연한 배경 */
+    --tone-strong: light-dark(#9d174d, #f08bb6); /* 초대 진한 글자 */
+} /* 초대 종료 */
+
 .symbol /* 상태 기호 */
 { /* 기호 시작 */
     display: inline-grid; /* 중앙 배치 */
@@ -122,7 +129,7 @@
 
 .actions > :first-child:hover /* 주요 동작 올림 */
 { /* 주요 올림 시작 */
-    background: var(--tone-strong); /* 진한 배경 */
+    background: color-mix(in srgb, var(--tone) 82%, black); /* 조금 진한 배경(다크 모드에서도 흰 글자가 보이게) */
 } /* 주요 올림 종료 */
 
 .actions a:focus-visible, /* 링크 초점 */

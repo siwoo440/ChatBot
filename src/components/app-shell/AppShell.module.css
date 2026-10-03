@@ -1731,6 +1731,32 @@
     outline-offset: 2px; /* 외곽선 간격 */
 } /* 초점 종료 */
 
+.grid :global(.user-panel-invite) /* 친구 초대 링크 */
+{ /* 링크 시작 */
+    display: flex; /* 가로 배치 */
+    align-items: center; /* 세로 중앙 */
+    justify-content: space-between; /* 양끝 */
+    min-height: 42px; /* 높이 */
+    padding: 0 15px; /* 여백 */
+    border: 1px dashed light-dark(#f3b8d3, #6b2a4a); /* 분홍 점선 */
+    border-radius: 14px; /* 모서리 */
+    color: light-dark(#be185d, #f08bb6); /* 분홍 글자 */
+    font-size: .88rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+    text-decoration: none; /* 밑줄 제거 */
+} /* 링크 종료 */
+
+.grid :global(.user-panel-invite:hover) /* 링크 올림 */
+{ /* 올림 시작 */
+    background: light-dark(#fff3f8, #2a1420); /* 분홍 배경 */
+} /* 올림 종료 */
+
+.grid :global(.user-panel-invite:focus-visible) /* 링크 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 2px; /* 외곽선 간격 */
+} /* 초점 종료 */
+
 .grid :global(.user-panel-rewards-label) /* 카드 표제 */
 { /* 표제 시작 */
     color: light-dark(#be185d, #f08bb6); /* 분홍 글자 */

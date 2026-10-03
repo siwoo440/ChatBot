@@ -4,6 +4,7 @@ import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
 import { useState } from "react"; // 리액트 상태
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
+import { InviteSection } from "@/features/rewards/InviteSection"; // 친구 초대 칸
 import { ATTENDANCE_CYCLE, attendanceRewards, getAttendanceView, getBonusView, getClaimableTokens, getMissionViews, type MissionView } from "@/features/rewards/reward-model"; // 출석·미션 규칙
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import settings from "@/features/settings/SettingsScreen.module.css"; // 설정 공통 스타일
@@ -54,7 +55,7 @@ export function RewardsScreen() // 출석과 미션 화면
     }; // 함수 종료
     return ( // 화면 반환
         <> {/* 출석과 미션 */}
-            <SettingsPageHeader kicker="ACCOUNT · REWARDS" title="출석과 미션" description="매일 출석 도장을 찍고 오늘의 미션을 채우면 토큰을 조금씩 받을 수 있어요." /> {/* 페이지 머리말 */}
+            <SettingsPageHeader kicker="ACCOUNT · REWARDS" title="출석과 미션" description="매일 출석 도장을 찍고 오늘의 미션을 채우면 토큰을 조금씩 받을 수 있어요. 친구를 초대하면 친구도 환영 토큰을 받아요." /> {/* 페이지 머리말 */}
             <section className={settings.statGrid} aria-label="보상 요약"> {/* 요약 */}
                 <div className={settings.stat}><span>보유 토큰</span><strong>{state.wallet.balance.toLocaleString()}</strong><small>{waiting > 0 ? `지금 ${waiting}토큰을 받을 수 있어요` : "오늘 받을 보상을 모두 받았어요"}</small></div> {/* 잔액 */}
                 <div className={settings.stat}><span>이번 도장판</span><strong>{attendance.stamped}/{ATTENDANCE_CYCLE}</strong><small>누적 출석 {attendance.totalDays}일</small></div> {/* 출석 */}
@@ -94,6 +95,7 @@ export function RewardsScreen() // 출석과 미션 화면
                 </ul> {/* 미션 목록 종료 */}
                 <button type="button" className={settings.secondary} disabled={!missionReady} onClick={claimAll}>미션 보상 모두 받기</button> {/* 모두 받기 */}
             </section> {/* 미션 종료 */}
+            <InviteSection /> {/* 친구 초대 */}
             <section className={settings.card} aria-labelledby="rewards-record-title"> {/* 받은 기록 */}
                 <h2 id="rewards-record-title">받은 기록</h2> {/* 제목 */}
                 {state.tokenRecords.length === 0 ? <p>아직 받은 토큰이 없어요. 출석 도장부터 찍어 보세요.</p> : ( // 기록 판정
