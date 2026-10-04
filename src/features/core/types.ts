@@ -23,6 +23,7 @@ export type ConversationFilter = "all" | "character" | "story"; // 왼쪽 창 �
 export type NotificationKind = "notice" | "image" | "memory" | "reward" | "event"; // 알림 종류(reward: 출석·미션 보상, event: 스탯 조건 이벤트)
 export type StoryEventCondition = "stat-min" | "stat-max" | "turn"; // 이벤트 조건(스탯 이상·스탯 이하·턴)
 export type MissionId = "send-messages" | "start-conversation" | "favorite-work"; // 오늘의 미션 식별자
+export type WeeklyMissionId = "weekly-messages" | "weekly-attendance" | "weekly-conversations"; // 주간 미션 식별자
 export type TokenRecordSource = "attendance" | "mission" | "mission-bonus" | "invite-welcome" | "invite-friend" | "chat" | "scene-image" | "studio-image"; // 토큰 기록 출처(받음: 출석·미션·친구 초대, 사용: 대화·장면 이미지·이미지 스튜디오)
 export type StatMode = "rule" | "ai" | "both"; // 스탯 수치를 정하는 방법(규칙·AI 판단·둘 다)
 export type StatScope = "each" | "shared"; // 스탯 적용 대상(인물마다 따로·하나만)
@@ -443,10 +444,18 @@ export interface DailyMissionState // 오늘의 미션 상태
     bonusClaimed: boolean; // 모두 완료 보너스 받음
 } // 구조 종료
 
+export interface WeeklyMissionState // 주간 미션 상태
+{ // 구조 시작
+    weekKey: string | null; // 기록한 주의 월요일(한국 시간 연-월-일, 바뀌면 처음부터)
+    progress: Record<string, number>; // 미션별 진행(없으면 0)
+    claimed: string[]; // 보상을 받은 미션
+} // 구조 종료
+
 export interface RewardState // 출석·미션 상태
 { // 구조 시작
     attendance: AttendanceState; // 출석
     missions: DailyMissionState; // 오늘의 미션
+    weekly?: WeeklyMissionState; // 주간 미션(없으면 이번 주를 빈 상태로 봄)
     totalEarned: number; // 지금까지 받은 토큰
 } // 구조 종료
 

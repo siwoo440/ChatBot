@@ -4,6 +4,7 @@ import { addTokenRecord, TOKEN_RECORD_LIMIT } from "@/lib/story/token-ledger"; /
 import { getDailyUsage } from "@/lib/story/token-policy"; // 오늘 사용량
 import { getDateKey } from "@/lib/time/date-key"; // 한국 시간 날짜 키
 import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { getWeeklyClaimable } from "@/features/rewards/weekly-model"; // 주간 미션 보상(서로 함수만 불러 쓰므로 순서 문제 없음)
 
 export const ATTENDANCE_CYCLE = 7; // 도장판 칸 수
 export const attendanceRewards: readonly number[] = [5, 5, 5, 5, 5, 5, 20]; // 1~7일차 보상(일주일 50토큰)
@@ -115,14 +116,14 @@ export function getBonusView(missions: DailyMissionState, now: Date): BonusView 
 
 export function getClaimableCount(rewards: RewardState, now: Date): number // 지금 받을 수 있는 보상 수(출석 포함)
 { // 함수 시작
-    return (getAttendanceView(rewards.attendance, now).canCheck ? 1 : 0) + getMissionViews(rewards.missions, now).filter((view) => view.claimable).length + (getBonusView(rewards.missions, now).claimable ? 1 : 0); // 합계
+    return (getAttendanceView(rewards.attendance, now).canCheck ? 1 : 0) + getMissionViews(rewards.missions, now).filter((view) => view.claimable).length + (getBonusView(rewards.missions, now).claimable ? 1 : 0) + getWeeklyClaimable(rewards, now).count; // 합계(주간 미션 포함)
 } // 함수 종료
 
 export function getClaimableTokens(rewards: RewardState, now: Date): number // 지금 받을 수 있는 토큰(출석 포함)
 { // 함수 시작
     const attendance = getAttendanceView(rewards.attendance, now); // 출석
     const bonus = getBonusView(rewards.missions, now); // 보너스
-    return (attendance.canCheck ? attendance.nextReward : 0) + getMissionViews(rewards.missions, now).filter((view) => view.claimable).reduce((sum, view) => sum + view.definition.reward, 0) + (bonus.claimable ? bonus.reward : 0); // 합계
+    return (attendance.canCheck ? attendance.nextReward : 0) + getMissionViews(rewards.missions, now).filter((view) => view.claimable).reduce((sum, view) => sum + view.definition.reward, 0) + (bonus.claimable ? bonus.reward : 0) + getWeeklyClaimable(rewards, now).tokens; // 합계(주간 미션 포함)
 } // 함수 종료
 
 export function recordMissionProgress(rewards: RewardState, missionId: MissionId, amount: number, now: Date): { rewards: RewardState; completedNow: boolean } // 미션 진행 기록(목표에 닿는 순간만 완료 표시)

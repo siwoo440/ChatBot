@@ -181,4 +181,7 @@ export const shell: Record<string, string> = {
     "화면 언어": "Display language",
     "자동(브라우저 언어)": "Auto (browser language)",
     "메뉴와 버튼, 안내 글이 고른 언어로 바뀝니다. 캐릭터 이름과 소개, 이미 나눈 대화는 바뀌지 않습니다.": "Menus, buttons, and guidance switch to the language you pick. Character names, descriptions, and existing chats stay as they are.",
+    "오늘 {0} 동안 이용했어요. 잠깐 쉬어 가도 대화는 그대로 남아 있어요.": "You've used Mate Verse for {0} today. Take a short break — your chats will still be here.",
+    "오늘 이용 시간": "Time used today",
+    "이 브라우저의 모든 탭 합계 · 자정에 다시 셈": "All tabs in this browser · resets at midnight",
 };

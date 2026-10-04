@@ -94,7 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
                 <div className={styles.storageMessages}> {/* 상단 메시지 묶음 */}
                     {usageReminder.due ? ( // 이용 시간 알림 판정
                         <div className={styles.storageNotice} data-tone="rest" role="status"> {/* 이용 시간 알림 */}
-                            <p>{formatUsageDuration(usageReminder.activeMs)} {t("동안 이용했어요. 잠깐 쉬어 가도 대화는 그대로 남아 있어요.")}</p> {/* 알림 문구 */}
+                            <p>{t("오늘 {0} 동안 이용했어요. 잠깐 쉬어 가도 대화는 그대로 남아 있어요.", [formatUsageDuration(usageReminder.activeMs)])}</p> {/* 알림 문구 */}
                             <button type="button" onClick={usageReminder.acknowledge}>{t("계속 이용하기")}</button> {/* 알림 확인 */}
                         </div> // 이용 시간 알림 종료
                     ) : null} {/* 이용 시간 알림 판정 종료 */}

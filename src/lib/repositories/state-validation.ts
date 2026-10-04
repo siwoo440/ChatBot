@@ -591,7 +591,9 @@ export function isRewardState(value: unknown): boolean // 출석·미션 판정 
     const { attendance, missions } = value; // 출석·미션
     const attendanceValid = (attendance.lastDate === null || isDateKey(attendance.lastDate)) && isCount(attendance.cycleDay) && attendance.cycleDay <= 7 && isCount(attendance.totalDays); // 출석 확인
     const missionsValid = (missions.dateKey === null || isDateKey(missions.dateKey)) && isRecord(missions.progress) && Object.values(missions.progress).every(isCount) && isStringArray(missions.claimed) && isBoolean(missions.bonusClaimed); // 미션 확인
-    return attendanceValid && missionsValid; // 판정 반환
+    const weekly = value.weekly; // 주간 미션(선택 항목)
+    const weeklyValid = weekly === undefined || (isRecord(weekly) && (weekly.weekKey === null || isDateKey(weekly.weekKey)) && isRecord(weekly.progress) && Object.values(weekly.progress).every(isCount) && isStringArray(weekly.claimed)); // 주간 미션 확인
+    return attendanceValid && missionsValid && weeklyValid; // 판정 반환
 } // 함수 종료
 
 export function isTokenRecord(value: unknown): boolean // 토큰 기록 판정 함수

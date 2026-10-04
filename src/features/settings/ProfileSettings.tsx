@@ -12,6 +12,8 @@ import { validateProfileSettings, type ProfileSettingsErrors } from "@/features/
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 import { localeTag, t, tc } from "@/lib/i18n"; // 화면 글자 번역
 import { membershipPlans, membershipRows } from "@/features/settings/membership"; // 멤버십 비교표
+import { formatUsageDuration } from "@/features/safety/usage-time"; // 이용 시간 표시
+import { readTodayUsageMs } from "@/features/safety/useUsageReminder"; // 오늘 이용 시간
 
 const membershipLabels = { free: "FREE", plus: "PLUS", creator: "CREATOR" } as const; // 멤버십 표시
 
@@ -85,7 +87,7 @@ export function ProfileSettings() // 프로필 관리 화면
             </section> {/* 멤버십 비교 종료 */}
             <section className={styles.card} aria-labelledby="activity-title"> {/* 내 활동 */}
                 <h2 id="activity-title">{t("내 활동")}</h2> {/* 영역 제목 */}
-                <ul className={styles.statGrid} aria-label={t("활동 요약")}>{activityItems.map((item) => <li key={item.label} className={styles.stat}><span>{item.label}</span><strong>{item.value.toLocaleString(localeTag())}</strong></li>)}</ul> {/* 활동 수 */}
+                <ul className={styles.statGrid} aria-label={t("활동 요약")}>{activityItems.map((item) => <li key={item.label} className={styles.stat}><span>{item.label}</span><strong>{item.value.toLocaleString(localeTag())}</strong></li>)}<li className={styles.stat}><span>{t("오늘 이용 시간")}</span><strong>{formatUsageDuration(readTodayUsageMs())}</strong><small>{t("이 브라우저의 모든 탭 합계 · 자정에 다시 셈")}</small></li></ul> {/* 활동 수와 오늘 이용 시간 */}
                 <p><Link className={styles.inlineLink} href={"/library" as Route}>{t("내 캐릭터와 작품 열기")}</Link></p> {/* 보관함 링크 */}
             </section> {/* 내 활동 종료 */}
             <section className={styles.card} aria-labelledby="follow-title"> {/* 팔로우한 제작자 */}

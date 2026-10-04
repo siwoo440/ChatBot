@@ -10,6 +10,7 @@ import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페�
 import settings from "@/features/settings/SettingsScreen.module.css"; // 설정 공통 스타일
 import styles from "@/features/rewards/RewardsScreen.module.css"; // 보상 화면 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
+import { getWeekDaysLeft, getWeeklyViews, type WeeklyMissionView } from "@/features/rewards/weekly-model"; // 주간 미션
 
 const RECORD_PREVIEW = 10; // 화면에 보여 줄 받은 기록 수
 
@@ -29,6 +30,13 @@ export function RewardsScreen() // 출석과 미션 화면
     const waiting = getClaimableTokens(state.rewards, today); // 지금 받을 수 있는 토큰
     const missionReady = missions.some((view) => view.claimable) || bonus.claimable; // 받을 미션 보상 여부
     const earned = state.tokenRecords.filter((record) => record.direction === "earn"); // 받은 기록(쓴 기록은 토큰 이용 내역에서)
+    const weekly = getWeeklyViews(state.rewards, today); // 주간 미션 상태
+    const weekDaysLeft = getWeekDaysLeft(today); // 이번 주 남은 날
+    const claimWeekly = (view: WeeklyMissionView) => // 주간 미션 보상 받기
+    { // 함수 시작
+        dispatch({ type: "claim-weekly-mission", missionId: view.definition.id, now: new Date().toISOString() }); // 보상 지급
+        setNotice(t("‘{0}’ 보상 {1}토큰을 받았습니다.", [view.definition.title, view.definition.reward])); // 안내
+    }; // 함수 종료
     const stamp = () => // 출석하기
     { // 함수 시작
         dispatch({ type: "check-attendance", now: new Date().toISOString() }); // 도장과 보상
@@ -97,6 +105,19 @@ export function RewardsScreen() // 출석과 미션 화면
                 </ul> {/* 미션 목록 종료 */}
                 <button type="button" className={settings.secondary} disabled={!missionReady} onClick={claimAll}>{t("미션 보상 모두 받기")}</button> {/* 모두 받기 */}
             </section> {/* 미션 종료 */}
+            <section id="weekly" className={settings.card} aria-labelledby="rewards-weekly-title"> {/* 주간 미션 */}
+                <h2 id="rewards-weekly-title">{t("주간 미션")}</h2> {/* 제목 */}
+                <p>{t("매주 월요일 0시(한국 시간)에 새로 시작해요. 이번 주는 {0}일 남았어요. 받지 않은 보상은 주가 바뀌면 사라져요.", [weekDaysLeft])}</p> {/* 설명 */}
+                <ul className={styles.missionList} aria-label={t("주간 미션 목록")}> {/* 미션 목록 */}
+                    {weekly.map((view) => ( // 미션 순회
+                        <li key={view.definition.id} data-state={view.claimed ? "claimed" : view.claimable ? "ready" : "open"}> {/* 미션 */}
+                            <div className={styles.missionCopy}><strong>{t(view.definition.title)}</strong><small>{t(view.definition.description)}</small></div> {/* 이름과 설명 */}
+                            <div className={styles.missionProgress}><div role="progressbar" aria-label={t("{0} 진행", [view.definition.title])} aria-valuemin={0} aria-valuemax={view.definition.target} aria-valuenow={view.progress}><span style={{ width: `${(view.progress / view.definition.target) * 100}%` }} /></div><span>{view.progress}/{view.definition.target}</span></div> {/* 진행 */}
+                            {view.claimed ? <span className={styles.claimed}>{t("받음")}</span> : view.claimable ? <button type="button" className={styles.claim} aria-label={t("{0} 보상 {1}토큰 받기", [view.definition.title, view.definition.reward])} onClick={() => claimWeekly(view)}>{t("받기 · +")}{view.definition.reward}</button> : view.definition.href === "/rewards" ? <span className={styles.locked}>+{view.definition.reward}</span> : <Link href={view.definition.href as Route} className={styles.go} aria-label={`${t(view.definition.title)}, ${t(view.definition.actionLabel)}`}>+{view.definition.reward} · {t(view.definition.actionLabel)}</Link>} {/* 받기·하러 가기(출석은 이 화면에서 하므로 보상만 표시) */}
+                        </li> // 미션 종료
+                    ))} {/* 순회 종료 */}
+                </ul> {/* 미션 목록 종료 */}
+            </section> {/* 주간 미션 종료 */}
             <InviteSection /> {/* 친구 초대 */}
             <section className={settings.card} aria-labelledby="rewards-record-title"> {/* 받은 기록 */}
                 <h2 id="rewards-record-title">{t("받은 기록")}</h2> {/* 제목 */}

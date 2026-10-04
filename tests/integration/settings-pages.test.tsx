@@ -141,7 +141,7 @@ describe("설정 페이지", () => // 페이지 묶음
         const base = createInitialState(); // 초기 상태
         const state: AppState = { ...base, characters: base.characters.map((character, index) => index === 0 ? { ...character, creatorId: base.profile.id } : character), likedCharacterIds: ["sera", "noah"], bookmarkedCharacterIds: ["sera"], followedCreatorIds: ["creator-evening", "creator-rain"] }; // 활동이 있는 상태
         renderWithApp(<><ProfileSettings /><StateProbe /></>, state); // 프로필 화면 렌더링
-        expect(within(screen.getByRole("list", { name: "활동 요약" })).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["만든 캐릭터1", "만든 스토리0", "대화방3", "좋아요2", "보관1", "팔로우2"]); // 활동 수
+        expect(within(screen.getByRole("list", { name: "활동 요약" })).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["만든 캐릭터1", "만든 스토리0", "대화방3", "좋아요2", "보관1", "팔로우2", "오늘 이용 시간0분이 브라우저의 모든 탭 합계 · 자정에 다시 셈"]); // 활동 수와 오늘 이용 시간
         const list = screen.getByRole("list", { name: "팔로우한 제작자 목록" }); // 제작자 목록
         expect(within(list).getAllByRole("listitem").map((item) => item.querySelector("strong")?.textContent)).toEqual(["푸른우산", "저녁다섯시"]); // 최근 팔로우가 앞
         expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("작품 1개"); // 작품 수

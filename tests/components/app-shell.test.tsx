@@ -16,7 +16,7 @@ describe("앱 셸 패널", () => // 패널 묶음
     it("60분 동안 이용하면 쉬어 가기 알림을 보여 주고 확인하면 닫는다", () => // 이용 시간 알림 검증
     { // 검증 시작
         vi.useFakeTimers({ now: new Date("2026-10-01T00:00:00.000Z") }); // 시각 고정
-        window.sessionStorage.clear(); // 이전 기록 제거
+        window.localStorage.removeItem("mateverse:v1:usage-time"); // 이전 기록 제거
         try // 시계 복원 보장
         { // 시도 시작
             renderWithApp(<AppShell><main>본문</main></AppShell>); // 화면 렌더
