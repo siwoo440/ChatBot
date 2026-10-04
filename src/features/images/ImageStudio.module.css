@@ -565,3 +565,9 @@
     .form, .result, .gallery { padding: 18px; } /* 여백 축소 */
     .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } /* 두 열 */
 } /* 미디어 종료 */
+
+.searchRow /* 내 이미지 검색 줄 */
+{ /* 줄 시작 */
+    display: flex; /* 가로 배치 */
+    margin: 0 0 16px; /* 아래쪽 여백 */
+} /* 줄 종료 */

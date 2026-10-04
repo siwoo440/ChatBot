@@ -8,5 +8,6 @@ Object.defineProperty(window.navigator, "language", { configurable: true, value:
 afterEach(() => // 테스트 종료 처리
 { // 처리 시작
     cleanup(); // DOM 정리
+    window.sessionStorage.clear(); // 탭에 기억한 값(메인 조건 등)이 다음 테스트에 남지 않게 비움
     setActiveLocale("ko"); // 영어로 바꾼 테스트가 다음 테스트에 남지 않게 한국어로 되돌림
 }); // 처리 종료

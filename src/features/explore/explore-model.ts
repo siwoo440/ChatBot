@@ -129,7 +129,13 @@ export function getTagHue(tag: string): number // 태그 색 번호
     return hash % tagHueCount; // 색 번호 반환
 } // 함수 종료
 
-export function createExploreHref(tag: string | null): string // 탐색 주소 생성
+export function getCharactersByTags(characters: readonly Character[], tags: readonly string[]): Character[] // 고른 태그를 모두 가진 작품 조회
 { // 함수 시작
-    return tag === null ? "/explore" : `/explore?tag=${encodeURIComponent(tag)}`; // 태그 주소 반환
+    return characters.filter((character) => tags.every((tag) => character.tags.includes(tag))).sort(byPopularity); // 인기순 작품 반환
+} // 함수 종료
+
+export function createExploreHref(tag: string | readonly string[] | null): string // 탐색 주소 생성(태그 여러 개는 tag를 되풀이)
+{ // 함수 시작
+    const tags = tag === null ? [] : typeof tag === "string" ? [tag] : tag; // 태그 목록
+    return tags.length === 0 ? "/explore" : `/explore?${tags.map((item) => `tag=${encodeURIComponent(item)}`).join("&")}`; // 태그 주소 반환
 } // 함수 종료

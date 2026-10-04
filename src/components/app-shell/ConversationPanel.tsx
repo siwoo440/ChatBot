@@ -5,7 +5,7 @@ import Image from "next/image"; // 최적화 이미지
 import Link from "next/link"; // 내부 경로 링크
 import { usePathname, useRouter, useSearchParams } from "next/navigation"; // 경로 도구
 import { Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react"; // 리액트 도구
-import { autoOrganizeConversations, buildConversationListItems, CONVERSATION_PIN_LIMIT, conversationFilterOptions, conversationSortOptions, filterConversationItems, formatConversationStatus, formatConversationTime, groupConversationItems, matchesConversationQuery, type ConversationListItem } from "@/features/conversation/conversation-list-model"; // 대화 목록 계산
+import { autoOrganizeConversations, buildConversationListItems, CONVERSATION_PIN_LIMIT, conversationFilterOptions, conversationSortOptions, filterConversationItems, formatConversationStatus, formatConversationTime, groupConversationItems, findConversationMatch, type ConversationListItem } from "@/features/conversation/conversation-list-model"; // 대화 목록 계산
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import type { ConversationSort } from "@/features/core/types"; // 정렬 타입
 
@@ -151,7 +151,8 @@ function ConversationPanelView({ open, onNavigate, activeConversationId }: Conve
     }, [menuFor]); // 메뉴 의존
     const items = buildConversationListItems(state, now); // 진행 중인 대화
     const filter = state.settings.conversationFilter; // 대화 종류 탭
-    const visibleItems = filterConversationItems(items, filter).filter((item) => matchesConversationQuery(item, query)); // 종류·검색 결과
+    const matches = new Map(items.map((item) => [item.conversation.id, findConversationMatch(item, query, state.messages)])); // 대화방별 검색 결과(대화 전체 내용 포함)
+    const visibleItems = filterConversationItems(items, filter).filter((item) => matches.get(item.conversation.id) !== null); // 종류·검색 결과
     const groups = groupConversationItems(visibleItems, state.settings.conversationSort, state.pinnedConversationIds, now, state.conversationFolders, query.length === 0 && filter === "all"); // 화면 묶음(고정 → 폴더 → 날짜)
     const filterCounts = { all: items.length, character: items.filter((item) => item.conversation.mode === "character").length, story: items.filter((item) => item.conversation.mode === "story").length }; // 탭별 개수
     const archivedCount = state.conversations.filter((conversation) => conversation.archivedAt !== null).length; // 보관 대화 수
@@ -428,14 +429,16 @@ function ConversationPanelView({ open, onNavigate, activeConversationId }: Conve
                             const statusLine = item.locked ? "" : formatConversationStatus(item.latestStatus); // 마지막 상태창 줄
                             const tone = (cardOrder.get(conversation.id) ?? 0) % 2 === 0 ? "primary" : "secondary"; // 대비 교차
                             const active = conversation.id === activeConversationId; // 현재 대화 여부
+                            const found = matches.get(conversation.id)?.message ?? null; // 대화 내용에서 찾은 말
+                            const foundText = found === null ? "" : (story === null ? found.content : summarizeStoryContent(found.content, conversation.storyCast)).replace(/\s+/g, " ").trim().slice(0, 80); // 찾은 말 짧게
                             return ( // 카드 반환
                                 <li key={conversation.id} className="conversation-card" data-mode={conversation.mode} data-tone={tone} data-genre={getGenreKey(story?.tags ?? character.tags)} data-locked={item.locked ? "true" : undefined} data-active={active ? "true" : undefined}> {/* 대화 카드 */}
                                     <div className="conversation-card-main"> {/* 링크·더보기 영역 */}
-                                        <Link href={createSessionHref(conversation) as Route} className="conversation-card-link" aria-current={active ? "page" : undefined} onClick={onNavigate}> {/* 대화 링크 */}
+                                        <Link href={(found === null ? createSessionHref(conversation) : `${createSessionHref(conversation)}&message=${encodeURIComponent(found.id)}`) as Route} className="conversation-card-link" aria-current={active ? "page" : undefined} onClick={onNavigate}> {/* 대화 링크 */}
                                             <span className="conversation-card-avatar"><Image src={story?.coverImage ?? character.coverImage} alt="" width={88} height={88} /></span> {/* 캐릭터 얼굴·스토리 표지 */}
                                             <span className="conversation-card-body"> {/* 카드 본문 */}
                                                 <span className="conversation-card-heading">{item.pinned ? <PinIcon label={t("고정한 대화")} /> : null}{story === null ? null : <span className="conversation-card-mode">{t("스토리")}</span>}<strong className="conversation-card-title">{t(conversation.title)}</strong></span> {/* 대화 제목 */}
-                                                <span className="conversation-card-message">{item.locked ? t("19+ 잠금 · 19+를 켜면 대화를 볼 수 있습니다.") : story === null ? summary.lastMessage : summarizeStoryContent(summary.lastMessage, conversation.storyCast)}</span> {/* 최근 메시지 */}
+                                                <span className="conversation-card-message" data-found={found === null ? undefined : "true"}>{found !== null ? <><b>{t("찾은 말")}</b> {foundText}</> : item.locked ? t("19+ 잠금 · 19+를 켜면 대화를 볼 수 있습니다.") : story === null ? summary.lastMessage : summarizeStoryContent(summary.lastMessage, conversation.storyCast)}</span> {/* 최근 메시지(검색 중에는 찾은 말) */}
                                                 {statusLine.length === 0 ? null : <span className="conversation-card-status"><svg aria-hidden="true" viewBox="0 0 24 24" width="11" height="11"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" fill="currentColor" /></svg><span className="sr-only">{t("마지막 상태")} </span>{statusLine}</span>} {/* 마지막 상태창 장소·시간 */}
                                                 <span className="conversation-card-relation"> {/* 관계 정보 */}
                                                     <span className="conversation-card-stage">{story === null ? `${t(summary.relationshipStage)} · ${t(summary.emotion)}` : item.relationLead === null ? t("등장인물 {0}명 · {1}", [conversation.storyCast.length, summary.emotion]) : t("등장인물 {0}명 · {1} {2}", [conversation.storyCast.length, item.relationLead, summary.relationshipStage])}</span> {/* 관계 단계·감정(스토리는 인물 수와 대표 인물의 관계) */}

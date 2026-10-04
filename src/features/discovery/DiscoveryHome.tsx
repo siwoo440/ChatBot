@@ -2,12 +2,12 @@
 
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 링크
-import { useMemo, useState, type KeyboardEvent } from "react"; // 리액트 상태
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react"; // 리액트 상태
 import { canViewMatureContent, getDiscoverableCharacters } from "@/features/adult/adult-access"; // 19세 콘텐츠 필터
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { CategoryFilter } from "@/features/discovery/CategoryFilter"; // 카테고리 필터
 import { CharacterRail } from "@/features/discovery/CharacterRail"; // 캐릭터 레일
-import { absorbTags, addTag, applyDiscoveryFilter, countActiveFilters, createDiscoveryFilter, discoverySorts, getInterestCharacterIds, getTalkedCharacterIds, isDefaultFilter, parseSearchQuery, ratingFilters, removePendingTag, suggestTags, TAG_FILTER_LIMIT, toggleGenre, type DiscoveryFilter, type DiscoverySort, type RatingFilter } from "@/features/discovery/discovery-filter"; // 정렬과 필터·태그 검색
+import { absorbTags, addTag, applyDiscoveryFilter, countActiveFilters, createDiscoveryFilter, DISCOVERY_FILTER_KEY, type DiscoveryFilter, type DiscoverySort, discoverySorts, getInterestCharacterIds, getTalkedCharacterIds, isDefaultFilter, parseSearchQuery, parseStoredFilter, type RatingFilter, ratingFilters, removePendingTag, suggestTags, TAG_FILTER_LIMIT, toggleGenre } from "@/features/discovery/discovery-filter"; // 정렬과 필터·태그 검색
 import { buildTagStats } from "@/features/explore/explore-model"; // 태그 통계
 import { FeaturedCharacter } from "@/features/discovery/FeaturedCharacter"; // 추천 캐릭터
 import { RankingRail } from "@/features/discovery/RankingRail"; // 랭킹 레일
@@ -20,10 +20,40 @@ import { t } from "@/lib/i18n"; // 화면 글자 번역
 const categories = ["전체", "힐링", "판타지", "현대", "로맨스", "미스터리", "SF"]; // 카테고리 목록
 const pageSize = 12; // 페이지 표시 수
 
+function readStoredFilter(): DiscoveryFilter // 이 탭에서 고른 조건 읽기(없으면 기본 조건)
+{ // 함수 시작
+    try // 읽기 시도
+    { // 시도 시작
+        return (typeof window === "undefined" ? null : parseStoredFilter(window.sessionStorage.getItem(DISCOVERY_FILTER_KEY))) ?? createDiscoveryFilter(); // 기억한 조건 또는 기본
+    } // 시도 종료
+    catch // 읽기 실패
+    { // 실패 시작
+        return createDiscoveryFilter(); // 기본 조건
+    } // 실패 종료
+} // 함수 종료
+
 export function DiscoveryHome() // 탐색 홈
 { // 함수 시작
     const { state } = useAppStore(); // 앱 상태 조회
-    const [chosen, setChosen] = useState<DiscoveryFilter>(createDiscoveryFilter); // 탐색 조건(검색어·장르·등급·선택·정렬)
+    const [chosen, setChosen] = useState<DiscoveryFilter>(readStoredFilter); // 탐색 조건(검색어·장르·등급·선택·정렬, 이 탭에서 고른 조건을 이어받음)
+    useEffect(() => // 조건 기억 효과
+    { // 효과 시작
+        try // 저장 시도
+        { // 시도 시작
+            if (isDefaultFilter(chosen)) // 기본 조건
+            { // 조건 시작
+                window.sessionStorage.removeItem(DISCOVERY_FILTER_KEY); // 기억 지움
+            } // 조건 종료
+            else // 고른 조건 있음
+            { // 저장 시작
+                window.sessionStorage.setItem(DISCOVERY_FILTER_KEY, JSON.stringify(chosen)); // 조건 기억
+            } // 저장 종료
+        } // 시도 종료
+        catch // 저장 실패(사생활 모드 등)
+        { // 실패 시작
+            // 화면 조건만 유지
+        } // 실패 종료
+    }, [chosen]); // 조건 의존
     const [visibleCount, setVisibleCount] = useState(pageSize); // 표시 항목 수
     const showMature = canViewMatureContent(state, new Date()); // 19세 콘텐츠 표시 여부
     const discoverable = useMemo(() => getDiscoverableCharacters(state.characters, showMature), [showMature, state.characters]); // 추천 가능한 캐릭터

@@ -28,6 +28,30 @@ export function createDiscoveryFilter(): DiscoveryFilter // 처음 조건(아무
     return { query: "", tags: [], genres: [], rating: "any", onlyNew: false, onlyInterest: false, sort: "recommended" }; // 기본 조건
 } // 함수 종료
 
+export const DISCOVERY_FILTER_KEY = "mateverse:v1:discovery-filter"; // 탭에 잠깐 기억해 두는 메인 조건(새로고침·뒤로 가기에도 유지, 탭을 닫으면 사라짐)
+
+export function parseStoredFilter(raw: string | null): DiscoveryFilter | null // 기억해 둔 조건 읽기(모양이 다르면 버림)
+{ // 함수 시작
+    if (raw === null) // 저장 없음
+    { // 조건 시작
+        return null; // 없음
+    } // 조건 종료
+    try // 해석 시도
+    { // 시도 시작
+        const value = JSON.parse(raw) as Partial<Record<keyof DiscoveryFilter, unknown>> | null; // 저장 값
+        const strings = (list: unknown): list is string[] => Array.isArray(list) && list.every((item) => typeof item === "string"); // 글자 목록 확인
+        if (value === null || typeof value !== "object" || typeof value.query !== "string" || !strings(value.tags) || !strings(value.genres) || typeof value.onlyNew !== "boolean" || typeof value.onlyInterest !== "boolean" || !ratingFilters.some((item) => item.id === value.rating) || !discoverySorts.some((item) => item.id === value.sort)) // 모양 확인
+        { // 조건 시작
+            return null; // 버림
+        } // 조건 종료
+        return { query: value.query.slice(0, 80), tags: value.tags.slice(0, TAG_FILTER_LIMIT), genres: value.genres, rating: value.rating as RatingFilter, onlyNew: value.onlyNew, onlyInterest: value.onlyInterest, sort: value.sort as DiscoverySort }; // 조건 반환
+    } // 시도 종료
+    catch // 해석 실패
+    { // 실패 시작
+        return null; // 버림
+    } // 실패 종료
+} // 함수 종료
+
 export interface ParsedSearch // 검색창 글을 나눈 결과
 { // 구조 시작
     text: string; // 일반 검색어(제목·작가에서 찾음)

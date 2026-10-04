@@ -134,4 +134,9 @@ export const discovery: Record<string, string> = {
     "{0}분": "{0} min",
     "{0}시간": "{0} hr",
     "{0}시간 {1}분": "{0} hr {1} min",
+    "태그를 더 고르면 모두 가진 작품만 남아요. (최대 {0}개)": "Pick more tags to keep only works that have them all. (Up to {0})",
+    "태그는 {0}개까지 함께 고를 수 있어요. 하나를 빼고 다시 골라 주세요.": "You can combine up to {0} tags. Remove one and try again.",
+    "이어서 좁힐 태그": "Tags to narrow further",
+    "고른 태그를 모두 가진 공개 작품이 없습니다. 태그를 하나 빼 보세요.": "No public works have all the selected tags. Try removing one.",
+    "많이 쓰인 태그부터 보여 드려요. 태그를 누르면 해당 작품을 찾고, 여러 개를 고르면 모두 가진 작품으로 좁혀져요.": "Most-used tags come first. Tap a tag to find its works; pick several to narrow down to works that have them all.",
 };

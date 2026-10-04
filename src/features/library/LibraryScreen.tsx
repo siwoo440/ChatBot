@@ -16,6 +16,8 @@ import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
 import styles from "@/features/library/LibraryScreen.module.css"; // 보관함 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
+import { ListSearch } from "@/components/search/ListSearch"; // 목록 검색창
+import { searchBy } from "@/features/search/list-search"; // 목록 검색
 
 type LibraryTab = "created" | "drafts" | "stories" | "bookmarks" | "conversations" | "replies"; // 보관함 탭
 
@@ -45,6 +47,7 @@ export function LibraryScreen() // 보관함 화면
     const { state, dispatch, createBackup } = useAppStore(); // 앱 상태
     const [activeTab, setActiveTab] = useState<LibraryTab>("created"); // 선택 탭
     const [deleteTarget, setDeleteTarget] = useState<Character | null>(null); // 삭제 대상
+    const [query, setQuery] = useState(""); // 보관함 검색어
     const created = state.characters.filter((character) => character.creatorId === state.profile.id && character.publicationStatus === "published"); // 제작 목록
     const drafts = state.characters.filter((character) => character.creatorId === state.profile.id && character.publicationStatus === "draft"); // 임시 목록
     const myStories = state.stories.filter((story) => story.creatorId === state.profile.id).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)); // 내 스토리
@@ -67,6 +70,18 @@ export function LibraryScreen() // 보관함 화면
     const showMature = canViewMatureContent(state, new Date()); // 19세 콘텐츠 표시 여부
     const isLocked = (character: Character) => isMatureCharacter(character) && !showMature; // 19세 잠금 판정
     const isStoryLocked = (story: Story) => isMatureStory(story) && !showMature; // 19세 스토리 잠금 판정
+    const foundCharacters = searchBy(characters, query, (character) => [character.name, character.creatorName, ...character.tags]); // 찾은 캐릭터(이름·제작자·태그)
+    const foundStories = searchBy(myStories, query, (story) => [story.title, ...story.tags, ...story.cast.map((member) => member.displayName)]); // 찾은 스토리(제목·태그·등장인물)
+    const foundReplies = searchBy(replies, query, (entry) => [entry.title, entry.excerpt]); // 찾은 책갈피(대화방 이름·답변)
+    const foundConversations = searchBy(state.conversations, query, (conversation) => // 찾은 대화(이름·캐릭터·스토리·마지막 말)
+    { // 대상 시작
+        const character = state.characters.find((item) => item.id === conversation.characterId); // 대화 캐릭터
+        const story = conversation.storyId === null ? undefined : state.stories.find((item) => item.id === conversation.storyId); // 대화 스토리
+        const locked = (character !== undefined && isLocked(character)) || (story !== undefined && isStoryLocked(story)); // 19세 잠금
+        return [conversation.title, character?.name, story?.title, ...(locked ? [] : state.messages.filter((message) => message.versionId === conversation.currentVersionId && message.role !== "system").map((message) => message.content))]; // 검색 대상(잠기지 않았으면 지금 버전의 대화 전체)
+    }); // 대상 종료
+    const searching = query.trim().length > 0; // 검색 중
+    const foundCount = activeTab === "replies" ? foundReplies.length : activeTab === "conversations" ? foundConversations.length : activeTab === "stories" ? foundStories.length : foundCharacters.length; // 지금 탭에서 찾은 수
     return ( // 보관함 반환
         <main className={styles.page} data-surface="light"> {/* 보관함 본문 */}
             <header className={styles.header}> {/* 상단 영역 */}
@@ -76,8 +91,9 @@ export function LibraryScreen() // 보관함 화면
             <div className={styles.tabs} role="tablist" aria-label={t("보관함 분류")}> {/* 탭 목록 */}
                 {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-label={t(tab.label)} aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{t(tab.label)}<small>{tab.id === "created" ? created.length : tab.id === "drafts" ? drafts.length : tab.id === "stories" ? myStories.length : tab.id === "bookmarks" ? bookmarks.length : tab.id === "replies" ? replies.length : state.conversations.length}</small></button>)} {/* 탭 항목 */}
             </div> {/* 탭 종료 */}
+            <div className={styles.searchRow}><ListSearch label={t("보관함 검색")} placeholder={t("이름·태그·대화 내용으로 찾기")} value={query} count={foundCount} onChange={setQuery} /></div> {/* 지금 탭 안에서 찾기 */}
             <section className={styles.content} role="tabpanel" aria-label={t(tabs.find((tab) => tab.id === activeTab)?.label)}> {/* 탭 내용 */}
-                {activeTab === "replies" ? <ReplyList entries={replies} onRemove={(messageId) => dispatch({ type: "toggle-message-bookmark", messageId })} /> : activeTab === "conversations" ? <ConversationGrid isLocked={isLocked} isStoryLocked={isStoryLocked} /> : activeTab === "stories" ? <StoryGrid stories={myStories} isStoryLocked={isStoryLocked} /> : <CharacterGrid characters={characters} tab={activeTab} isLocked={isLocked} onDelete={setDeleteTarget} onToggleBookmark={(characterId) => dispatch({ type: "toggle-bookmark", characterId })} onTogglePublication={(character) => dispatch({ type: "set-publication-status", characterId: character.id, status: character.publicationStatus === "draft" ? "published" : "draft" })} />} {/* 탭 콘텐츠 */}
+                {searching && foundCount === 0 ? <div className={styles.empty}><strong>{t("‘{0}’에 맞는 항목이 없어요.", [query.trim()])}</strong><p>{t("다른 낱말로 찾아보거나 다른 탭을 눌러 보세요.")}</p></div> : activeTab === "replies" ? <ReplyList entries={foundReplies} onRemove={(messageId) => dispatch({ type: "toggle-message-bookmark", messageId })} /> : activeTab === "conversations" ? <ConversationGrid isLocked={isLocked} isStoryLocked={isStoryLocked} visibleIds={searching ? new Set(foundConversations.map((conversation) => conversation.id)) : null} /> : activeTab === "stories" ? <StoryGrid stories={foundStories} isStoryLocked={isStoryLocked} /> : <CharacterGrid characters={foundCharacters} tab={activeTab} isLocked={isLocked} onDelete={setDeleteTarget} onToggleBookmark={(characterId) => dispatch({ type: "toggle-bookmark", characterId })} onTogglePublication={(character) => dispatch({ type: "set-publication-status", characterId: character.id, status: character.publicationStatus === "draft" ? "published" : "draft" })} />} {/* 탭 콘텐츠 */}
             </section> {/* 내용 종료 */}
             {deleteTarget === null ? null : ( // 삭제 대화상자 조건
                 <div className={styles.dialogBackdrop}> {/* 대화상자 배경 */}
@@ -186,15 +202,16 @@ function StoryGrid({ stories, isStoryLocked }: { stories: Story[]; isStoryLocked
     ); // 반환 종료
 } // 함수 종료
 
-function ConversationGrid({ isLocked, isStoryLocked }: { isLocked(character: Character): boolean; isStoryLocked(story: Story): boolean }) // 대화 목록
+function ConversationGrid({ isLocked, isStoryLocked, visibleIds }: { isLocked(character: Character): boolean; isStoryLocked(story: Story): boolean; visibleIds: ReadonlySet<string> | null }) // 대화 목록(검색 중이면 찾은 대화만)
 { // 함수 시작
     const { state, dispatch, createBackup } = useAppStore(); // 앱 상태 조회
     const [renameTarget, setRenameTarget] = useState<Conversation | null>(null); // 이름 변경 대상
     const [renameDraft, setRenameDraft] = useState(""); // 이름 변경 초안
     const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null); // 삭제 대상
     const [importStatus, setImportStatus] = useState(""); // 가져오기 안내
-    const active = state.conversations.filter((conversation) => conversation.archivedAt === null); // 진행 대화 목록
-    const archived = state.conversations.filter((conversation) => conversation.archivedAt !== null); // 보관 대화 목록
+    const shown = visibleIds === null ? state.conversations : state.conversations.filter((conversation) => visibleIds.has(conversation.id)); // 보여 줄 대화(검색 결과)
+    const active = shown.filter((conversation) => conversation.archivedAt === null); // 진행 대화 목록
+    const archived = shown.filter((conversation) => conversation.archivedAt !== null); // 보관 대화 목록
     const summaries = new Map(state.conversations.flatMap((conversation) => // 대화 요약 색인
     { // 변환 시작
         const summary = getConversationSummary(state, conversation.id); // 대화 요약 조회

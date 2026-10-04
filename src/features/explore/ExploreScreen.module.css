@@ -469,3 +469,48 @@
         transition: none; /* 전환 제거 */
     } /* 전환 대상 종료 */
 } /* 동작 축소 종료 */
+
+.chosenTags, /* 고른 태그 줄 */
+.narrowTags /* 이어서 좁힐 태그 줄 */
+{ /* 줄 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 줄바꿈 허용 */
+    gap: 8px; /* 칩 간격 */
+    align-items: center; /* 세로 가운데 */
+    margin-bottom: 14px; /* 하단 여백 */
+} /* 줄 종료 */
+
+.chosenTags small /* 좁히기 안내 */
+{ /* 안내 시작 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .84rem; /* 크기 */
+    font-weight: 600; /* 굵기 */
+} /* 안내 종료 */
+
+.chosenTag /* 고른 태그(누르면 빠짐) */
+{ /* 칩 시작 */
+    display: inline-flex; /* 가로 배치 */
+    gap: 8px; /* 이름과 × 사이 */
+    align-items: center; /* 세로 가운데 */
+    min-height: 40px; /* 누르는 높이 */
+    padding: 0 14px; /* 안쪽 여백 */
+    border: 1px solid transparent; /* 테두리 자리 */
+    border-radius: 999px; /* 알약 모양 */
+    background: light-dark(#0369a1, #7dd3fc); /* 고른 색 */
+    color: light-dark(#ffffff, #082f49); /* 글자 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .9rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+    cursor: pointer; /* 누를 수 있음 */
+} /* 칩 종료 */
+
+.chosenTag:hover /* 고른 태그 올림 */
+{ /* 올림 시작 */
+    background: light-dark(#075985, #bae6fd); /* 진한 색 */
+} /* 올림 종료 */
+
+.chosenTag:focus-visible /* 고른 태그 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 2px; /* 외곽선 간격 */
+} /* 초점 종료 */

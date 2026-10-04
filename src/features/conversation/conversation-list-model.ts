@@ -1,7 +1,7 @@
 import { canViewMatureContent, isMatureCharacter } from "@/features/adult/adult-access"; // 19세 콘텐츠 판정
 import { getRelationStat } from "@/features/chat/relation-model"; // 관계 스탯
 import { getConversationSummary, type ConversationSummary } from "@/features/conversation/conversation-versioning"; // 대화 요약 조회
-import type { AppState, Character, Conversation, ConversationFilter, ConversationFolder, ConversationSort, StatusSnapshot, Story } from "@/features/core/types"; // 도메인 타입
+import type { AppState, Character, Conversation, ConversationFilter, ConversationFolder, ConversationSort, Message, StatusSnapshot, Story } from "@/features/core/types"; // 도메인 타입
 import { isMatureStory } from "@/features/story/story-model"; // 19세 스토리 판정
 import { getDateParts, getDayNumber } from "@/lib/time/date-key"; // 시간대 기준 날짜
 import { t } from "@/lib/i18n"; // 화면 글자 번역
@@ -124,6 +124,26 @@ export function matchesConversationQuery(item: ConversationListItem, query: stri
     const storyFields = item.story === null ? [] : [item.story.title, ...item.conversation.storyCast.map((member) => member.displayName)]; // 스토리 제목·등장인물 이름
     const fields = [item.conversation.title, item.character.name, ...storyFields, ...(item.locked ? [] : [item.summary.lastMessage])]; // 검색 대상(잠금 시 메시지 제외)
     return fields.some((field) => matchesKoreanText(field, query)); // 일치 여부 반환
+} // 함수 종료
+
+export interface ConversationMatch // 검색으로 찾은 자리
+{ // 구조 시작
+    message: Message | null; // 찾은 메시지(제목·이름·마지막 메시지로 찾았으면 null)
+} // 구조 종료
+
+export function findConversationMatch(item: ConversationListItem, query: string, messages: readonly Message[]): ConversationMatch | null // 대화방 검색(제목·이름 먼저, 없으면 대화 전체 내용에서)
+{ // 함수 시작
+    const text = query.trim(); // 검색어 정리
+    if (text.length === 0 || matchesConversationQuery(item, text)) // 검색어가 없거나 제목·이름·마지막 메시지에 맞음
+    { // 조건 시작
+        return { message: null }; // 대화방만 찾음
+    } // 조건 종료
+    if (item.locked) // 19+ 잠금(대화 내용은 찾지 않음)
+    { // 조건 시작
+        return null; // 불일치
+    } // 조건 종료
+    const found = messages.filter((message) => message.versionId === item.conversation.currentVersionId && message.role !== "system" && matchesKoreanText(message.content, text)).at(-1); // 지금 버전에서 가장 최근에 맞은 말
+    return found === undefined ? null : { message: found }; // 찾은 말 반환
 } // 함수 종료
 
 export function buildConversationListItems(state: AppState, now: Date): ConversationListItem[] // 진행 중인 대화방 항목 생성

@@ -2532,4 +2532,14 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - 단위 `support-extras`(7), 통합 `support-extras`(6), E2E `polish.spec.ts`(7: 탭 제목, 로그아웃, 소식과 문의 복사, 기간과 비교표, 세 너비 넘침). 전체 단위 647개·E2E 102개 통과.
 - 화면: 고객 지원·프로필 관리·토큰 이용 내역을 390px 어둡게·820px 밝게·1440px 밝게와 어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음). 영어 화면에 남은 한글 없음.
 
+### 61.7 둘째 묶음: 검색 통일
+
+- 탐색(`ExploreScreen.tsx`): `selectedTag`(하나) → `selectedTags`(여러 개). `initialTag`는 글자 하나나 목록을 받는다(`src/app/explore/page.tsx`가 `?tag=`를 모두 넘김). `createExploreHref`는 글자·목록·null을 받고, `getCharactersByTags`가 모두 가진 작품을 인기순으로 돌려준다. 제안은 `suggestTags(남은 작품, 고른 태그, 입력 글자, 12)`로 바꿔 초성과 남은 작품 수를 쓴다. 한도(5개)를 넘기려 하면 안내를 보여 준다.
+- 대화 목록(`conversation-list-model.ts`): `findConversationMatch(item, query, messages)` → `{ message: Message | null } | null`. 같은 낱말이 여러 번 나오면 가장 최근 말을 고른다. `ConversationPanel`은 검색 결과를 `Map`으로 한 번 만들고 카드 링크와 미리보기(80자)를 바꾼다.
+- 목록 검색: `splitSearchWords`·`matchesFields`·`searchBy`. 검색어가 비면 목록을 그대로 돌려준다. `ListSearch`는 검색어가 있을 때만 `role="status"`로 찾은 수를 읽어 준다.
+- 보관함: 검색어는 탭을 바꿔도 남는다. 찾은 것이 없으면 탭 내용 대신 `‘낱말’에 맞는 항목이 없어요.`를 보여 준다. 대화 탭은 `visibleIds`로 찾은 대화만 넘긴다.
+- 메인 조건 기억(`discovery-filter.ts`의 `parseStoredFilter`): 모양이 맞지 않으면 버리고, 검색어 80자·태그 5개로 자른다. 19+를 끈 상태에서 19세 등급 조건이 되살아나면 기존 규칙대로 `모든 등급`으로 본다.
+- 검증: 단위 `list-search`(6), 통합 `search-extras`(7), E2E `search-extras.spec.ts`(7: 탐색 여러 태그와 새로고침, 지난 말로 대화 찾기, 보관함·스토리 검색, 메인 조건 기억, 세 너비 넘침). 전체 단위 660개·E2E 109개 통과. 탐색(태그 둘)·보관함·스토리 목록을 390px 어둡게·820px 밝게·1440px 밝게와 어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음).
+- 고친 문제: 보관함·스토리 검색 줄에 `margin` 줄임 표기를 써서 가운데 정렬이 풀려 왼쪽으로 삐져나옴 → `margin-top`만 쓰도록 수정.
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

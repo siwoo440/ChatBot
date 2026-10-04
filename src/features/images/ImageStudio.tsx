@@ -13,6 +13,8 @@ import { getRegionPolicy, getServiceRegion } from "@/lib/config/service-region";
 import { tokenCosts, trySpend } from "@/lib/story/token-policy"; // 토큰 비용
 import styles from "@/features/images/ImageStudio.module.css"; // 스튜디오 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
+import { ListSearch } from "@/components/search/ListSearch"; // 목록 검색창
+import { searchBy } from "@/features/search/list-search"; // 목록 검색
 
 type GalleryFilter = "all" | "favorite"; // 갤러리 필터
 
@@ -37,7 +39,9 @@ export function ImageStudio() // 이미지 스튜디오
     const policy = getRegionPolicy(); // 지역 정책
     const candidates = getStoryCandidates(state, showMature); // 참고 캐릭터 후보
     const latest = latestId === null ? undefined : state.images.find((image) => image.id === latestId); // 방금 만든 이미지
-    const visibleImages = filter === "favorite" ? state.images.filter((image) => image.favorite) : state.images; // 필터 결과
+    const [query, setQuery] = useState(""); // 내 이미지 검색어
+    const filteredImages = filter === "favorite" ? state.images.filter((image) => image.favorite) : state.images; // 필터 결과
+    const visibleImages = searchBy(filteredImages, query, (image) => image.contentRating === "mature" && !showMature ? [] : [image.prompt, t(imageStyleLabels[image.style])]); // 검색 결과(잠긴 19세 이미지는 설명을 숨기므로 찾지 않음)
     const generate = () => // 이미지 만들기
     { // 함수 시작
         setNotice(""); // 안내 초기화
@@ -131,7 +135,8 @@ export function ImageStudio() // 이미지 스튜디오
                         <button type="button" role="tab" aria-label={t("즐겨찾기")} aria-selected={filter === "favorite"} onClick={() => setFilter("favorite")}>{t("즐겨찾기")} {state.images.filter((image) => image.favorite).length}</button> {/* 즐겨찾기 */}
                     </div> {/* 필터 종료 */}
                 </div> {/* 머리 종료 */}
-                {visibleImages.length === 0 ? <p className={styles.empty}>{filter === "favorite" ? t("즐겨찾기한 이미지가 없어요.") : t("만든 이미지가 여기에 모여요.")}</p> : <div className={styles.grid}>{visibleImages.map((image) => <ImageCard key={image.id} image={image} locked={image.contentRating === "mature" && !showMature} onFavorite={() => dispatch({ type: "toggle-image-favorite", imageId: image.id })} onDelete={() => setDeleteTarget(image)} />)}</div>} {/* 이미지 목록 */}
+                {state.images.length === 0 ? null : <div className={styles.searchRow}><ListSearch label={t("내 이미지 검색")} placeholder={t("장면 설명이나 그림체로 찾기")} value={query} count={visibleImages.length} onChange={setQuery} /></div>} {/* 내 이미지 찾기 */}
+                {visibleImages.length === 0 ? <p className={styles.empty}>{query.trim().length > 0 && filteredImages.length > 0 ? t("‘{0}’에 맞는 이미지가 없어요. 다른 낱말로 찾아보세요.", [query.trim()]) : filter === "favorite" ? t("즐겨찾기한 이미지가 없어요.") : t("만든 이미지가 여기에 모여요.")}</p> : <div className={styles.grid}>{visibleImages.map((image) => <ImageCard key={image.id} image={image} locked={image.contentRating === "mature" && !showMature} onFavorite={() => dispatch({ type: "toggle-image-favorite", imageId: image.id })} onDelete={() => setDeleteTarget(image)} />)}</div>} {/* 이미지 목록 */}
             </section> {/* 갤러리 종료 */}
             {deleteTarget === null ? null : ( // 삭제 대화상자 판정
                 <div className={styles.dialogBackdrop}> {/* 배경 */}
