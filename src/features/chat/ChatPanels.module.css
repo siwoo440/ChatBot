@@ -585,7 +585,9 @@
     right: 0; /* 오른쪽 맞춤 */
     display: grid; /* 세로 배치 */
     gap: 2px; /* 간격 */
-    width: min(280px, 80vw); /* 너비 */
+    width: min(340px, 88vw); /* 너비(모델 이름과 설명이 한 줄에 들어가게) */
+    max-height: min(72vh, 560px); /* 화면이 낮으면 목록 안에서 밀기 */
+    overflow-y: auto; /* 세로 스크롤 */
     padding: 6px; /* 여백 */
     border: 1px solid var(--mv-line); /* 테두리 */
     border-radius: 14px; /* 모서리 */
@@ -1221,3 +1223,58 @@
     .radioCards { grid-template-columns: 1fr; } /* 한 칸 */
     .noteFoot { flex-wrap: wrap; } /* 줄바꿈 */
 } /* 미디어 종료 */
+
+.tierDot[data-tier="smart"] /* 스마트 */
+{ /* 스마트 시작 */
+    background: #0284c7; /* 파랑 */
+} /* 스마트 종료 */
+
+.tierDot[data-tier="balance"] /* 밸런스 */
+{ /* 밸런스 시작 */
+    background: #0d9488; /* 청록 */
+} /* 밸런스 종료 */
+
+.tierDot[data-tier="master"] /* 마스터 */
+{ /* 마스터 시작 */
+    background: #be123c; /* 진한 빨강 */
+} /* 마스터 종료 */
+
+.tierMenu .tierLive, /* 목록 안의 실제 AI·연습용 표시(글자 길이만큼만 차지) */
+.tierLive /* 실제 AI·연습용 표시 */
+{ /* 표시 시작 */
+    display: inline-block; /* 줄 안 배치 */
+    justify-self: start; /* 왼쪽에 붙임 */
+    width: fit-content; /* 글자 길이만큼 */
+    margin-top: 3px; /* 위쪽 여백 */
+    padding: 1px 8px; /* 안쪽 여백 */
+    border: 1px solid var(--mv-line); /* 경계 */
+    border-radius: 999px; /* 알약 모양 */
+    color: var(--mv-muted); /* 연습용 글자 */
+    font-size: .7rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+} /* 표시 종료 */
+
+.tierLive[data-live="true"] /* 실제 AI */
+{ /* 실제 시작 */
+    border-color: light-dark(#16a34a, #4ade80); /* 초록 경계 */
+    color: light-dark(#166534, #86efac); /* 초록 글자 */
+    background: light-dark(#dcfce7, #14321f); /* 초록 배경 */
+} /* 실제 종료 */
+
+.tierRow strong small /* 등급 줄의 모델 이름 */
+{ /* 이름 시작 */
+    margin-left: 6px; /* 왼쪽 여백 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .78rem; /* 크기 */
+    font-weight: 700; /* 굵기 */
+} /* 이름 종료 */
+
+@media (max-width: 640px) /* 휴대폰 */
+{ /* 휴대폰 시작 */
+    .tierMenu /* 등급 목록(등급 버튼이 왼쪽에 있어 오른쪽 맞춤이면 화면 밖으로 나감) */
+    { /* 목록 시작 */
+        right: auto; /* 오른쪽 맞춤 해제 */
+        left: 0; /* 버튼 왼쪽에 맞춤 */
+        width: min(340px, calc(100vw - 70px)); /* 화면 안에 들어오는 너비 */
+    } /* 목록 종료 */
+} /* 휴대폰 종료 */

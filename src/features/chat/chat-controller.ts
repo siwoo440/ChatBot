@@ -13,6 +13,7 @@ import { fromRelationLevel, getRelationStat, readRelationLevel, toRelationLevel,
 import { buildStatJudgeInput, currentStatValues, type StatBaseline, type StatChange } from "@/features/chat/stat-model"; // 스탯 계산
 import { composeStatus, getStatusPeople } from "@/features/chat/status-model"; // 상태창 계산
 import { deriveDisplayName } from "@/features/story/story-model"; // 짧은 이름
+import { getTierOption } from "@/features/chat/chat-tiers"; // 등급별 설정 읽기
 
 export type SendResult = { ok: true } | { ok: false; reason: "empty" | "too-long" | "busy" | "cancelled" | "insufficient-token" | "missing-conversation" | "missing-message" }; // 전송 결과
 export type EditMessageResult = { ok: true; versionId: string } | { ok: false; reason: "empty" | "unchanged" | "too-long" | "busy" | "cancelled" | "insufficient-token" | "missing-message" | "version-limit" | "storage-failed" }; // 수정 결과
@@ -202,15 +203,15 @@ export class ChatController // 채팅 제어기
     private createLLMInput(character: Character, conversation: Conversation, version: ConversationVersion, messages: Message[]): LLMInput // 응답 입력 생성
     { // 함수 시작
         const settings = this.context.settings; // 대화방 설정
-        const tierOption = settings.tierOptions[settings.tier]; // 등급별 길이·생각
+        const tierOption = getTierOption(settings.tierOptions, settings.tier); // 등급별 길이·생각
         const stats = currentStatValues(this.statusTemplateFor(conversation, character), getStatusPeople(conversation, deriveDisplayName(character.name)), this.previousStatus(messages), this.relationBaselines(conversation, character, messages, version.relationshipLevel)).map((item) => ({ name: item.name, target: item.target, value: item.value, min: item.min, max: item.max })); // 지금 스탯 값
         const options = { tier: settings.tier, length: tierOption.length, thinking: tierOption.thinking, writingStyle: settings.writingStyle, preventImpersonation: settings.preventImpersonation, persona: this.context.persona, userNote: settings.userNote, memories: this.context.memories, playGuide: this.context.playGuide, stats, lore: toLorePrompt(matchLore(this.context.lorebook, messages)), examples: toExamplePrompt(this.context.examples), language: getActiveLocale() }; // 응답 조건(설정집은 최근 대화에 키워드가 나온 것만, 답변 언어는 화면 언어)
         if (conversation.mode !== "story") // 캐릭터 모드 판정
         { // 조건 시작
-            return { character, conversation, version, messages, options }; // 캐릭터 입력 반환
+            return { character, conversation, version, messages, options, contentRating: character.contentRating }; // 캐릭터 입력 반환
         } // 조건 종료
         const story = this.state.stories.find((item) => item.id === conversation.storyId); // 연결 스토리
-        return { character, conversation, version, messages, options, story: { title: story?.title ?? conversation.title, synopsis: story?.synopsis ?? "", userRole: story?.userRole ?? "", cast: conversation.storyCast } }; // 스토리 입력 반환(등장인물은 시작 시점 묶음)
+        return { character, conversation, version, messages, options, contentRating: story?.contentRating ?? character.contentRating, story: { title: story?.title ?? conversation.title, synopsis: story?.synopsis ?? "", userRole: story?.userRole ?? "", cast: conversation.storyCast } }; // 스토리 입력 반환(등장인물은 시작 시점 묶음)
     } // 함수 종료
 
     private reportProgress(handler: ChatProgressHandler | undefined, phase: ChatProgressPhase, messageId: string): void // 진행 상태 전달

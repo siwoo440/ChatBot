@@ -25,6 +25,7 @@ export default defineConfig( // 설정 내보내기
         command: `node node_modules/next/dist/bin/next dev --webpack --hostname 127.0.0.1 --port ${serverPort}`, // 서버 실행 명령
         url: baseURL, // 서버 확인 주소
         reuseExistingServer: true, // 기존 서버 재사용
+        env: { ENABLE_REAL_PROVIDERS: "false" }, // 테스트 서버는 실제 AI를 끔(.env.local에 열쇠가 있어도 요금이 나가지 않게)
         timeout: 120_000, // 서버 준비 제한
     }, // 서버 설정 종료
 }); // 설정 종료

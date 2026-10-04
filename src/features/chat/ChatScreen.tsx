@@ -43,6 +43,7 @@ import { canUseImageForRating } from "@/features/images/image-model"; // 이미�
 import styles from "@/features/chat/ChatScreen.module.css"; // 채팅 스타일
 import { t } from "@/lib/i18n"; // 화면 글자 번역
 import { PageTitle } from "@/components/feedback/PageTitle"; // 탭 제목
+import { ChatServiceError, RemoteLLMAdapter, type ChatServiceCode } from "@/lib/adapters/remote-llm-adapter"; // 실제 AI 어댑터
 
 interface ChatScreenProps // 채팅 화면 속성
 { // 구조 시작
@@ -54,6 +55,23 @@ interface ChatScreenProps // 채팅 화면 속성
     llm?: LLMAdapter; // 대화 어댑터
     images?: ImageGenerationAdapter; // 이미지 어댑터
 } // 구조 종료
+
+function describeChatServiceError(code: ChatServiceCode): string // 실제 AI 실패 이유를 쉬운 말로
+{ // 함수 시작
+    if (code === "bad-key") // 열쇠 문제
+    { // 조건 시작
+        return t("AI 열쇠가 맞지 않아요. .env.local의 열쇠를 확인한 뒤 서버를 다시 켜 주세요."); // 열쇠 안내
+    } // 조건 종료
+    if (code === "rate-limited") // 너무 자주 보냄
+    { // 조건 시작
+        return t("너무 빠르게 보냈어요. 1분쯤 뒤에 다시 시도해 주세요."); // 속도 안내
+    } // 조건 종료
+    if (code === "provider-busy") // AI 회사가 바쁨
+    { // 조건 시작
+        return t("AI 회사의 사용 한도에 걸렸어요. 잠시 뒤에 다시 시도하거나 다른 등급을 골라 주세요."); // 한도 안내
+    } // 조건 종료
+    return t("AI 회사에서 답을 받지 못했어요. 다시 시도하거나 다른 등급을 골라 주세요."); // 그 밖의 실패
+} // 함수 종료
 
 export function ChatScreen(props: ChatScreenProps) // 채팅 화면
 { // 함수 시작
@@ -112,7 +130,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     { // 효과 시작
         latestGlobalState.current = state; // 최신 상태 기록
     }, [state]); // 전역 상태 의존
-    const [adapter] = useState(() => llm ?? new MockLLMAdapter()); // 대화 어댑터(요약에도 사용)
+    const [adapter] = useState(() => llm ?? new RemoteLLMAdapter(new MockLLMAdapter())); // 대화 어댑터(실제 AI를 쓸 수 있는 등급은 서버 통로로, 아니면 연습용 AI로 답함)
     const [controller] = useState(() => new ChatController({ state: prepared.state, conversationId: prepared.conversation.id, llm: adapter, images: images ?? new MockImageAdapter() })); // 제어기 생성
     const [panelRequest, setPanelRequest] = useState<{ dialog: ChatDialogId; seq: number } | null>(null); // 설정 대화상자 열기 요청
     const openDialog = useCallback((dialog: ChatDialogId) => setPanelRequest((current) => ({ dialog, seq: (current?.seq ?? 0) + 1 })), []); // 대화상자 열기
@@ -316,11 +334,11 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
                 void summarizeIfNeeded().catch(() => undefined); // 요약 메모리(실패해도 대화는 유지)
             } // 조건 종료
         } // 시도 종료
-        catch // 응답 실패 처리
+        catch (error) // 응답 실패 처리
         { // 실패 시작
             sync(); // 부분 상태 동기화
             setRetryAvailable(true); // 재시도 상태 설정
-            setNotice(t("응답을 받지 못했습니다. 다시 시도해 주세요.")); // 실패 안내
+            setNotice(error instanceof ChatServiceError ? describeChatServiceError(error.code) : t("응답을 받지 못했습니다. 다시 시도해 주세요.")); // 실패 안내(실제 AI는 이유를 알려 줌)
         } // 실패 종료
         finally // 응답 상태 정리
         { // 정리 시작

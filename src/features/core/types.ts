@@ -12,7 +12,7 @@ export type MemoryCategory = "long" | "short" | "relation" | "goal"; // 요약 �
 export type ReportReason = "incorrect-rating" | "harmful-content" | "copyright" | "spam" | "other"; // 신고 사유
 export type AdultVerificationMethod = "mock"; // 성인 인증 방식
 export type ConversationSort = "recent" | "relationship" | "turns" | "title"; // 대화방 정렬 기준
-export type ChatTierId = "basic" | "plus" | "premium"; // 채팅 모델 등급
+export type ChatTierId = "basic" | "smart" | "balance" | "plus" | "premium" | "master"; // 채팅 모델 등급(베이직·스마트: Gemini, 밸런스: GPT, 플러스·프리미엄·마스터: Claude)
 export type LengthMultiplier = 1 | 1.5 | 3 | 5; // 답변 최대 길이 배수
 export type ThinkingDepth = "off" | "basic" | "deep" | "deeper"; // 생각 깊이
 export type WritingStyle = "default" | "romance" | "hardboiled" | "comic" | "literary"; // 문체
@@ -70,7 +70,7 @@ export interface TierOption // 등급별 답변 설정
 export interface ConversationSettings // 대화방별 설정
 { // 구조 시작
     tier: ChatTierId; // 채팅 모델 등급
-    tierOptions: Record<ChatTierId, TierOption>; // 등급별 답변 길이·생각 깊이
+    tierOptions: Partial<Record<ChatTierId, TierOption>>; // 등급별 답변 길이·생각 깊이(없는 등급은 기본값, 예전 데이터에는 세 등급만 있음)
     personaId: string | null; // 대화 프로필(null이면 기본 프로필)
     userNote: string; // 유저 노트
     userNoteExtended: boolean; // 유저 노트 2000자 확장

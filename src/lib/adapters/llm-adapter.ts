@@ -1,6 +1,6 @@
 import type { StatChange, StatJudgeInput } from "@/features/chat/stat-model"; // 스탯 판단 형식
 import type { Locale } from "@/lib/i18n"; // 화면 언어
-import type { Character, ChatTierId, Conversation, ConversationVersion, LengthMultiplier, Message, ThinkingDepth, WritingStyle } from "@/features/core/types"; // 도메인 타입
+import type { Character, ChatTierId, ContentRating, Conversation, ConversationVersion, LengthMultiplier, Message, ThinkingDepth, WritingStyle } from "@/features/core/types"; // 도메인 타입
 
 export interface ChatReplyOptions // 대화방 설정에서 온 응답 조건
 { // 구조 시작
@@ -28,6 +28,7 @@ export interface LLMInput // 대화 입력
     messages: Message[]; // 최근 메시지
     story?: StoryPromptContext; // 스토리 모드 문맥([이름] 대사 형식으로 답함)
     options?: ChatReplyOptions; // 대화방 설정(없으면 기본)
+    contentRating?: ContentRating; // 작품 이용 등급(19세 작품은 외부 AI 약관 때문에 연습용 AI로 답함)
 } // 구조 종료
 
 export interface SummaryInput // 요약 입력

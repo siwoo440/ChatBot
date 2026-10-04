@@ -20,7 +20,7 @@ export const messageRoles = ["user", "assistant", "system"] as const; // 메시�
 export const legacyMemoryCategories = ["summary", "event", "preference"] as const; // 버전 11 이하 기억 분류
 export const memoryCategoriesV12 = ["long", "short", "relation", "goal"] as const; // 버전 12 기억 분류(장기·단기·관계도·목표)
 export const memoryCategories = [...legacyMemoryCategories, ...memoryCategoriesV12] as const; // 모든 기억 분류
-export const chatTierIds = ["basic", "plus", "premium"] as const; // 채팅 모델 등급
+export const chatTierIds = ["basic", "smart", "balance", "plus", "premium", "master"] as const; // 채팅 모델 등급
 export const lengthMultipliers = [1, 1.5, 3, 5]; // 답변 길이 배수
 export const thinkingDepths = ["off", "basic", "deep", "deeper"] as const; // 생각 깊이
 export const writingStyles = ["default", "romance", "hardboiled", "comic", "literary"] as const; // 문체
@@ -408,7 +408,7 @@ export function isConversationSettings(value: unknown): boolean // 대화방 설
 { // 함수 시작
     return isRecord(value) // 객체 확인
         && isOneOf(value.tier, chatTierIds) // 등급 확인
-        && isRecord(value.tierOptions) && chatTierIds.every((tier) => isTierOption((value.tierOptions as Record<string, unknown>)[tier])) // 등급별 설정 확인
+        && isRecord(value.tierOptions) && Object.entries(value.tierOptions).every(([tier, option]) => isOneOf(tier, chatTierIds) && isTierOption(option)) // 등급별 설정 확인(없는 등급은 기본값으로 읽음)
         && (value.personaId === null || isString(value.personaId)) // 대화 프로필 확인
         && isString(value.userNote) && value.userNote.length <= 2000 // 유저 노트 확인
         && isBoolean(value.userNoteExtended) // 확장 확인

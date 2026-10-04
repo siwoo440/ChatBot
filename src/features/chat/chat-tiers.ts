@@ -1,9 +1,13 @@
 import type { ChatTierId, ConversationSettings, LengthMultiplier, ThinkingDepth, TierOption } from "@/features/core/types"; // 도메인 타입
 
+export type ChatProvider = "gemini" | "openai" | "anthropic"; // 모델을 만든 회사(Google·OpenAI·Anthropic)
+
 export interface ChatTier // 채팅 모델 등급
 { // 구조 시작
     id: ChatTierId; // 등급 식별자
-    label: string; // 표시 이름
+    label: string; // 표시 이름(별명)
+    model: string; // 연결하는 모델 이름(화면 표시용, 실제로 보내는 값은 서버의 model-catalog.ts)
+    provider: ChatProvider; // 모델을 만든 회사
     description: string; // 설명
     baseCost: number; // 기본 길이 1회 비용(토큰)
     extraPerBlock: number; // 기본 길이를 넘는 500토큰 구간당 추가 비용
@@ -14,12 +18,27 @@ export const USER_NOTE_LIMIT = 500; // 유저 노트 기본 글자 수
 export const USER_NOTE_EXTENDED_LIMIT = 2000; // 유저 노트 확장 글자 수
 export const USER_NOTE_EXTENDED_COST = 1; // 확장 유저 노트 메시지당 추가 비용
 
-export const chatTiers: ChatTier[] = // 등급 목록(Mock 단계 기본값)
+export const chatTiers: ChatTier[] = // 등급 목록(비싼 순서, 토큰 비용은 개발 기본값이라 실제 요금을 보고 다시 정함)
 [ // 목록 시작
-    { id: "premium", label: "프리미엄챗", description: "가장 깊고 섬세한 묘사", baseCost: 8, extraPerBlock: 2 }, // 프리미엄
-    { id: "plus", label: "플러스챗", description: "풍부한 묘사와 긴 기억", baseCost: 3, extraPerBlock: 1 }, // 플러스
-    { id: "basic", label: "베이직챗", description: "가볍고 빠른 대화", baseCost: 1, extraPerBlock: 1 }, // 베이직
+    { id: "master", label: "마스터챗", model: "Claude Fable", provider: "anthropic", description: "최상위 모델의 가장 섬세한 이야기", baseCost: 12, extraPerBlock: 3 }, // 마스터
+    { id: "premium", label: "프리미엄챗", model: "Claude Opus", provider: "anthropic", description: "가장 깊고 섬세한 묘사", baseCost: 8, extraPerBlock: 2 }, // 프리미엄
+    { id: "plus", label: "플러스챗", model: "Claude Sonnet", provider: "anthropic", description: "풍부한 묘사와 긴 기억", baseCost: 3, extraPerBlock: 1 }, // 플러스
+    { id: "balance", label: "밸런스챗", model: "GPT", provider: "openai", description: "고르게 잘하는 대화", baseCost: 2, extraPerBlock: 1 }, // 밸런스
+    { id: "smart", label: "스마트챗", model: "Gemini Pro", provider: "gemini", description: "차분하고 꼼꼼한 대화", baseCost: 2, extraPerBlock: 1 }, // 스마트
+    { id: "basic", label: "베이직챗", model: "Gemini Flash", provider: "gemini", description: "가볍고 빠른 대화", baseCost: 1, extraPerBlock: 1 }, // 베이직
 ]; // 목록 종료
+
+const defaultTierOption: TierOption = { length: 1, thinking: "off" }; // 기본 길이·생각 끄기
+
+export function getTierOption(tierOptions: ConversationSettings["tierOptions"], id: ChatTierId): TierOption // 등급별 설정 읽기(저장된 값이 없으면 기본값)
+{ // 함수 시작
+    return tierOptions[id] ?? defaultTierOption; // 설정 반환
+} // 함수 종료
+
+export function fillTierOptions(tierOptions: ConversationSettings["tierOptions"]): Record<ChatTierId, TierOption> // 모든 등급의 설정 채우기(편집 화면용)
+{ // 함수 시작
+    return Object.fromEntries(chatTiers.map((tier) => [tier.id, { ...getTierOption(tierOptions, tier.id) }])) as Record<ChatTierId, TierOption>; // 채운 설정 반환
+} // 함수 종료
 
 export const lengthOptions: Array<{ value: LengthMultiplier; label: string }> = [{ value: 1, label: "기본" }, { value: 1.5, label: "1.5x" }, { value: 3, label: "3x" }, { value: 5, label: "5x" }]; // 길이 선택지
 export const thinkingOptions: Array<{ value: ThinkingDepth; label: string }> = [{ value: "off", label: "끄기" }, { value: "basic", label: "기본" }, { value: "deep", label: "깊게" }, { value: "deeper", label: "더 깊게" }]; // 생각 깊이 선택지
@@ -60,5 +79,5 @@ export function getTierMaxCost(id: ChatTierId): number // 등급 최대 비용(5
 
 export function getMessageCost(settings: ConversationSettings): number // 메시지 1회 비용
 { // 함수 시작
-    return getTierCost(settings.tier, settings.tierOptions[settings.tier]) + (settings.userNoteExtended ? USER_NOTE_EXTENDED_COST : 0); // 등급 비용 + 유저 노트 확장
+    return getTierCost(settings.tier, getTierOption(settings.tierOptions, settings.tier)) + (settings.userNoteExtended ? USER_NOTE_EXTENDED_COST : 0); // 등급 비용 + 유저 노트 확장
 } // 함수 종료

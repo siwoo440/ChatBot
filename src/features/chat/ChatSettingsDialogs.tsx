@@ -3,7 +3,7 @@
 import { useState } from "react"; // 리액트 상태
 import { ChatDialog } from "@/features/chat/ChatDialog"; // 대화상자
 import { chatFontOptions, chatFontSizeOptions, getChatFontFamily, getChatFontSize, loadChatFont } from "@/features/chat/chat-fonts"; // 채팅 글꼴
-import { canUseThinking, chatTiers, getReplyTokenLimit, getTierMaxCost, lengthOptions, normalizeTierOption, thinkingOptions, USER_NOTE_EXTENDED_COST, USER_NOTE_EXTENDED_LIMIT, USER_NOTE_LIMIT } from "@/features/chat/chat-tiers"; // 모델 등급
+import { canUseThinking, chatTiers, fillTierOptions, getReplyTokenLimit, getTierMaxCost, lengthOptions, normalizeTierOption, thinkingOptions, USER_NOTE_EXTENDED_COST, USER_NOTE_EXTENDED_LIMIT, USER_NOTE_LIMIT } from "@/features/chat/chat-tiers"; // 모델 등급
 import { createMemory, getConversationMemories, MEMORY_CONTENT_LIMIT, memoryCategories, memoryCategoryLabels, type MemoryOrder } from "@/features/chat/memory-model"; // 요약 메모리
 import { getStyleSample, writingStyles } from "@/features/chat/suggestion-model"; // 문체
 import { DEFAULT_PERSONA_ID } from "@/features/core/defaults"; // 기본 프로필
@@ -11,9 +11,9 @@ import type { CharacterMemory, ChatFont, ChatFontSize, ChatTierId, MemoryCategor
 import styles from "@/features/chat/ChatPanels.module.css"; // 채팅 보조 영역 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
-export function TierDialog({ tierOptions, onSave, onClose }: { tierOptions: Record<ChatTierId, TierOption>; onSave(options: Record<ChatTierId, TierOption>): void; onClose(): void }) // 답변 길이 및 생각 조절
+export function TierDialog({ tierOptions, onSave, onClose }: { tierOptions: Partial<Record<ChatTierId, TierOption>>; onSave(options: Record<ChatTierId, TierOption>): void; onClose(): void }) // 답변 길이 및 생각 조절
 { // 함수 시작
-    const [draft, setDraft] = useState(() => structuredClone(tierOptions)); // 편집 값
+    const [draft, setDraft] = useState(() => fillTierOptions(tierOptions)); // 편집 값(저장된 값이 없는 등급은 기본값)
     const [expanded, setExpanded] = useState<ChatTierId | null>(null); // 펼친 등급
     const update = (tier: ChatTierId, patch: Partial<TierOption>) => setDraft((current) => ({ ...current, [tier]: normalizeTierOption({ ...current[tier], ...patch }) })); // 값 변경
     return ( // 대화상자 반환
@@ -27,7 +27,7 @@ export function TierDialog({ tierOptions, onSave, onClose }: { tierOptions: Reco
                     const thinkingIndex = thinkingOptions.findIndex((item) => item.value === option.thinking); // 생각 위치
                     return ( // 등급 반환
                         <li key={tier.id} data-tier={tier.id}> {/* 등급 */}
-                            <button type="button" className={styles.tierRow} aria-expanded={open} onClick={() => setExpanded(open ? null : tier.id)}><strong>{t(tier.label)}</strong><span>{t("최대")} {getTierMaxCost(tier.id)} {t("토큰")}</span><span aria-hidden="true">{open ? "⌃" : "›"}</span></button> {/* 등급 줄 */}
+                            <button type="button" className={styles.tierRow} aria-expanded={open} onClick={() => setExpanded(open ? null : tier.id)}><strong>{t(tier.label)} <small>{tier.model}</small></strong><span>{t("최대")} {getTierMaxCost(tier.id)} {t("토큰")}</span><span aria-hidden="true">{open ? "⌃" : "›"}</span></button> {/* 등급 줄 */}
                             {!open ? null : ( // 펼침 판정
                                 <div className={styles.tierBody}> {/* 조절 */}
                                     <label>{t("답변 최대 길이 (")}{getReplyTokenLimit(option.length).toLocaleString(localeTag())} {t("토큰)")}<input type="range" min={0} max={lengthOptions.length - 1} step={1} value={lengthIndex} aria-valuetext={t(lengthOptions[lengthIndex].label)} onChange={(event) => update(tier.id, { length: lengthOptions[Number(event.target.value)].value })} /></label> {/* 길이 */}

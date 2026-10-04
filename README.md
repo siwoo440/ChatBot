@@ -73,12 +73,35 @@ docs             개발 문서, 그림 요청 기록
 
 - 저장 위치: 브라우저 `localStorage`의 `mateverse:v1:state`. 다른 기기로 옮기려면 `개인정보 및 보안 → 데이터 관리`에서 JSON으로 내보낸 뒤 가져옵니다.
 - 저장 구조가 바뀌면 예전 데이터를 자동으로 새 구조로 바꿉니다(`src/lib/repositories/state-migrations.ts`).
-- 환경 변수는 `.env.example`을 복사해 `.env.local`로 씁니다. 지금은 연습용 모드만 있습니다(`NEXT_PUBLIC_PROVIDER_MODE=mock`). 비밀 값은 저장소에 올리지 않습니다.
+- 환경 변수는 `.env.example`을 복사해 `.env.local`로 씁니다. 비밀 값은 저장소에 올리지 않습니다.
 - `NEXT_PUBLIC_SERVICE_REGION`을 정하지 않으면 한국(`kr`) 기준으로 동작합니다.
+
+## 실제 AI로 대화하기 (내 컴퓨터에서 혼자 시험)
+
+채팅 등급은 여섯 개이고 등급마다 연결하는 모델이 정해져 있습니다. 열쇠를 넣은 회사의 등급만 실제 AI로 답하고, 나머지는 연습용 AI가 답합니다.
+
+| 등급 | 모델 | 필요한 열쇠 |
+| --- | --- | --- |
+| 베이직챗 | Gemini Flash | `GEMINI_API_KEY` |
+| 스마트챗 | Gemini Pro | `GEMINI_API_KEY` |
+| 밸런스챗 | GPT | `OPENAI_API_KEY` |
+| 플러스챗 | Claude Sonnet | `ANTHROPIC_API_KEY` |
+| 프리미엄챗 | Claude Opus | `ANTHROPIC_API_KEY` |
+| 마스터챗 | Claude Fable | `ANTHROPIC_API_KEY` |
+
+1. 쓰려는 회사에 가입해 열쇠(API 키)를 발급받고, 그 회사 화면에서 월 사용 한도를 걸어 둡니다.
+2. `.env.local`에서 `ENABLE_REAL_PROVIDERS=true`로 바꾸고 열쇠를 `=` 뒤에 붙여 넣습니다.
+3. 개발 서버를 다시 켭니다. 채팅 화면의 등급 목록에 `실제 AI`라고 표시된 등급이 실제 AI로 답합니다.
+
+- 열쇠는 서버(`src/app/api/chat/route.ts`)만 읽습니다. 브라우저에는 보내지 않습니다.
+- 로그인이 없는 동안은 `localhost`로 온 요청만 받고 1분에 20번까지만 받습니다. 배포한 주소에서는 실제 AI가 꺼집니다.
+- 19세 작품은 외부 AI 회사의 약관 때문에 항상 연습용 AI가 답합니다.
+- 모델 이름이 바뀌면 `.env.local`의 `CHAT_MODEL_등급`으로 바꿉니다(예: `CHAT_MODEL_BASIC=...`).
+- 테스트는 실제 AI를 끈 서버에서 돌립니다: `ENABLE_REAL_PROVIDERS=false`.
 
 ## 아직 없는 것
 
-실제 대화 AI, 실제 이미지 생성, 로그인과 서버 저장, 결제, 실제 성인 인증은 외부 서비스가 필요해 만들지 않았습니다. 성인 인증과 멤버십, 토큰 충전은 화면만 있는 모의 기능입니다.
+실제 이미지 생성, 로그인과 서버 저장, 결제, 실제 성인 인증은 외부 서비스가 필요해 만들지 않았습니다. 성인 인증과 멤버십, 토큰 충전은 화면만 있는 모의 기능입니다. 실제 AI 대화는 내 컴퓨터에서 혼자 시험하는 용도까지만 열려 있습니다.
 
 ## 문서
 
