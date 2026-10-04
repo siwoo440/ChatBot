@@ -89,7 +89,8 @@ test.describe("영어 브라우저", () => // 영어 브라우저 묶음
         { // 테스트 시작
             await page.setViewportSize({ width, height: 900 }); // 화면 크기
             await page.goto("/"); // 메인
-            await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); // 제목 표시
+            await expect(page.getByRole("heading", { level: 1 })).toHaveText(/whose world will you step into\?/); // 제목 표시(낱말 사이 띄어쓰기)
+            await expect(page.getByText(/\d+ mates are waiting/)).toBeVisible(); // 숫자와 낱말 사이 띄어쓰기
             expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0); // 넘침 없음
         }); // 테스트 종료
     } // 순회 종료
