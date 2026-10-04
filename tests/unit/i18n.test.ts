@@ -3,7 +3,7 @@ import { collectKeys } from "../../scripts/i18n-keys"; // 번역할 화면 글�
 import { en } from "@/lib/i18n/en"; // 영어 사전
 import { getActiveLocale, localeTag, resolveLocale, setActiveLocale, t } from "@/lib/i18n"; // 번역 도구
 
-const translatedFolders = ["components/", "lib/", "features/core/", "app/", "features/discovery/", "features/explore/", "features/adult/", "features/conversation/", "features/safety/", "features/character/", "features/chat/"]; // 영어 번역을 마친 폴더(묶음을 끝낼 때마다 늘림)
+const translatedFolders = [""]; // 영어 번역을 마친 폴더(빈 글자는 전체: 모든 화면 글자가 사전에 있어야 함)
 
 describe("화면 언어 정하기", () => // 언어 묶음
 { // 묶음 시작

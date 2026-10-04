@@ -1,3 +1,5 @@
+"use client"; // 클라이언트 컴포넌트(화면 언어에 맞춰 글자를 바꾸려면 브라우저에서 그려야 함)
+
 import Image from "next/image"; // 이미지 최적화
 import Link from "next/link"; // 내부 경로 링크
 import type { ReactNode } from "react"; // 자식 요소 타입
@@ -143,7 +145,7 @@ export function TextPlayScreen() // Text-Play 통합 화면
             </section> {/* 상단 소개 종료 */}
 
             <ul className={styles.highlights} aria-label={t("Text-Play 한눈에 보기")}> {/* 핵심 요약 */}
-                {highlights.map((item) => <li key={item.value}><strong>{item.value}</strong><span>{t(item.label)}</span></li>)} {/* 요약 항목 */}
+                {highlights.map((item) => <li key={item.value}><strong>{t(item.value)}</strong><span>{t(item.label)}</span></li>)} {/* 요약 항목 */}
             </ul> {/* 핵심 요약 종료 */}
 
             <section className={styles.section} aria-labelledby="play-flow-title"> {/* 플레이 흐름 */}
@@ -174,7 +176,7 @@ export function TextPlayScreen() // Text-Play 통합 화면
 
             <section className={styles.section} aria-labelledby="install-title"> {/* 설치 안내 */}
                 <SectionHeading id="install-title" kicker="GET STARTED" title={t("설치 순서")} /> {/* 설치 제목 */}
-                <ol className={styles.stepList}>{installationSteps.map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>)}</ol> {/* 설치 단계 목록 */}
+                <ol className={styles.stepList}>{installationSteps.map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{t(step)}</strong></li>)}</ol> {/* 설치 단계 목록 */}
             </section> {/* 설치 안내 종료 */}
 
             <section className={styles.section} aria-labelledby="faq-title"> {/* 자주 묻는 질문 */}

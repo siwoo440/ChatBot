@@ -1,0 +1,23 @@
+// 영어 사전(저장된 값의 표시 이름: 관계 단계·감정·기본 스탯): 값은 한국어 그대로 저장하고 화면에 보일 때만 바꾼다. 줄마다 글자 자체가 설명이라 줄 주석은 달지 않는다.
+export const data: Record<string, string> = {
+    "첫 만남": "First meeting",
+    "아는 사이": "Acquaintance",
+    "가까운 사이": "Close",
+    "특별한 사이": "Special bond",
+    "호기심": "Curious",
+    "기대": "Hopeful",
+    "설렘": "Fluttered",
+    "안도": "Relieved",
+    "조심스러움": "Cautious",
+    "흥분": "Excited",
+    "편안함": "At ease",
+    "집중": "Focused",
+    "벅참": "Overwhelmed",
+    "반가움": "Glad",
+    "긴장": "Tense",
+    "결심": "Resolved",
+    "걱정": "Worried",
+    "기쁨": "Joyful",
+    "관심": "Interested",
+    "호감도": "Affection",
+};

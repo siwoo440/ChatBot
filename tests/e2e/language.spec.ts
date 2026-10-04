@@ -32,6 +32,31 @@ test.describe("영어 브라우저", () => // 영어 브라우저 묶음
         await expect(page.getByRole("navigation", { name: "주요 메뉴" }).getByRole("link", { name: "탐색" })).toBeVisible(); // 한국어 메뉴
     }); // 테스트 종료
 
+    test("없는 주소의 안내와 Text-Play 소개, 자주 묻는 질문도 영어로 보인다", async ({ page }) => // 나머지 화면 검증
+    { // 테스트 시작
+        await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
+        await page.goto("/no-such-page"); // 없는 주소
+        await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible(); // 영어 안내
+        await expect(page.getByRole("link", { name: "Open library" })).toBeVisible(); // 영어 링크
+        await page.goto("/text-play"); // Text-Play 소개
+        await expect(page.getByText("Choices + typing")).toBeVisible(); // 요약 글자
+        await expect(page.getByText("Run the installer")).toBeVisible(); // 설치 순서
+        await page.goto("/support"); // 고객 지원
+        await page.getByRole("searchbox", { name: "Search questions" }).fill("token"); // 영어로 질문 찾기
+        await expect(page.getByText("How do I get tokens?")).toBeVisible(); // 영어 질문
+    }); // 테스트 종료
+
+    for (const target of ["/settings/privacy", "/rewards", "/support", "/text-play", "/library"]) // 나머지 화면 순회
+    { // 순회 시작
+        test(`390px 영어 화면의 ${target} 화면은 가로로 넘치지 않는다`, async ({ page }) => // 넘침 검증
+        { // 테스트 시작
+            await page.setViewportSize({ width: 390, height: 844 }); // 휴대폰 크기
+            await page.goto(target); // 화면 열기
+            await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible(); // 제목 표시
+            expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0); // 넘침 없음
+        }); // 테스트 종료
+    } // 순회 종료
+
     for (const width of [390, 820, 1440]) // 화면 너비 순회
     { // 순회 시작
         test(`${width}px 영어 화면의 메인은 가로로 넘치지 않는다`, async ({ page }) => // 넘침 검증

@@ -1,5 +1,6 @@
 // 자주 묻는 질문: 주제로 나누고 검색어(초성 포함)로 찾는다.
 import { matchesKoreanText } from "@/features/conversation/conversation-list-model"; // 초성 포함 검색
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export type FaqTopic = "data" | "token" | "chat" | "create" | "etc"; // 질문 주제
 
@@ -28,5 +29,5 @@ export const faqs: readonly FaqEntry[] = [ // 자주 묻는 질문
 
 export function filterFaqs(query: string, topic: FaqTopic | "all", entries: readonly FaqEntry[] = faqs): FaqEntry[] // 주제와 검색어로 질문 고르기
 { // 함수 시작
-    return entries.filter((entry) => (topic === "all" || entry.topic === topic) && (matchesKoreanText(entry.question, query) || matchesKoreanText(entry.answer, query))); // 조건에 맞는 질문
+    return entries.filter((entry) => (topic === "all" || entry.topic === topic) && [entry.question, entry.answer, t(entry.question), t(entry.answer)].some((text) => matchesKoreanText(text, query))); // 조건에 맞는 질문(지금 화면 언어의 글자로도 찾음)
 } // 함수 종료

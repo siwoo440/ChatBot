@@ -47,7 +47,7 @@ export function ChatSettingsPanel(props: ChatSettingsPanelProps) // 채팅방 �
     const memoryCount = state.memories.filter((memory) => memory.conversationId === props.conversationId).length; // 메모리 수
     const tierOption = settings.tierOptions[settings.tier]; // 현재 등급 설정
     const close = () => setDialog(null); // 닫기
-    const menuItem = (id: DialogId, label: string, value?: string) => <li><button type="button" className={styles.menuButton} onClick={() => setDialog(id)}><span>{label}</span>{value === undefined || value.length === 0 ? null : <small><span className="sr-only">, </span>{value}</small>}<span aria-hidden="true">›</span></button></li>; // 메뉴 줄
+    const menuItem = (id: DialogId, label: string, value?: string) => <li><button type="button" className={styles.menuButton} onClick={() => setDialog(id)}><span>{label}</span>{value === undefined || value.length === 0 ? null : <small><span className="sr-only">, </span>{t(value)}</small>}<span aria-hidden="true">›</span></button></li>; // 메뉴 줄
     const toggleItem = (label: string, checked: boolean, onChange: (value: boolean) => void) => <li><label className={styles.toggleRow}><span>{label}</span><input type="checkbox" role="switch" checked={checked} onChange={(event) => onChange(event.target.checked)} /></label></li>; // 켜고 끄기 줄
     const latestUpdate = props.updates[0]; // 최신 업데이트
     return ( // 패널 반환
