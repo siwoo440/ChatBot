@@ -187,11 +187,11 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const replaceRoute = router.replace; // 주소 교체 함수
     useEffect(() => // 초기 주소 정규화
     { // 효과 시작
-        if (prepared.recovered) // 복구 주소 판정
+        if (prepared.recovered && !prepared.created) // 복구 주소 판정(아직 저장하지 않은 새 대화는 주소를 바꾸지 않음: 바꾸면 화면이 다시 만들어지며 새 대화가 또 생겨 끝없이 반복됨)
         { // 조건 시작
             replaceRoute(prepared.href as Route, { scroll: false }); // 정규 주소 적용
         } // 조건 종료
-    }, [prepared.href, prepared.recovered, replaceRoute]); // 효과 의존성
+    }, [prepared.created, prepared.href, prepared.recovered, replaceRoute]); // 효과 의존성
     const character = snapshot.characters.find((item) => item.id === characterId); // 캐릭터 조회
     const conversation = snapshot.conversations.find((item) => item.id === prepared.conversation.id); // 대화 조회
     const version = conversation === undefined ? null : getConversationVersion(snapshot, conversation.id); // 현재 버전 조회

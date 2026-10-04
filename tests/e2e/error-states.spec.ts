@@ -38,3 +38,24 @@ test("390px 화면에서 안내 카드가 가로로 넘치지 않는다", async 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); // 가로 넘침 계산
     expect(overflow).toBeLessThanOrEqual(0); // 넘침 부재 확인
 }); // 테스트 종료
+
+test("대화가 없는 캐릭터를 주소로 바로 열어도 화면이 계속 다시 만들어지지 않고 대화할 수 있다", async ({ page }) => // 새 대화 주소 반복 검증
+{ // 테스트 시작
+    let navigations = 0; // 주소가 바뀐 횟수
+    page.on("framenavigated", (frame) => { navigations += frame === page.mainFrame() ? 1 : 0; }); // 주소 변경 수집
+    await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
+    await page.goto("/chat/rank-018"); // 대화한 적 없는 기본 캐릭터
+    await closeOpenPanels(page); // 기본 패널 닫기
+    const input = page.getByRole("textbox", { name: "메시지", exact: true }); // 입력창
+    await expect(input).toBeVisible(); // 대화 화면
+    await page.waitForTimeout(1500); // 주소가 계속 바뀌는지 지켜봄
+    expect(navigations).toBeLessThanOrEqual(2); // 처음 연 것 말고는 바뀌지 않음
+    await expect(page).toHaveURL(/\/chat\/rank-018$/); // 저장 전에는 주소 그대로
+    await input.fill("처음 왔어"); // 입력
+    await input.press("Enter"); // 전송
+    await expect(input).toBeEnabled({ timeout: 15_000 }); // 응답 완료
+    await expect(page.getByRole("list", { name: "대화 메시지" }).getByText("처음 왔어")).toBeVisible(); // 보낸 말
+    await page.reload(); // 새로고침
+    await expect(page).toHaveURL(/\/chat\/rank-018\?conversation=/); // 저장한 대화의 주소로 정리
+    await expect(page.getByRole("list", { name: "대화 메시지" }).getByText("처음 왔어")).toBeVisible(); // 대화 유지
+}); // 테스트 종료
