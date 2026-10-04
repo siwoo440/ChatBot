@@ -7,7 +7,7 @@ import type { AppSettings, PlatformMode } from "@/features/core/types"; // 설�
 import type { LanguageSetting } from "@/lib/i18n"; // 언어 설정
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { getActiveLocale, t } from "@/lib/i18n"; // 화면 글자 번역·화면 언어
 
 function LayoutDiagram({ choice }: { choice: LayoutChoice }) // 배치 그림(대화 영역과 채팅방 설정 위치)
 { // 함수 시작
@@ -61,7 +61,7 @@ export function DisplaySettings() // 화면 레이아웃 화면
                 {status.length === 0 ? null : <p className={styles.status} role="status">{status}</p>} {/* 저장 안내 */}
             </section> {/* 배치 영역 종료 */}
             <section id="language" className={styles.section} aria-labelledby="display-language-title"> {/* 언어 영역 */}
-                <h2 id="display-language-title">{t("언어")} · Language</h2> {/* 영역 제목(두 언어로 표시해 어느 화면에서도 찾을 수 있게) */}
+                <h2 id="display-language-title">{getActiveLocale() === "en" ? "Language · 언어" : "언어 · Language"}</h2> {/* 영역 제목(두 언어로 표시해 어느 화면에서도 찾을 수 있게) */}
                 <label>{t("화면 언어")}<select value={state.settings.language ?? "auto"} onChange={(event) => update({ language: event.target.value as LanguageSetting })}><option value="auto">{t("자동(브라우저 언어)")}</option><option value="ko">한국어</option><option value="en">English</option></select></label> {/* 언어 선택 */}
                 <p>{t("메뉴와 버튼, 안내 글이 고른 언어로 바뀝니다. 캐릭터 이름과 소개, 이미 나눈 대화는 바뀌지 않습니다.")}</p> {/* 안내 */}
             </section> {/* 언어 영역 종료 */}

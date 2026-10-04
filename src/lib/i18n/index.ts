@@ -38,6 +38,12 @@ function lookup(text: string): string // 사전에서 찾기(없으면 그대로
     return activeLocale === "en" && Object.hasOwn(en, text) ? en[text] : text; // 영어일 때만 바꿈
 } // 함수 종료
 
+export function tc(context: string, value: string): string // 같은 한국어가 자리에 따라 다른 영어가 될 때 쓰는 번역(사전 열쇠는 "글자|자리", 없으면 보통 번역)
+{ // 함수 시작
+    const key = `${value}|${context}`; // 자리를 붙인 열쇠
+    return activeLocale === "en" && Object.hasOwn(en, key) ? en[key] : lookup(value); // 자리에 맞는 문구 우선
+} // 함수 종료
+
 export function translateTo(locale: Locale, text: string): string // 정한 언어로 바꾸기(화면 언어와 상관없이, 사전에 없으면 그대로)
 { // 함수 시작
     return locale === "en" && Object.hasOwn(en, text) ? en[text] : text; // 영어일 때만 바꿈

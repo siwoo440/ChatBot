@@ -514,3 +514,15 @@
     outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
     outline-offset: 2px; /* 외곽선 간격 */
 } /* 초점 종료 */
+
+.creatorCard /* 제작자 카드(태그 줄 수가 달라도 팔로우 버튼을 같은 높이에) */
+{ /* 카드 시작 */
+    grid-template-rows: auto auto 1fr auto; /* 머리말·작품·태그(남는 높이)·버튼 */
+    align-content: stretch; /* 카드 높이를 다 씀 */
+} /* 카드 종료 */
+
+.creatorTags /* 자주 쓴 태그(남는 높이의 위쪽에 붙임) */
+{ /* 태그 시작 */
+    align-content: flex-start; /* 위쪽부터 채움 */
+    align-self: start; /* 위쪽 정렬 */
+} /* 태그 종료 */

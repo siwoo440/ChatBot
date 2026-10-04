@@ -8,7 +8,7 @@ import type { Character, CharacterDetailProfile, Conversation } from "@/features
 import { createExploreHref } from "@/features/explore/explore-model"; // 탐색 주소 생성
 import { contentRatingLabels } from "@/features/adult/adult-access"; // 등급 문구
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
-import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
+import { localeTag, t, tc } from "@/lib/i18n"; // 화면 글자 번역
 
 interface CharacterHeroProps // 히어로 속성
 { // 구조 시작
@@ -99,9 +99,9 @@ export function CharacterHero({ character, profile, bookmarked, liked, followed,
                 <div className={styles.metricPanel}> {/* 지표 패널 */}
                     <div className={styles.metricHeader}><strong>{t("이용 지표")}</strong><span>{t("샘플 데이터")}</span></div> {/* 지표 머리말 */}
                     <dl className={styles.metrics}> {/* 지표 목록 */}
-                        <div><dt>{t("대화")}</dt><dd>{formatMetric(metrics.conversations)}</dd></div> {/* 대화 지표 */}
-                        <div><dt>{t("보관")}</dt><dd>{formatMetric(metrics.bookmarks)}</dd></div> {/* 보관 지표 */}
-                        <div><dt>{t("평가")}</dt><dd>{formatMetric(metrics.ratings)}</dd></div> {/* 평가 지표 */}
+                        <div><dt>{tc("metric", "대화")}</dt><dd>{formatMetric(metrics.conversations)}</dd></div> {/* 대화 지표 */}
+                        <div><dt>{tc("metric", "보관")}</dt><dd>{formatMetric(metrics.bookmarks)}</dd></div> {/* 보관 지표 */}
+                        <div><dt>{tc("metric", "평가")}</dt><dd>{formatMetric(metrics.ratings)}</dd></div> {/* 평가 지표 */}
                     </dl> {/* 지표 목록 종료 */}
                 </div> {/* 지표 패널 종료 */}
                 <div className={styles.quickActions} aria-label={t("캐릭터 빠른 동작")}> {/* 빠른 동작 */}

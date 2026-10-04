@@ -1,6 +1,6 @@
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태 함수
 import type { AppState } from "@/features/core/types"; // 도메인 타입
-import { addMissingBuiltInStories, migrateParsedState } from "@/lib/repositories/state-migrations"; // 버전 변환
+import { addMissingBuiltInStories, migrateParsedState, refreshBuiltInCreators } from "@/lib/repositories/state-migrations"; // 버전 변환
 import { isAppState, isFiniteNumber, isOneOf, isRecord, isString } from "@/lib/repositories/state-validation"; // 데이터 검사
 import { t } from "@/lib/i18n"; // 화면 글자 번역
 
@@ -223,7 +223,7 @@ function parseAndMigrate(raw: string, storage: Storage): LoadResult // 분석 �
     const converted = migrateParsedState(parsed); // 상태 변환
     if (converted !== null) // 변환 성공 판정
     { // 변환 성공 시작
-        const migrated = addMissingBuiltInStories(converted); // 새로 추가된 기본 예시 스토리 보충
+        const migrated = refreshBuiltInCreators(addMissingBuiltInStories(converted)); // 새로 추가된 기본 예시 스토리 보충, 기본 캐릭터 제작자 나누기
         const changed = !isAppState(parsed); // 버전 변경 판정
         if (changed || migrated !== converted) // 저장 필요 판정
         { // 저장 필요 시작

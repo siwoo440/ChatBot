@@ -8,6 +8,7 @@ import { AFFECTION_STAT_ID, toVersionTwelveTemplate, upgradeStatusSnapshot, upgr
 import { deriveDisplayName } from "@/features/story/story-model"; // 짧은 이름
 import { upgradeScenePath } from "@/lib/assets/scene-paths"; // 장면 그림 경로
 import { mockCharacters } from "@/mocks/fixtures"; // 기본 캐릭터 목록
+import { generatedRankingCharacters, RANKING_LAB_CREATOR_ID, rankingCreatorIds } from "@/mocks/ranking-character-concepts"; // 랭킹 캐릭터 제작자
 import { mockStories } from "@/mocks/story-fixtures"; // 예시 스토리
 import { contentRatings, isAppState, isOneOf, isRecord, isString, isVersionEightState, isVersionElevenState, isVersionFifteenState, isVersionFiveState, isVersionFourState, isVersionFourteenState, isVersionNineState, isVersionSevenState, isVersionSeventeenState, isVersionSixState, isVersionSixteenState, isVersionTenState, isVersionThirteenState, isVersionThreeState, isVersionTwelveState, isVersionTwoState, publicationStatuses } from "@/lib/repositories/state-validation"; // 데이터 검사
 
@@ -414,6 +415,22 @@ export function migrateParsedState(parsed: unknown): AppState | null // 분석 �
         return migrateVersionSeventeen(parsed); // 버전 18 변환
     } // 버전 17 종료
     return null; // 지원하지 않는 상태 반환
+} // 함수 종료
+
+export function refreshBuiltInCreators(state: AppState): AppState // 한 제작자에게 몰려 있던 기본 랭킹 캐릭터를 주제별 제작자로 나눔(버전 변화 없이 읽을 때 고침, 고칠 것이 없으면 그대로)
+{ // 함수 시작
+    if (!state.characters.some((character) => character.creatorId === RANKING_LAB_CREATOR_ID) && !state.followedCreatorIds.includes(RANKING_LAB_CREATOR_ID)) // 예전 제작자 흔적 없음
+    { // 조건 시작
+        return state; // 그대로
+    } // 조건 종료
+    const builtIns = new Map(generatedRankingCharacters.map((character) => [character.id, character])); // 기본 랭킹 캐릭터
+    const characters = state.characters.map((character) => // 캐릭터 순회
+    { // 변환 시작
+        const builtIn = builtIns.get(character.id); // 같은 기본 캐릭터
+        return character.creatorId === RANKING_LAB_CREATOR_ID && builtIn !== undefined ? { ...character, creatorId: builtIn.creatorId, creatorName: builtIn.creatorName } : character; // 제작자만 바꿈(내용은 그대로)
+    }); // 변환 종료
+    const followedCreatorIds = [...new Set(state.followedCreatorIds.flatMap((creatorId) => creatorId === RANKING_LAB_CREATOR_ID ? rankingCreatorIds : [creatorId]))]; // 예전 제작자를 팔로우했으면 나눈 제작자를 모두 팔로우
+    return { ...state, characters, followedCreatorIds }; // 고친 상태 반환
 } // 함수 종료
 
 export function addMissingBuiltInStories(state: AppState): AppState // 빠진 기본 예시 스토리 보충

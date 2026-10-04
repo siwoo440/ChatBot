@@ -82,7 +82,7 @@ export const discovery: Record<string, string> = {
     "고른 태그": "Selected tags",
     "#{0} 태그 빼기": "Remove tag #{0}",
     "태그는": "You can pick up to",
-    "개까지 함께 고를 수 있어요.": "tags at once.",
+    "개까지 함께 고를 수 있어요.": " tags at once.",
     "태그 안내": "Tag hint",
     "‘#{0}’에 맞는 태그가 없어요.": "No tags match ‘#{0}’.",
     "더 좁힐 태그가 없어요.": "No more tags to narrow by.",

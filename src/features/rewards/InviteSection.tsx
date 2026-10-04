@@ -5,7 +5,7 @@ import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { buildInviteLink, checkInviteRedeem, formatInviteCode, generateInviteCode, getInviteSummary, INVITE_FRIEND_REWARD, INVITE_MONTHLY_LIMIT, INVITE_QUALIFY_MESSAGES, INVITE_WELCOME_REWARD, type InviteRedeemCheck } from "@/features/rewards/referral-model"; // 친구 초대 규칙
 import settings from "@/features/settings/SettingsScreen.module.css"; // 설정 공통 스타일
 import styles from "@/features/rewards/RewardsScreen.module.css"; // 보상 화면 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { t, tc } from "@/lib/i18n"; // 화면 글자 번역
 
 const redeemErrors: Record<Exclude<InviteRedeemCheck, "ok">, string> = // 초대 코드 입력 오류 문구
 { // 문구 시작
@@ -97,7 +97,7 @@ export function InviteSection() // 친구 초대 칸(출석과 미션 화면 안
                 {referral.redeemedCode === null ? ( // 받기 전
                     <form className={styles.inviteForm} onSubmit={redeem}> {/* 초대 코드 입력 */}
                         <label className={styles.inviteField}>{t("친구의 초대 코드")}<input value={input} maxLength={12} placeholder={t("예: ABCD-2345")} autoComplete="off" autoCapitalize="characters" spellCheck={false} onChange={(event) => { setInput(event.target.value); setError(""); }} /></label> {/* 코드 입력 */}
-                        <button type="submit" className={settings.secondary} disabled={input.trim().length === 0}>{t("보너스")} {INVITE_WELCOME_REWARD}{t("토큰 받기")}</button> {/* 받기 */}
+                        <button type="submit" className={settings.secondary} disabled={input.trim().length === 0}>{t("보너스")} {INVITE_WELCOME_REWARD}{tc("amount", "토큰 받기")}</button> {/* 받기 */}
                         {error.length === 0 ? null : <p className={settings.error} role="alert">{error}</p>} {/* 오류 */}
                     </form> // 입력 종료
                 ) : ( // 받은 뒤

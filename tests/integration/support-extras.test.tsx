@@ -85,7 +85,7 @@ describe("멤버십 비교표와 토큰 기간", () => // 설정 묶음
     { // 테스트 시작
         renderWithApp(<ProfileSettings />); // 프로필 렌더링
         const table = screen.getByRole("table", { name: "멤버십 비교" }); // 비교표
-        expect(within(table).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["항목", "FREE이용 중", "PLUS", "CREATOR"]); // 열 머리와 이용 중 표시
+        expect(within(table).getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual(["구분", "FREE이용 중", "PLUS", "CREATOR"]); // 열 머리와 이용 중 표시
         expect(within(table).getByRole("row", { name: /가격/ })).toHaveTextContent("가격무료정해지지 않음정해지지 않음"); // 가격 줄
         expect(screen.getByRole("button", { name: "멤버십 변경 준비 중" })).toBeDisabled(); // 결제 전이라 잠김
     }); // 테스트 종료

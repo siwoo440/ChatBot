@@ -15,9 +15,10 @@ import { createSessionHref, getStoryCastEntries, isMatureStory, summarizeStoryCo
 import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 다운로드
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
 import styles from "@/features/library/LibraryScreen.module.css"; // 보관함 스타일
-import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
+import { localeTag, t, tc } from "@/lib/i18n"; // 화면 글자 번역
 import { ListSearch } from "@/components/search/ListSearch"; // 목록 검색창
 import { searchBy } from "@/features/search/list-search"; // 목록 검색
+import { DialogFrame } from "@/components/dialog/DialogFrame"; // 확인 대화상자 틀
 
 type LibraryTab = "created" | "drafts" | "stories" | "bookmarks" | "conversations" | "replies"; // 보관함 탭
 
@@ -89,21 +90,19 @@ export function LibraryScreen() // 보관함 화면
                 <div className={styles.headerActions}><Link href={"/images" as Route} className={styles.secondaryLink}>{t("이미지 스튜디오")}</Link><Link href={"/characters/new" as Route}>{t("＋ 새 캐릭터 만들기")}</Link></div> {/* 이미지·제작 링크 */}
             </header> {/* 상단 종료 */}
             <div className={styles.tabs} role="tablist" aria-label={t("보관함 분류")}> {/* 탭 목록 */}
-                {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-label={t(tab.label)} aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{t(tab.label)}<small>{tab.id === "created" ? created.length : tab.id === "drafts" ? drafts.length : tab.id === "stories" ? myStories.length : tab.id === "bookmarks" ? bookmarks.length : tab.id === "replies" ? replies.length : state.conversations.length}</small></button>)} {/* 탭 항목 */}
+                {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-label={tc("tab", tab.label)} aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{tc("tab", tab.label)}<small>{tab.id === "created" ? created.length : tab.id === "drafts" ? drafts.length : tab.id === "stories" ? myStories.length : tab.id === "bookmarks" ? bookmarks.length : tab.id === "replies" ? replies.length : state.conversations.length}</small></button>)} {/* 탭 항목 */}
             </div> {/* 탭 종료 */}
             <div className={styles.searchRow}><ListSearch label={t("보관함 검색")} placeholder={t("이름·태그·대화 내용으로 찾기")} value={query} count={foundCount} onChange={setQuery} /></div> {/* 지금 탭 안에서 찾기 */}
-            <section className={styles.content} role="tabpanel" aria-label={t(tabs.find((tab) => tab.id === activeTab)?.label)}> {/* 탭 내용 */}
+            <section className={styles.content} role="tabpanel" aria-label={tc("tab", tabs.find((tab) => tab.id === activeTab)?.label ?? "")}> {/* 탭 내용 */}
                 {searching && foundCount === 0 ? <div className={styles.empty}><strong>{t("‘{0}’에 맞는 항목이 없어요.", [query.trim()])}</strong><p>{t("다른 낱말로 찾아보거나 다른 탭을 눌러 보세요.")}</p></div> : activeTab === "replies" ? <ReplyList entries={foundReplies} onRemove={(messageId) => dispatch({ type: "toggle-message-bookmark", messageId })} /> : activeTab === "conversations" ? <ConversationGrid isLocked={isLocked} isStoryLocked={isStoryLocked} visibleIds={searching ? new Set(foundConversations.map((conversation) => conversation.id)) : null} /> : activeTab === "stories" ? <StoryGrid stories={foundStories} isStoryLocked={isStoryLocked} /> : <CharacterGrid characters={foundCharacters} tab={activeTab} isLocked={isLocked} onDelete={setDeleteTarget} onToggleBookmark={(characterId) => dispatch({ type: "toggle-bookmark", characterId })} onTogglePublication={(character) => dispatch({ type: "set-publication-status", characterId: character.id, status: character.publicationStatus === "draft" ? "published" : "draft" })} />} {/* 탭 콘텐츠 */}
             </section> {/* 내용 종료 */}
             {deleteTarget === null ? null : ( // 삭제 대화상자 조건
-                <div className={styles.dialogBackdrop}> {/* 대화상자 배경 */}
-                    <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="delete-title"> {/* 삭제 대화상자 */}
+                <DialogFrame backdropClassName={styles.dialogBackdrop} className={styles.dialog} labelledBy="delete-title" onClose={() => setDeleteTarget(null)}> {/* 삭제 대화상자 */}
                         <span>DELETE CHARACTER</span> {/* 삭제 표시 */}
                         <h2 id="delete-title">{t("캐릭터 삭제")}</h2> {/* 대화상자 제목 */}
                         <p><strong>{deleteTarget.name}</strong>{t("을 삭제합니다. 연결된 대화와 메시지도 함께 삭제됩니다.")}</p> {/* 삭제 안내 */}
                         <div><button type="button" onClick={() => setDeleteTarget(null)}>{t("취소")}</button><button type="button" className={styles.danger} onClick={remove}>{t("삭제 확인")}</button></div> {/* 삭제 동작 */}
-                    </section> {/* 대화상자 종료 */}
-                </div> // 배경 종료
+                    </DialogFrame> // 대화상자 종료
             )} {/* 삭제 조건 종료 */}
         </main> // 본문 종료
     ); // 반환 종료
@@ -189,14 +188,12 @@ function StoryGrid({ stories, isStoryLocked }: { stories: Story[]; isStoryLocked
                 })} {/* 순회 종료 */}
             </div> {/* 격자 종료 */}
             {deleteTarget === null ? null : ( // 삭제 대화상자 조건
-                <div className={styles.dialogBackdrop}> {/* 대화상자 배경 */}
-                    <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="story-delete-title"> {/* 삭제 대화상자 */}
+                <DialogFrame backdropClassName={styles.dialogBackdrop} className={styles.dialog} labelledBy="story-delete-title" onClose={() => setDeleteTarget(null)}> {/* 삭제 대화상자 */}
                         <span>DELETE STORY</span> {/* 삭제 표시 */}
                         <h2 id="story-delete-title">{t("스토리 삭제")}</h2> {/* 대화상자 제목 */}
                         <p><strong>{t(deleteTarget.title)}</strong>{t("을 삭제합니다. 이 스토리로 진행한 대화")} {conversationCount}{t("개도 함께 삭제됩니다. 삭제 전에 백업을 만듭니다.")}</p> {/* 삭제 안내 */}
                         <div><button type="button" onClick={() => setDeleteTarget(null)}>{t("취소")}</button><button type="button" className={styles.danger} onClick={remove}>{t("스토리 삭제 확인")}</button></div> {/* 삭제 동작 */}
-                    </section> {/* 대화상자 종료 */}
-                </div> // 배경 종료
+                    </DialogFrame> // 대화상자 종료
             )} {/* 삭제 조건 종료 */}
         </> // 묶음 종료
     ); // 반환 종료
@@ -283,7 +280,7 @@ function ConversationGrid({ isLocked, isStoryLocked, visibleIds }: { isLocked(ch
             {state.conversations.length === 0 ? <div className={styles.empty}><strong>{t("진행 중인 대화가 없습니다.")}</strong><p>{t("캐릭터 상세 화면에서 첫 대화를 시작하거나 JSON 파일을 가져오세요.")}</p><Link href="/">{t("캐릭터 탐색하기")}</Link></div> : null} {/* 빈 화면 */}
             <ConversationSection isLocked={isLocked} isStoryLocked={isStoryLocked} stories={state.stories} title={t("진행 중인 대화")} conversations={active} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} /> {/* 진행 대화 */}
             {archived.length === 0 ? null : <ConversationSection isLocked={isLocked} isStoryLocked={isStoryLocked} stories={state.stories} title={t("보관한 대화")} conversations={archived} summaries={summaries} characters={state.characters} renameTarget={renameTarget} renameDraft={renameDraft} onRenameDraft={setRenameDraft} onStartRename={startRename} onSaveRename={saveRename} onCancelRename={() => setRenameTarget(null)} onSelect={(conversation) => dispatch({ type: "select-conversation", conversationId: conversation.id })} onArchive={(conversation) => dispatch({ type: "archive-conversation", conversationId: conversation.id, archivedAt: new Date().toISOString() })} onRestore={(conversation) => dispatch({ type: "restore-conversation", conversationId: conversation.id })} onExport={exportConversation} onDelete={setDeleteTarget} />} {/* 보관 대화 */}
-            {deleteTarget === null ? null : <div className={styles.dialogBackdrop}><section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="conversation-delete-title"><span>DELETE CONVERSATION</span><h2 id="conversation-delete-title">{t("대화 삭제")}</h2><p><strong>{t(deleteTarget.title)}</strong>{t("과 연결된 메시지")} {messageCount}{t("개를 삭제합니다.")}</p><div><button type="button" onClick={() => setDeleteTarget(null)}>{t("취소")}</button><button type="button" className={styles.danger} onClick={deleteConversation}>{t("대화 삭제 확인")}</button></div></section></div>} {/* 삭제 대화상자 */}
+            {deleteTarget === null ? null : <DialogFrame backdropClassName={styles.dialogBackdrop} className={styles.dialog} labelledBy="conversation-delete-title" onClose={() => setDeleteTarget(null)}><span>DELETE CONVERSATION</span><h2 id="conversation-delete-title">{t("대화 삭제")}</h2><p><strong>{t(deleteTarget.title)}</strong>{t("과 연결된 메시지")} {messageCount}{t("개를 삭제합니다.")}</p><div><button type="button" onClick={() => setDeleteTarget(null)}>{t("취소")}</button><button type="button" className={styles.danger} onClick={deleteConversation}>{t("대화 삭제 확인")}</button></div></DialogFrame>} {/* 삭제 대화상자 */}
         </div> // 구역 종료
     ); // 반환 종료
 } // 함수 종료

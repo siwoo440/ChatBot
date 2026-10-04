@@ -12,9 +12,10 @@ import { getStoryCandidates } from "@/features/story/story-validation"; // 참�
 import { getRegionPolicy, getServiceRegion } from "@/lib/config/service-region"; // 지역 정책
 import { tokenCosts, trySpend } from "@/lib/story/token-policy"; // 토큰 비용
 import styles from "@/features/images/ImageStudio.module.css"; // 스튜디오 스타일
-import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
+import { localeTag, t, tc } from "@/lib/i18n"; // 화면 글자 번역
 import { ListSearch } from "@/components/search/ListSearch"; // 목록 검색창
 import { searchBy } from "@/features/search/list-search"; // 목록 검색
+import { DialogFrame } from "@/components/dialog/DialogFrame"; // 확인 대화상자 틀
 
 type GalleryFilter = "all" | "favorite"; // 갤러리 필터
 
@@ -89,7 +90,7 @@ export function ImageStudio() // 이미지 스튜디오
             <header className={styles.header}> {/* 머리말 */}
                 <div> {/* 머리말 문구 */}
                     <span className={styles.eyebrow}>IMAGE STUDIO</span> {/* 표제 */}
-                    <h1>{t("이미지")} <span className={styles.titleHighlight}>{t("스튜디오")}</span></h1> {/* 제목 */}
+                    <h1>{tc("title", "이미지")} <span className={styles.titleHighlight}>{t("스튜디오")}</span></h1> {/* 제목 */}
                     <p>{t("장면을 글로 설명하면 이미지를 만들어 내 이미지에 저장해요. 만든 이미지는 캐릭터 대표 이미지, 스토리 표지, 대화 장면으로 쓸 수 있어요.")}</p> {/* 설명 */}
                 </div> {/* 문구 종료 */}
                 <span className={styles.balance}>{t("남은 토큰")} <strong>{state.wallet.balance}</strong></span> {/* 잔액 */}
@@ -139,13 +140,11 @@ export function ImageStudio() // 이미지 스튜디오
                 {visibleImages.length === 0 ? <p className={styles.empty}>{query.trim().length > 0 && filteredImages.length > 0 ? t("‘{0}’에 맞는 이미지가 없어요. 다른 낱말로 찾아보세요.", [query.trim()]) : filter === "favorite" ? t("즐겨찾기한 이미지가 없어요.") : t("만든 이미지가 여기에 모여요.")}</p> : <div className={styles.grid}>{visibleImages.map((image) => <ImageCard key={image.id} image={image} locked={image.contentRating === "mature" && !showMature} onFavorite={() => dispatch({ type: "toggle-image-favorite", imageId: image.id })} onDelete={() => setDeleteTarget(image)} />)}</div>} {/* 이미지 목록 */}
             </section> {/* 갤러리 종료 */}
             {deleteTarget === null ? null : ( // 삭제 대화상자 판정
-                <div className={styles.dialogBackdrop}> {/* 배경 */}
-                    <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="image-delete-title"> {/* 삭제 대화상자 */}
+                <DialogFrame backdropClassName={styles.dialogBackdrop} className={styles.dialog} labelledBy="image-delete-title" onClose={() => setDeleteTarget(null)}> {/* 삭제 대화상자 */}
                         <h2 id="image-delete-title">{t("이미지 삭제")}</h2> {/* 제목 */}
                         <p>‘{deleteTarget.prompt}{t("’ 이미지를 내 이미지에서 지웁니다. 캐릭터·스토리 표지나 대화 장면에 이미 쓴 이미지는 그대로 남아요. 삭제 전에 백업을 만듭니다.")}</p> {/* 안내 */}
                         <div><button type="button" onClick={() => setDeleteTarget(null)}>{t("취소")}</button><button type="button" className={styles.danger} onClick={remove}>{t("이미지 삭제 확인")}</button></div> {/* 동작 */}
-                    </section> {/* 대화상자 종료 */}
-                </div> // 배경 종료
+                    </DialogFrame> // 대화상자 종료
             )} {/* 삭제 판정 종료 */}
         </main> // 화면 종료
     ); // 반환 종료
