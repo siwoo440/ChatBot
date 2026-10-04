@@ -2,7 +2,7 @@
 
 import { useState } from "react"; // 리액트 상태
 import type { TokenRecord } from "@/features/core/types"; // 토큰 기록 타입
-import { filterTokenRecords, groupTokenRecords, summarizeTokenDays, TOKEN_RECORD_LIMIT, tokenSourceLabels, type TokenDaySummary, type TokenRecordFilter } from "@/lib/story/token-ledger"; // 토큰 기록 규칙
+import { filterTokenRecords, filterTokenRecordsByPeriod, groupTokenRecords, summarizeTokenDays, TOKEN_RECORD_LIMIT, tokenSourceLabels, type TokenDaySummary, type TokenPeriod, type TokenPeriodId, type TokenRecordFilter } from "@/lib/story/token-ledger"; // 토큰 기록 규칙
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
@@ -13,6 +13,7 @@ const MARGIN = { top: 18, right: 8, bottom: 38, left: 34 }; // 그래프 여백
 const BAR = 14; // 막대 굵기
 const GAP = 2; // 두 막대 사이
 const filters: Array<{ id: TokenRecordFilter; label: string }> = [{ id: "all", label: "전체" }, { id: "earn", label: "받음" }, { id: "spend", label: "사용" }]; // 필터
+const periods: Array<{ id: TokenPeriodId; label: string }> = [{ id: "all", label: "전체 기간" }, { id: "today", label: "오늘" }, { id: "week", label: "최근 7일" }, { id: "month", label: "최근 30일" }, { id: "custom", label: "직접 고르기" }]; // 기간
 
 function formatTime(value: string): string // 시각 표시
 { // 함수 시작
@@ -75,7 +76,16 @@ export function TokenHistory({ records }: { records: TokenRecord[] }) // 토큰 
     const [filter, setFilter] = useState<TokenRecordFilter>("all"); // 기록 종류
     const [visible, setVisible] = useState(PAGE_SIZE); // 보여 줄 기록 수
     const days = summarizeTokenDays(records, new Date()); // 최근 7일 합계
-    const filtered = filterTokenRecords(records, filter); // 고른 종류
+    const [period, setPeriod] = useState<TokenPeriod>({ id: "all", from: "", to: "" }); // 고른 기간
+    const inPeriod = filterTokenRecordsByPeriod(records, period, new Date()); // 기간에 든 기록
+    const periodEarned = inPeriod.reduce((sum, record) => sum + (record.direction === "earn" ? record.amount : 0), 0); // 기간에 받은 합계
+    const periodSpent = inPeriod.reduce((sum, record) => sum + (record.direction === "spend" ? record.amount : 0), 0); // 기간에 쓴 합계
+    const changePeriod = (next: TokenPeriod) => // 기간 바꾸기
+    { // 함수 시작
+        setPeriod(next); // 기간 반영
+        setVisible(PAGE_SIZE); // 처음부터 다시 보여 줌
+    }; // 함수 종료
+    const filtered = filterTokenRecords(inPeriod, filter); // 고른 종류
     const groups = groupTokenRecords(filtered.slice(0, visible)); // 날짜별 묶음
     const weekEarned = days.reduce((sum, day) => sum + day.earned, 0); // 7일 받은 합계
     const weekSpent = days.reduce((sum, day) => sum + day.spent, 0); // 7일 쓴 합계
@@ -89,10 +99,16 @@ export function TokenHistory({ records }: { records: TokenRecord[] }) // 토큰 
             <section className={styles.card} aria-labelledby="token-history-title"> {/* 이용 기록 */}
                 <h2 id="token-history-title">{t("이용 기록")}</h2> {/* 제목 */}
                 <p>{t("받은 토큰과 쓴 토큰을 최근")} {TOKEN_RECORD_LIMIT}{t("건까지 남겨요. 오늘 사용량은 한국 시간 기준으로 날짜가 바뀌면 0부터 다시 셉니다.")}</p> {/* 설명 */}
+                <div className={styles.periodRow}> {/* 기간 고르기 */}
+                    <label className={styles.field}>{t("기간")}<select value={period.id} onChange={(event) => changePeriod({ ...period, id: event.target.value as TokenPeriodId })}>{periods.map((item) => <option key={item.id} value={item.id}>{t(item.label)}</option>)}</select></label> {/* 기간 종류 */}
+                    {period.id !== "custom" ? null : <label className={styles.field}>{t("시작 날짜")}<input type="date" value={period.from} onChange={(event) => changePeriod({ ...period, from: event.target.value })} /></label>} {/* 시작 날짜 */}
+                    {period.id !== "custom" ? null : <label className={styles.field}>{t("끝 날짜")}<input type="date" value={period.to} onChange={(event) => changePeriod({ ...period, to: event.target.value })} /></label>} {/* 끝 날짜 */}
+                </div> {/* 기간 종료 */}
+                {period.id === "all" ? null : <p className={styles.resultCount} role="status" aria-label={t("기간 합계")}>{t("이 기간에 받음 +{0} · 사용 −{1} · 기록 {2}건", [periodEarned, periodSpent, inPeriod.length])}</p>} {/* 기간 합계 */}
                 <div className={styles.filterRow} role="group" aria-label={t("기록 종류")}> {/* 필터 */}
-                    {filters.map((item) => <button key={item.id} type="button" aria-pressed={filter === item.id} onClick={() => { setFilter(item.id); setVisible(PAGE_SIZE); }}>{t(item.label)} {filterTokenRecords(records, item.id).length}</button>)} {/* 필터 버튼 */}
+                    {filters.map((item) => <button key={item.id} type="button" aria-pressed={filter === item.id} onClick={() => { setFilter(item.id); setVisible(PAGE_SIZE); }}>{t(item.label)} {filterTokenRecords(inPeriod, item.id).length}</button>)} {/* 필터 버튼 */}
                 </div> {/* 필터 종료 */}
-                {groups.length === 0 ? <p className={styles.note}>{t("아직 기록이 없어요. 대화를 하거나 출석·미션 보상을 받으면 여기에 남아요.")}</p> : groups.map((group) => ( // 묶음 순회
+                {groups.length === 0 ? <p className={styles.note}>{records.length === 0 ? t("아직 기록이 없어요. 대화를 하거나 출석·미션 보상을 받으면 여기에 남아요.") : t("이 기간에는 기록이 없어요. 기간을 넓히거나 종류를 바꿔 보세요.")}</p> : groups.map((group) => ( // 묶음 순회
                     <section key={group.dateKey} className={styles.recordGroup} aria-label={t(group.label)}> {/* 날짜 묶음 */}
                         <h3>{t(group.label)}<small>{t("받음 +")}{group.earned} {t("· 사용 −")}{group.spent}</small></h3> {/* 날짜와 합계 */}
                         <ol className={styles.recordList}> {/* 기록 목록 */}

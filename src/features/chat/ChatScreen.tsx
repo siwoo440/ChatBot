@@ -42,6 +42,7 @@ import type { GeneratedImage } from "@/features/core/types"; // 생성 이미지
 import { canUseImageForRating } from "@/features/images/image-model"; // 이미지 등급 판정
 import styles from "@/features/chat/ChatScreen.module.css"; // 채팅 스타일
 import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { PageTitle } from "@/components/feedback/PageTitle"; // 탭 제목
 
 interface ChatScreenProps // 채팅 화면 속성
 { // 구조 시작
@@ -506,6 +507,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const sceneImages = state.images.filter((image) => canUseImageForRating(image.contentRating, workRating) && (image.contentRating !== "mature" || canViewMatureContent(state, new Date()))).slice(0, 6); // 장면으로 쓸 수 있는 내 이미지
     return ( // 채팅 반환
         <main className={styles.chat} data-layout={layout} data-panel={overlay ? undefined : panelOpen ? "open" : "closed"} data-overlay={overlay ? "true" : undefined} data-mode={conversation.mode} data-genre={getGenreKey(story?.tags ?? character.tags)} data-surface="light" style={{ "--chat-font": getChatFontFamily(state.settings.chatFont), "--chat-font-size": getChatFontSize(state.settings.chatFontSize) } as CSSProperties}> {/* 채팅 본문 */}
+            <PageTitle title={title} /> {/* 탭 제목 */}
             <ChatShortcuts onRegenerate={canRegenerate ? () => void regenerate() : undefined} onShortcuts={() => openDialog("shortcuts")} font={state.settings.chatFont} /> {/* 화면 단축키·글꼴 불러오기 */}
             <section className={styles.story}> {/* 대화 영역(왼쪽 장면 영역 없이 남는 폭을 모두 차지) */}
                 <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? t("스토리 모드 · 등장인물 {0}명", [conversation.storyCast.length]) : t(version.relationshipStage)}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? t("AI 스토리") : t("AI 캐릭터")}>AI</span></h1></div><div className={styles.meta}><TierSelector settings={settings} onSelect={(tier) => updateSettings({ tier })} onSaveOptions={(tierOptions) => updateSettings({ tierOptions })} /><span>{t(version.emotion)}</span><strong>{snapshot.wallet.balance} {t("토큰")}</strong><button type="button" className={styles.panelToggle} aria-expanded={reviewOpen} aria-controls="chat-review-bar" onClick={() => { if (reviewOpen) { setFoundIds([]); } setReviewOpen(!reviewOpen); }}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></svg>{t("다시 보기")}</button><button ref={panelToggleRef} type="button" className={styles.panelToggle} aria-label={t("채팅방 설정 열기와 닫기")} aria-expanded={panelOpen} aria-controls="chat-settings-panel" onClick={() => setPanelOpen(!panelOpen)}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>{t("설정")}</button></div></header> {/* 대화 상태 */}

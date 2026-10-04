@@ -1038,3 +1038,137 @@
         font-size: 1.5rem; /* 아바타 크기 */
     } /* 아바타 종료 */
 } /* 모바일 종료 */
+
+.card .field select /* 카드 안 선택(기간·문의 종류) */
+{ /* 선택 시작 */
+    min-height: 48px; /* 선택 높이 */
+    padding: 0 14px; /* 선택 여백 */
+    border: 1px solid var(--mv-line); /* 선택 경계 */
+    border-radius: 12px; /* 선택 모서리 */
+    color: var(--mv-ink); /* 선택 글자 */
+    background: light-dark(#ffffff, var(--mv-surface)); /* 선택 배경 */
+    font: inherit; /* 글꼴 상속 */
+    font-weight: 500; /* 선택 굵기 */
+} /* 선택 종료 */
+
+.card .field select:focus-visible /* 선택 초점 */
+{ /* 초점 시작 */
+    border-color: var(--tone); /* 초점 경계 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 2px; /* 외곽선 간격 */
+} /* 초점 종료 */
+
+.card .check /* 카드 안 체크 줄 */
+{ /* 체크 시작 */
+    display: flex; /* 가로 배치 */
+    gap: 10px; /* 요소 간격 */
+    align-items: center; /* 세로 중앙 */
+    min-height: 44px; /* 누르는 높이 */
+    color: var(--mv-ink); /* 글자 */
+    font-size: .92rem; /* 크기 */
+    font-weight: 700; /* 굵기 */
+} /* 체크 종료 */
+
+.card .check input /* 카드 안 체크 상자 */
+{ /* 상자 시작 */
+    width: 20px; /* 너비 */
+    height: 20px; /* 높이 */
+    accent-color: var(--tone); /* 체크 색 */
+} /* 상자 종료 */
+
+.periodRow /* 기간 고르기 줄 */
+{ /* 줄 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 좁으면 줄 바꿈 */
+    gap: 12px; /* 간격 */
+    align-items: end; /* 아래 맞춤 */
+} /* 줄 종료 */
+
+.periodRow .field /* 기간 입력 묶음 */
+{ /* 묶음 시작 */
+    flex: 1 1 160px; /* 고르게 나눔 */
+    max-width: 240px; /* 너비 한도 */
+} /* 묶음 종료 */
+
+.tableScroll /* 넓은 표 감싸기 */
+{ /* 감싸기 시작 */
+    overflow-x: auto; /* 좁은 화면에서는 표만 옆으로 밀기 */
+} /* 감싸기 종료 */
+
+.tableScroll .table /* 넓은 표 */
+{ /* 표 시작 */
+    min-width: 520px; /* 칸이 눌리지 않는 너비 */
+} /* 표 종료 */
+
+.table th[data-current="true"] /* 지금 이용 중인 멤버십 */
+{ /* 머리 시작 */
+    color: var(--tone-strong); /* 강조 색 */
+} /* 머리 종료 */
+
+.table th small /* 표 머리 보조 문구 */
+{ /* 보조 시작 */
+    display: block; /* 줄 분리 */
+    margin-top: 2px; /* 위쪽 여백 */
+    font-size: .74rem; /* 크기 */
+} /* 보조 종료 */
+
+.noteList /* 업데이트 소식 목록 */
+{ /* 목록 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 18px; /* 묶음 간격 */
+    margin: 0; /* 여백 제거 */
+    padding: 0; /* 안쪽 여백 제거 */
+    list-style: none; /* 번호 숨김 */
+} /* 목록 종료 */
+
+.noteList > li /* 소식 한 묶음 */
+{ /* 묶음 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 6px; /* 간격 */
+    padding-left: 14px; /* 왼쪽 여백 */
+    border-left: 3px solid var(--tone); /* 왼쪽 띠 */
+} /* 묶음 종료 */
+
+.noteList time /* 소식 날짜 */
+{ /* 날짜 시작 */
+    color: var(--mv-muted); /* 보조 글자 */
+    font-size: .82rem; /* 크기 */
+    font-weight: 750; /* 굵기 */
+} /* 날짜 종료 */
+
+.noteList h3, /* 소식 제목 */
+.subTitle /* 카드 안 작은 제목 */
+{ /* 제목 시작 */
+    margin: 0; /* 여백 제거 */
+    color: var(--mv-ink); /* 글자 */
+    font-size: 1rem; /* 크기 */
+    font-weight: 800; /* 굵기 */
+} /* 제목 종료 */
+
+.noteList ul /* 달라진 점 목록 */
+{ /* 목록 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 4px; /* 간격 */
+    margin: 0; /* 여백 제거 */
+    padding-left: 18px; /* 점 자리 */
+    color: var(--mv-ink); /* 글자 */
+    font-size: .92rem; /* 크기 */
+    line-height: 1.6; /* 줄 높이 */
+} /* 목록 종료 */
+
+.inquiryPreview /* 복사될 문의 글 */
+{ /* 글 시작 */
+    overflow-x: auto; /* 긴 줄은 옆으로 밀기 */
+    margin: 10px 0 0; /* 위쪽 여백 */
+    padding: 12px 14px; /* 여백 */
+    border: 1px solid var(--mv-line); /* 경계 */
+    border-radius: 12px; /* 모서리 */
+    color: var(--mv-ink); /* 글자 */
+    background: light-dark(#fcfbff, #100d19); /* 배경 */
+    font: inherit; /* 글꼴 상속 */
+    font-size: .86rem; /* 크기 */
+    font-weight: 500; /* 굵기 */
+    line-height: 1.6; /* 줄 높이 */
+    white-space: pre-wrap; /* 줄 바꿈 유지 */
+    overflow-wrap: anywhere; /* 긴 낱말 줄 바꿈 */
+} /* 글 종료 */

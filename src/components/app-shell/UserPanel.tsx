@@ -15,9 +15,10 @@ interface UserPanelProps // 패널 속성
     rewards?: RewardState; // 출석·미션(있으면 토큰 아래에 카드 표시)
     open: boolean; // 열림 상태
     onNavigate(): void; // 내부 이동 처리
+    onLogout?(): void; // 로그아웃 처리(없으면 버튼을 숨김)
 } // 구조 종료
 
-export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate }: UserPanelProps) // 사용자 패널
+export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate, onLogout }: UserPanelProps) // 사용자 패널
 { // 함수 시작
     const adultVerified = isAdultVerified(profile, new Date()); // 성인 인증 상태
     const attendance = rewards === undefined ? null : getAttendanceView(rewards.attendance, new Date()); // 출석 상태
@@ -64,7 +65,7 @@ export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate
                     </section> // 메뉴 묶음 종료
                 ))} {/* 묶음 순회 종료 */}
             </nav> {/* 메뉴 종료 */}
-            <button className="user-panel-logout" type="button" onClick={() => window.confirm(t("로컬 세션에서 로그아웃하시겠습니까?"))}>{t("로그아웃")}</button> {/* 로그아웃 버튼 */}
+            {onLogout === undefined ? null : <button className="user-panel-logout" type="button" onClick={onLogout}>{t("로그아웃")}</button>} {/* 로그아웃 버튼 */}
         </aside> // 패널 종료
     ); // 반환 종료
 } // 함수 종료

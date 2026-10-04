@@ -1,4 +1,7 @@
+import type { Metadata } from "next"; // 메타데이터 타입
 import { ChatScreen } from "@/features/chat/ChatScreen"; // 채팅 화면
+
+export const metadata: Metadata = { title: "대화 | Mate Verse" }; // 페이지 제목(작품 이름은 화면에서 다시 맞춤)
 
 interface ChatPageProps // 페이지 속성
 { // 구조 시작

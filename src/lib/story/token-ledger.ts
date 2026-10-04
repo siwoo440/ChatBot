@@ -73,6 +73,44 @@ export function filterTokenRecords(records: readonly TokenRecord[], filter: Toke
     return filter === "all" ? [...records] : records.filter((record) => record.direction === filter); // 필터 반환
 } // 함수 종료
 
+export type TokenPeriodId = "all" | "today" | "week" | "month" | "custom"; // 기간 종류
+
+export interface TokenPeriod // 고른 기간
+{ // 구조 시작
+    id: TokenPeriodId; // 종류
+    from: string; // 직접 고를 때의 시작 날짜(연-월-일, 비우면 제한 없음)
+    to: string; // 직접 고를 때의 끝 날짜(연-월-일, 비우면 제한 없음)
+} // 구조 종료
+
+const periodDays: Partial<Record<TokenPeriodId, number>> = { today: 1, week: 7, month: 30 }; // 기간별 날 수(오늘 포함)
+
+export function getTokenPeriodRange(period: TokenPeriod, now: Date): { from: string | null; to: string | null } // 기간의 시작·끝 날짜(한국 시간, 없으면 제한 없음)
+{ // 함수 시작
+    if (period.id === "all") // 전체 기간
+    { // 조건 시작
+        return { from: null, to: null }; // 제한 없음
+    } // 조건 종료
+    if (period.id === "custom") // 직접 고르기
+    { // 조건 시작
+        const from = period.from.length === 0 ? null : period.from; // 시작
+        const to = period.to.length === 0 ? null : period.to; // 끝
+        return from !== null && to !== null && from > to ? { from: to, to: from } : { from, to }; // 거꾸로 골랐으면 바꿔서 반환
+    } // 조건 종료
+    const { year, month, day } = getDateParts(now); // 오늘(한국 시간)
+    const start = new Date(Date.UTC(year, month - 1, day - ((periodDays[period.id] ?? 1) - 1))); // 시작 날
+    return { from: start.toISOString().slice(0, 10), to: getDateKey(now) }; // 범위 반환
+} // 함수 종료
+
+export function filterTokenRecordsByPeriod(records: readonly TokenRecord[], period: TokenPeriod, now: Date): TokenRecord[] // 기간에 든 기록
+{ // 함수 시작
+    const { from, to } = getTokenPeriodRange(period, now); // 범위
+    return records.filter((record) => // 기록 순회
+    { // 판정 시작
+        const key = getDateKey(new Date(record.createdAt)); // 기록 날짜
+        return (from === null || key >= from) && (to === null || key <= to); // 범위 안
+    }); // 판정 종료
+} // 함수 종료
+
 export function groupTokenRecords(records: readonly TokenRecord[]): TokenRecordGroup[] // 날짜별로 묶기(한국 시간, 받은 순서 유지)
 { // 함수 시작
     const groups: TokenRecordGroup[] = []; // 묶음 목록

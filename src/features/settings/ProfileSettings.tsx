@@ -11,6 +11,7 @@ import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페�
 import { validateProfileSettings, type ProfileSettingsErrors } from "@/features/settings/settings-validation"; // 프로필 검증
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
+import { membershipPlans, membershipRows } from "@/features/settings/membership"; // 멤버십 비교표
 
 const membershipLabels = { free: "FREE", plus: "PLUS", creator: "CREATOR" } as const; // 멤버십 표시
 
@@ -75,6 +76,13 @@ export function ProfileSettings() // 프로필 관리 화면
                 <button type="button" className={styles.primary} onClick={save}>{t("프로필 저장")}</button> {/* 저장 버튼 */}
                 {status.length === 0 ? null : <p className={styles.status} role="status">{status}</p>} {/* 저장 안내 */}
             </section> {/* 기본 정보 종료 */}
+            <section id="membership" className={styles.card} aria-labelledby="membership-title"> {/* 멤버십 비교 */}
+                <h2 id="membership-title">{t("멤버십 비교")}</h2> {/* 영역 제목 */}
+                <p>{t("지금은 결제가 연결되지 않아 모두 FREE로 이용합니다. PLUS와 CREATOR의 혜택과 가격은 예정안이라 바뀔 수 있어요.")}</p> {/* 예정안 안내 */}
+                {/* 비교 표: 표 안 공백 텍스트는 하이드레이션 오류를 만들어 줄 끝 주석을 두지 않음 */}
+                <div className={styles.tableScroll}><table className={styles.table} aria-label={t("멤버십 비교")}><thead><tr><th scope="col">{t("항목")}</th>{membershipPlans.map((plan) => <th key={plan.id} scope="col" data-current={plan.id === state.profile.membership ? "true" : undefined}>{plan.label}{plan.id === state.profile.membership ? <small>{t("이용 중")}</small> : null}</th>)}</tr></thead><tbody><tr><th scope="row">{t("이런 분께")}</th>{membershipPlans.map((plan) => <td key={plan.id}>{t(plan.summary)}</td>)}</tr>{membershipRows.map((row) => <tr key={row.label}><th scope="row">{t(row.label)}</th>{membershipPlans.map((plan) => <td key={plan.id}>{t(row.values[plan.id])}</td>)}</tr>)}</tbody></table></div>
+                <button type="button" className={styles.primary} disabled>{t("멤버십 변경 준비 중")}</button> {/* 변경 버튼 */}
+            </section> {/* 멤버십 비교 종료 */}
             <section className={styles.card} aria-labelledby="activity-title"> {/* 내 활동 */}
                 <h2 id="activity-title">{t("내 활동")}</h2> {/* 영역 제목 */}
                 <ul className={styles.statGrid} aria-label={t("활동 요약")}>{activityItems.map((item) => <li key={item.label} className={styles.stat}><span>{t(item.label)}</span><strong>{item.value.toLocaleString(localeTag())}</strong></li>)}</ul> {/* 활동 수 */}

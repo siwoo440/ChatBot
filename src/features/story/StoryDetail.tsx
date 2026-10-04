@@ -11,6 +11,7 @@ import { StoryCast, storyRatingLabels } from "@/features/story/StoryCard"; // �
 import { createSessionHref, createStoryConversation, getLatestStoryConversation, getStoryCastEntries, isStoryLocked } from "@/features/story/story-model"; // 스토리 모델
 import styles from "@/features/story/Story.module.css"; // 스토리 스타일
 import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { PageTitle } from "@/components/feedback/PageTitle"; // 탭 제목
 
 export function StoryDetail({ storyId }: { storyId: string }) // 스토리 상세
 { // 함수 시작
@@ -47,6 +48,7 @@ export function StoryDetail({ storyId }: { storyId: string }) // 스토리 상�
     }; // 함수 종료
     return ( // 상세 반환
         <main className={styles.page} data-surface="light"> {/* 스토리 상세 */}
+            <PageTitle title={story.title} /> {/* 탭 제목 */}
             <section className={styles.detailHero}> {/* 상세 머리말 */}
                 <div className={styles.detailMedia}><Image src={story.coverImage} alt={t("{0} 대표 이미지", [story.title])} width={720} height={480} priority /></div> {/* 대표 이미지 */}
                 <div className={styles.detailCopy}> {/* 머리말 문구 */}
