@@ -2,6 +2,7 @@
 import type { TokenRecord, TokenRecordSource, TokenWallet } from "@/features/core/types"; // 도메인 타입
 import { getDailyUsage, tokenCosts } from "@/lib/story/token-policy"; // 오늘 사용량·비용표
 import { getDateKey, getDateParts } from "@/lib/time/date-key"; // 한국 시간 날짜
+import { getActiveLocale } from "@/lib/i18n"; // 화면 언어
 
 export const TOKEN_RECORD_LIMIT = 300; // 토큰 기록 보관 수(받음·사용 합쳐 최근 순)
 export const TOKEN_SUMMARY_DAYS = 7; // 그래프에 보여 줄 날 수
@@ -44,7 +45,13 @@ const weekdays = ["일", "월", "화", "수", "목", "금", "토"]; // 요일 �
 function describeDate(dateKey: string): { label: string; weekday: string; fullLabel: string } // 날짜 키 → 표시 이름
 { // 함수 시작
     const [year, month, day] = dateKey.split("-").map(Number); // 연월일
-    const weekday = weekdays[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]; // 요일
+    const date = new Date(Date.UTC(year, month - 1, day)); // 그날
+    if (getActiveLocale() === "en") // 영어 화면
+    { // 조건 시작
+        const weekdayName = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" }).format(date); // 요일(Mon)
+        return { label: `${month}/${day}`, weekday: weekdayName, fullLabel: new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", weekday: "short", timeZone: "UTC" }).format(date) }; // 영어 이름 반환
+    } // 조건 종료
+    const weekday = weekdays[date.getUTCDay()]; // 요일
     return { label: `${month}/${day}`, weekday, fullLabel: `${month}월 ${day}일 (${weekday})` }; // 이름 반환
 } // 함수 종료
 

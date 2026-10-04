@@ -4,7 +4,7 @@ import { useState } from "react"; // 리액트 상태
 import type { TokenRecord } from "@/features/core/types"; // 토큰 기록 타입
 import { filterTokenRecords, groupTokenRecords, summarizeTokenDays, TOKEN_RECORD_LIMIT, tokenSourceLabels, type TokenDaySummary, type TokenRecordFilter } from "@/lib/story/token-ledger"; // 토큰 기록 규칙
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 const PAGE_SIZE = 50; // 한 번에 보여 줄 기록 수
 const WIDTH = 560; // 그래프 너비
@@ -16,7 +16,7 @@ const filters: Array<{ id: TokenRecordFilter; label: string }> = [{ id: "all", l
 
 function formatTime(value: string): string // 시각 표시
 { // 함수 시작
-    return new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
+    return new Intl.DateTimeFormat(localeTag(), { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
 } // 함수 종료
 
 function niceMax(value: number): number // 세로축 최댓값(보기 좋은 수)

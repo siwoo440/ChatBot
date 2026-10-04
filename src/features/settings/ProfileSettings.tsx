@@ -10,13 +10,13 @@ import { getActivitySummary, getFollowedCreators } from "@/features/settings/set
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import { validateProfileSettings, type ProfileSettingsErrors } from "@/features/settings/settings-validation"; // 프로필 검증
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 const membershipLabels = { free: "FREE", plus: "PLUS", creator: "CREATOR" } as const; // 멤버십 표시
 
 function formatDate(value: string): string // 날짜 표시
 { // 함수 시작
-    return new Intl.DateTimeFormat("ko-KR", { dateStyle: "long", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 날짜 반환
+    return new Intl.DateTimeFormat(localeTag(), { dateStyle: "long", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 날짜 반환
 } // 함수 종료
 
 export function ProfileSettings() // 프로필 관리 화면
@@ -77,7 +77,7 @@ export function ProfileSettings() // 프로필 관리 화면
             </section> {/* 기본 정보 종료 */}
             <section className={styles.card} aria-labelledby="activity-title"> {/* 내 활동 */}
                 <h2 id="activity-title">{t("내 활동")}</h2> {/* 영역 제목 */}
-                <ul className={styles.statGrid} aria-label={t("활동 요약")}>{activityItems.map((item) => <li key={item.label} className={styles.stat}><span>{t(item.label)}</span><strong>{item.value.toLocaleString("ko-KR")}</strong></li>)}</ul> {/* 활동 수 */}
+                <ul className={styles.statGrid} aria-label={t("활동 요약")}>{activityItems.map((item) => <li key={item.label} className={styles.stat}><span>{t(item.label)}</span><strong>{item.value.toLocaleString(localeTag())}</strong></li>)}</ul> {/* 활동 수 */}
                 <p><Link className={styles.inlineLink} href={"/library" as Route}>{t("내 캐릭터와 작품 열기")}</Link></p> {/* 보관함 링크 */}
             </section> {/* 내 활동 종료 */}
             <section className={styles.card} aria-labelledby="follow-title"> {/* 팔로우한 제작자 */}

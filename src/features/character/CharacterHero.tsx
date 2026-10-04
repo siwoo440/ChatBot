@@ -8,7 +8,7 @@ import type { Character, CharacterDetailProfile, Conversation } from "@/features
 import { createExploreHref } from "@/features/explore/explore-model"; // 탐색 주소 생성
 import { contentRatingLabels } from "@/features/adult/adult-access"; // 등급 문구
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 interface CharacterHeroProps // 히어로 속성
 { // 구조 시작
@@ -36,7 +36,7 @@ function formatMetric(value: number | null): string // 지표 표시 함수
     { // 조건 시작
         return t("확인되지 않음"); // 미확인 문구 반환
     } // 조건 종료
-    return new Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: 1 }).format(value); // 축약 수치 반환
+    return new Intl.NumberFormat(localeTag(), { notation: "compact", maximumFractionDigits: 1 }).format(value); // 축약 수치 반환
 } // 함수 종료
 
 function HeartIcon() // 좋아요 아이콘

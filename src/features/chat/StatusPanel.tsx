@@ -19,7 +19,7 @@ interface StatusPanelProps // 고정 상태창 속성
 
 function StatChip({ item }: { item: StatValue }) // 스탯 한 칸
 { // 함수 시작
-    return <span className={styles.statChip} data-stat={item.statId}>{item.icon.length === 0 ? null : <span aria-hidden="true">{item.icon} </span>}{item.name} <b>{formatStatValue(item)}</b>{item.delta === 0 ? null : <span className={styles.statusDelta} data-sign={item.delta > 0 ? "up" : "down"}>({formatStatDelta(item.delta)})</span>}</span>; // 이름·값·변화
+    return <span className={styles.statChip} data-stat={item.statId}>{item.icon.length === 0 ? null : <span aria-hidden="true">{item.icon} </span>}{t(item.name)} <b>{formatStatValue(item)}</b>{item.delta === 0 ? null : <span className={styles.statusDelta} data-sign={item.delta > 0 ? "up" : "down"}>({formatStatDelta(item.delta)})</span>}</span>; // 이름·값·변화
 } // 함수 종료
 
 export function StatusPanel({ messages, open, onToggle, initialStats = [] }: StatusPanelProps) // 턴마다 갱신되는 고정 INFO 창(이전 턴 넘겨 보기)

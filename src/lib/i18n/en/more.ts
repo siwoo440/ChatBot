@@ -318,6 +318,7 @@ export const more: Record<string, string> = {
     "정해진 선택지와 직접 작성한 행동을 함께 사용해 이야기를 진행": "Advance the story with both set choices and actions you write",
     "로컬 세이브": "Local saves",
     "선택 + 입력": "Choices + typing",
+    "MATE Text-Play 다운로드": "Download MATE Text-Play",
     "같은 LLM": "Same LLM",
     "설치 파일 다운로드": "Download the installer",
     "설치 프로그램 실행": "Run the installer",

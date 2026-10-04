@@ -8,7 +8,7 @@ import { CHAT_MESSAGE_MAX_LENGTH, type MessageVersionGroup } from "@/features/co
 import type { Message } from "@/features/core/types"; // 메시지 타입
 import { getMentionedCastMember, parseStoryMessage, STORY_CONTINUE_TEXT, type StoryCastEntry } from "@/features/story/story-model"; // 스토리 대사 나누기
 import styles from "@/features/chat/MessageList.module.css"; // 메시지 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 export function renderEmphasis(text: string): ReactNode[] // *지문*을 기울임 글자로 바꾸기(별표는 숨김)
 { // 함수 시작
@@ -80,7 +80,7 @@ interface MessageItemProps // 메시지 항목 속성
 
 function editError(result: Exclude<EditMessageResult, { ok: true }>): string // 수정 오류 문구 생성
 { // 함수 시작
-    const messages = { empty: t("수정할 내용을 입력해 주세요."), unchanged: t("기존 메시지와 같은 내용입니다."), "too-long": t("메시지는 {0}자까지 입력할 수 있습니다.", [CHAT_MESSAGE_MAX_LENGTH.toLocaleString("ko-KR")]), busy: t("응답 중에는 수정할 수 없습니다."), cancelled: t("수정 응답을 중단했습니다."), "insufficient-token": t("수정에 사용할 토큰이 부족합니다."), "missing-message": t("수정할 메시지를 찾지 못했습니다."), "version-limit": t("같은 메시지의 대화 버전은 10개까지 만들 수 있습니다."), "storage-failed": t("저장하지 못해 원본 대화를 유지했습니다.") }; // 오류 문구 목록
+    const messages = { empty: t("수정할 내용을 입력해 주세요."), unchanged: t("기존 메시지와 같은 내용입니다."), "too-long": t("메시지는 {0}자까지 입력할 수 있습니다.", [CHAT_MESSAGE_MAX_LENGTH.toLocaleString(localeTag())]), busy: t("응답 중에는 수정할 수 없습니다."), cancelled: t("수정 응답을 중단했습니다."), "insufficient-token": t("수정에 사용할 토큰이 부족합니다."), "missing-message": t("수정할 메시지를 찾지 못했습니다."), "version-limit": t("같은 메시지의 대화 버전은 10개까지 만들 수 있습니다."), "storage-failed": t("저장하지 못해 원본 대화를 유지했습니다.") }; // 오류 문구 목록
     return messages[result.reason]; // 오류 문구 반환
 } // 함수 종료
 

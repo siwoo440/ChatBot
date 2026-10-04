@@ -2,6 +2,7 @@ import { findExampleReply } from "@/features/chat/lore-model"; // 예시 대화 
 import { judgeStatsMock, type StatChange, type StatJudgeInput } from "@/features/chat/stat-model"; // Mock 스탯 판단
 import type { WritingStyle } from "@/features/core/types"; // 문체 타입
 import type { ChatReplyOptions, LLMAdapter, LLMInput, SummaryInput } from "@/lib/adapters/llm-adapter"; // 대화 계약
+import { translateTo } from "@/lib/i18n"; // 답변 언어로 바꾸기
 import { composeStoryReply } from "@/lib/story/mock-story-writer"; // Mock 스토리 응답
 
 interface MockLLMOptions // Mock 설정
@@ -35,16 +36,17 @@ export function decorateReply(base: string, options: ChatReplyOptions | undefine
         return base; // 그대로
     } // 조건 종료
     const count = extraCount[options.length] ?? 0; // 추가 문장 수
+    const say = (text: string) => translateTo(options.language ?? "ko", text); // 답변 언어로 바꾸기
     const heard = lastMessage.toLowerCase(); // 방금 들은 말
     const mentioned = options.lore.find((entry) => entry.keywords.some((keyword) => heard.includes(keyword.toLowerCase()))); // 방금 한 말에 키워드가 나온 설정(이어지는 턴에는 되풀이하지 않음)
-    const loreLine = mentioned === undefined ? undefined : `‘${mentioned.title}’ 이야기가 떠오른다.`; // 그 설정을 답에 드러냄
+    const loreLine = mentioned === undefined ? undefined : say("‘{0}’ 이야기가 떠오른다.").replace("{0}", mentioned.title); // 그 설정을 답에 드러냄
     if (story) // 스토리 응답 판정
     { // 조건 시작
-        return [base, ...extraNarrations.slice(0, count), ...(loreLine === undefined ? [] : [`[내레이션] ${loreLine}`])].join("\n"); // 내레이션 줄 추가
+        return [base, ...extraNarrations.slice(0, count).map(say), ...(loreLine === undefined ? [] : [`[내레이션] ${loreLine}`])].join("\n"); // 내레이션 줄 추가
     } // 조건 종료
     const decoration = styleDecorations[options.writingStyle]; // 문체 장식
     const persona = options.persona !== null && options.persona.name.trim().length > 0 && key % 3 === 0 ? `${options.persona.name}, ` : ""; // 가끔 이름 부르기
-    const parts = [decoration.prefix, `${persona}${base}`, ...extraLines.slice(0, count), loreLine === undefined ? undefined : `*${loreLine}*`, decoration.suffix, !options.preventImpersonation && key % 2 === 0 ? "*당신은 잠시 망설이다 고개를 끄덕인다.*" : undefined].filter((part): part is string => part !== undefined); // 문장 묶음
+    const parts = [decoration.prefix === undefined ? undefined : say(decoration.prefix), `${persona}${base}`, ...extraLines.slice(0, count).map(say), loreLine === undefined ? undefined : `*${loreLine}*`, decoration.suffix === undefined ? undefined : say(decoration.suffix), !options.preventImpersonation && key % 2 === 0 ? say("*당신은 잠시 망설이다 고개를 끄덕인다.*") : undefined].filter((part): part is string => part !== undefined); // 문장 묶음(답변 언어로)
     return parts.join(" "); // 응답 반환
 } // 함수 종료
 
@@ -97,7 +99,8 @@ export class MockLLMAdapter implements LLMAdapter // Mock 대화 어댑터
         const lastMessage = input.messages.at(-1)?.content.trim().toLowerCase() ?? ""; // 최근 입력
         const key = `${input.character.id}|${input.version.emotion}|${input.version.relationshipStage}|${lastMessage}|${this.seed}`; // 결정 키
         const example = findExampleReply(input.options?.examples ?? [], lastMessage); // 예시 대화와 같은 말이면 예시 답
-        const base = example ?? (input.story === undefined ? responses[hash(key) % responses.length] : composeStoryReply({ story: input.story, messages: input.messages, seed: this.seed })); // 응답 선택(스토리는 여러 인물 형식)
+        const language = input.options?.language ?? "ko"; // 답변 언어
+        const base = example ?? (input.story === undefined ? translateTo(language, responses[hash(key) % responses.length]) : composeStoryReply({ story: input.story, messages: input.messages, seed: this.seed, language })); // 응답 선택(스토리는 여러 인물 형식, 답변 언어로)
         const response = decorateReply(base, input.options, hash(`${key}|style`), input.story !== undefined, lastMessage); // 대화방 설정 반영
         const words = response.split(" "); // 단어 분리
         for (const [index, word] of words.entries()) // 단어 순회

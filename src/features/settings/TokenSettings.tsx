@@ -7,13 +7,13 @@ import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페�
 import { TokenHistory } from "@/features/settings/TokenHistory"; // 이용 기록
 import { getDailyUsage, tokenActionLabels, tokenCosts, type TokenAction } from "@/lib/story/token-policy"; // 토큰 비용표
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 const costOrder: TokenAction[] = ["chat", "advanced-chat", "manual-image", "regenerate-image", "studio-image"]; // 비용 표시 순서
 
 function formatDateTime(value: string): string // 시각 표시
 { // 함수 시작
-    return new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
+    return new Intl.DateTimeFormat(localeTag(), { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
 } // 함수 종료
 
 export function TokenSettings() // 토큰 이용 내역 화면

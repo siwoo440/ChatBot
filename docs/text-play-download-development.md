@@ -2430,4 +2430,70 @@ Next.js가 개발·빌드 타입 경로를 자동 생성하면서 파일 내용�
 - E2E: `discovery-filter.spec.ts`(5: 태그 두 개로 좁히기 → 칩 추가·빼기 → 지우기 → 작가 이름·제목 초성·`#` 없는 태그 이름·제목과 태그 함께). 전체 단위 624개·E2E 82개 통과
 - 화면: 태그 입력 중·태그 두 개로 좁힌 화면을 1440·820·390px, 밝게·어둡게에서 확인(가로 넘침 0, 콘솔 오류 없음)
 
+## 60. 로드맵 8단계: 한국어/영어
+
+### 60.1 결정 (2026-10-04, 사용자 "권장대로")
+
+- 영어 문구는 AI가 번역해 넣고 나중에 사람이 다듬는다.
+- 처음 언어는 브라우저 언어를 따르고(한국어가 아니면 영어) 설정에서 바꾼다.
+- 캐릭터 이름·소개·대사 같은 작품 내용과 이미 나눈 대화는 바꾸지 않고 화면 글자만 바꾼다.
+- 네 묶음으로 나눠 커밋: 틀(`bcf18a6`) → 자주 쓰는 화면(`c0de1a1`) → 나머지 화면(`bc7cae7`) → 날짜·숫자 형식과 AI 답변 언어.
+
+### 60.2 틀 (`src/lib/i18n/`)
+
+- `index.ts`: `Locale = "ko" | "en"`, `LanguageSetting = "auto" | Locale`, `resolveLocale(setting, browserLanguage)`, `setActiveLocale`·`getActiveLocale`, `localeTag()`(`ko-KR`·`en-US`), `t(value, params?)`, `translateTo(locale, text)`.
+- 한국어 글자가 그대로 열쇠다. `t("저장")`은 한국어면 그대로, 영어면 사전에서 찾고, 없으면 한국어를 돌려준다. 값은 `t("{0}개", [count])`처럼 넣고, 글자인 값은 사전에서 한 번 더 찾는다.
+- 사전은 화면 묶음별 파일: `en/shell.ts`(공통 메뉴·기본 화면), `discovery.ts`, `character.ts`, `chat.ts`, `settings.ts`, `more.ts`(보상·초대·이벤트·보관함·스토리·이미지·Text-Play), `data.ts`(저장 값의 표시 이름), `ai.ts`(연습용 AI 내용). `en/index.ts`가 합친다. 줄마다 글자 자체가 설명이라 사전 파일에는 줄 주석을 달지 않는다.
+- `AppProvider`가 저장된 상태를 읽은 뒤 `resolveLocale(settings.language, navigator.language)`로 언어를 정하고 `setActiveLocale`을 부른다. 화면은 `<Fragment key={locale}>`로 감싸 언어가 바뀌면 통째로 새로 그린다. 저장 상태를 읽기 전(서버에서 그릴 때 포함)에는 한국어다.
+- `settings.language`는 선택 항목이라 앱 상태 버전을 올리지 않았다(없으면 `auto`). `state-validation.ts`가 값을 확인한다.
+- 설정 화면: `화면 레이아웃`의 `언어 · Language`(`자동`·`한국어`·`English`).
+
+### 60.3 화면 글자 감싸기
+
+- TypeScript 구문 분석으로 화면에 보이는 글자(JSX 글자, 속성 글자, 함수 안 글자, 틀 글자)를 `t()`로 감쌌다(96개 파일, 약 2,200곳). 비교·`case`·`includes`에 쓰는 글자와 저장되는 값은 감싸지 않았다.
+- 목록 자료의 이름(`label`·`title`·`description`)은 그리는 자리에서 `t(item.label)`로 바꾼다.
+- 저장되는 값(관계 단계, 감정, 기본 스탯 이름 `호감도`)은 한국어로 저장하고 그릴 때만 `t(값)`으로 바꾼다. 제작자가 지은 스탯 이름은 사전에 없어 그대로 나온다.
+- 조사 처리(`은/는`)가 든 검증 문구는 영어일 때 따로 만든다(`story-validation.ts`의 `checkLength`).
+- 언어는 브라우저 저장소에 있어 서버는 모른다. 글자가 있는 화면은 `"use client"` 컴포넌트여야 하고 `src/app`의 페이지 파일에는 `t()`를 쓰지 않는다(없는 주소 안내는 `NotFoundScreen`으로 분리).
+- `scripts/i18n-keys.ts`: `t("…")`에 든 글자를 모아 사전에 없는 것을 알려 준다(`node scripts/i18n-keys.ts [--all] [--dir=a,b]`).
+
+### 60.4 날짜·숫자 형식
+
+- `"ko-KR"`로 고정했던 16개 파일의 `toLocaleString`·`toLocaleDateString`·`Intl` 호출을 `localeTag()`로 바꿨다. 줄임 숫자는 한국어 `16.2만`, 영어 `162K`.
+- `token-ledger.ts`의 `describeDate`: 한국어는 전과 같이 `10월 3일 (토)`, 영어는 `Intl`로 `Sat, Oct 3`.
+- `status-model.ts`의 작품 속 시간: 요일 이름을 화면 언어로(`금요일 20:06` / `Friday 20:06`).
+
+### 60.5 AI 답변 언어
+
+- `ChatReplyOptions.language?: Locale`(없으면 한국어). `chat-controller.ts`의 `createLLMInput`이 `getActiveLocale()`을 넣는다.
+- `mock-llm-adapter.ts`: 고른 답변, 문체 장식, 추가 문장, 사칭 문장, 설정집 문장을 `translateTo(options.language, …)`로 바꾼다. 예시 대화에서 찾은 답(`findExampleReply`)은 제작자가 쓴 글이라 그대로 쓴다.
+- `mock-story-writer.ts`: `StoryReplyInput.language`를 받아 내레이션과 대사를 바꾼다. `[내레이션]` 표시와 인물 이름은 그대로 둔다(나누는 규칙이 이 표시를 본다).
+- `status-model.ts`·`suggestion-model.ts`: 장소·팁·속마음·직접 항목 값·추천 답변을 고른 뒤 `t()`로 바꾼다. 영어 팁에는 인물 이름을 앞에 붙이지 않는다. 문체 미리보기(`getStyleSample`)는 이름이 문장 속에 들어가 영어 문장을 따로 둔다.
+- 답변과 상태창은 만들어질 때의 언어로 메시지에 저장된다. 언어를 바꿔도 지난 대화는 그대로다.
+
+### 60.6 탭 제목 (`src/features/core/use-document-language.ts`)
+
+- `translateTitle(title, locale)`: `제목 | Mate Verse`의 앞부분만 사전에서 찾아 바꾼다(작품 이름은 사전에 없어 그대로).
+- `useDocumentLanguage(locale)`: `<html lang>`을 맞추고, `document.head` 변화를 지켜보다 제목이 바뀌면 다시 맞춘다. 한국어로 돌아가면 원래 제목으로 되돌린다.
+- 서버가 보내는 제목·설명(검색엔진용)은 한국어 그대로다.
+
+### 60.7 영어 화면에 한글이 남는 곳(의도한 것)
+
+- 작품 내용: 캐릭터·스토리의 이름, 소개, 태그, 첫 대사, 상세 페이지의 소개 글, 작품에 저장된 플레이 가이드, 제작자가 지은 스탯 이름·이벤트 글.
+- 이미 나눈 대화와 그때 만들어진 상태창.
+- 태그 입력 예시(`힐링, 판타지, 여행`): 태그가 한국어라 예시도 한국어.
+
+### 60.8 검증
+
+- 단위: `i18n`(언어 정하기, `t()`와 값 넣기, 영어 문구의 `{0}` 짝, 모든 폴더에서 빠진 번역 0), `i18n-content`(6: 영어 답변·스토리·상태창·추천 답변·문체 미리보기, 한국어 유지, 날짜·줄임 숫자, 탭 제목). 테스트는 `src/test/setup.ts`에서 한국어로 고정하고 영어를 볼 때만 `setActiveLocale("en")`.
+- E2E: `language.spec.ts`(13: 언어 바꾸기와 새로고침 뒤 유지, 영어 브라우저의 자동 영어, 없는 주소·Text-Play·질문 검색, 영어 답변과 상태창, 탭 제목과 날짜, 390px 다섯 화면과 메인 세 너비의 넘침). `playwright.config.ts`의 `locale: "ko-KR"`로 나머지는 한국어 고정. 전체 단위 634개·E2E 95개 통과.
+- 화면: 영어로 16개 화면을 390px 어둡게·820px 밝게·1440px 어둡게와 밝게에서 확인(가로 넘침 0, 콘솔 오류 없음). 화면 글자 가운데 한글로 남은 것은 60.7뿐.
+
+### 60.9 남은 일
+
+- 영어 문구 사람이 다듬기(특히 게임 용어와 말투).
+- Text-Play 언어 설정과 연결(Text-Play 쪽 작업).
+- 해외 공개 전: 언어별 주소와 검색엔진용 제목·설명, 작품 내용 번역 여부.
+- 10단계에서 실제 AI에 `options.language`를 "이 언어로 답하라"는 지시로 전달.
+
 이 문서는 Text-Play 다운로드 기능과 챗봇 웹 서비스의 구조, 제약, 배포 절차가 변경될 때 코드와 함께 갱신해야 한다.

@@ -2,7 +2,7 @@ import { computeStats, formatStatDelta, formatStatValue, type StatBaseline, type
 import type { Conversation, StatusSnapshot, StatusTemplate, StatValue } from "@/features/core/types"; // 도메인 타입
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 판정
 import { getDateParts } from "@/lib/time/date-key"; // 서울 날짜
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { getActiveLocale, t } from "@/lib/i18n"; // 화면 글자 번역·화면 언어
 
 export interface StatusContext // 상태창 계산 입력
 { // 구조 시작
@@ -65,24 +65,25 @@ export function formatStoryTime(startedAt: string, turn: number): string // 작�
     const minutes = 20 * 60 + turn * 6; // 경과 분
     const day = (startDay + Math.floor(minutes / 1440)) % 7; // 요일
     const inDay = minutes % 1440; // 하루 안 분
-    return `${weekdays[day]} ${String(Math.floor(inDay / 60)).padStart(2, "0")}:${String(inDay % 60).padStart(2, "0")}`; // 시간 표시
+    return `${t(weekdays[day])} ${String(Math.floor(inDay / 60)).padStart(2, "0")}:${String(inDay % 60).padStart(2, "0")}`; // 시간 표시(요일은 화면 언어로)
 } // 함수 종료
 
 export function composeStatus(context: StatusContext): StatusSnapshot // 한 턴의 상태창 만들기(Mock, 같은 입력이면 같은 결과)
 { // 함수 시작
     const { template, turn, seed } = context; // 입력 분해
     const pool = locationPools[getGenreKey(context.tags)] ?? locationPools.etc; // 장소 묶음
-    const location = template.location ? pool[(Math.floor(Math.max(turn - 1, 0) / 4) + hash(seed)) % pool.length] : null; // 4턴마다 장소 이동
+    const location = template.location ? t(pool[(Math.floor(Math.max(turn - 1, 0) / 4) + hash(seed)) % pool.length]) : null; // 4턴마다 장소 이동(화면 언어로)
     const time = template.time ? formatStoryTime(context.startedAt, turn) : null; // 작품 속 시간
     const lead = context.people[0] ?? "상대"; // 대표 인물
-    const tip = template.tip ? `${lead}의 ${tips[hash(`${seed}|${turn}`) % tips.length]}`.replace(`${lead}의 지금은`, "지금은").replace(`${lead}의 잠시`, "잠시").replace(`${lead}의 약속`, "약속") : null; // 진행 팁
+    const rawTip = tips[hash(`${seed}|${turn}`) % tips.length]; // 이번 턴 팁
+    const tip = !template.tip ? null : getActiveLocale() === "en" ? t(rawTip) : `${lead}의 ${rawTip}`.replace(`${lead}의 지금은`, "지금은").replace(`${lead}의 잠시`, "잠시").replace(`${lead}의 약속`, "약속"); // 진행 팁(한국어는 인물 이름을 붙임)
     const stats = computeStats({ stats: template.stats, people: context.people, previous: context.previous, userMessage: context.userMessage, aiChanges: context.aiChanges, baselines: context.baselines }); // 스탯(규칙 + AI)
     const thoughts = template.thought ? context.people.map((person) => // 속마음
     { // 변환 시작
         const lines = thoughtPools[emotionGroup(context.emotion)]; // 감정별 문장
-        return { name: person, text: lines[hash(`${person}|${turn}|${seed}`) % lines.length] }; // 속마음 반환
+        return { name: person, text: t(lines[hash(`${person}|${turn}|${seed}`) % lines.length]) }; // 속마음 반환(화면 언어로)
     }) : []; // 속마음 종료
-    const custom = template.customLabels.filter((label) => label.trim().length > 0).map((label) => ({ label, value: customValues[hash(`${label}|${turn}`) % customValues.length] })); // 직접 항목
+    const custom = template.customLabels.filter((label) => label.trim().length > 0).map((label) => ({ label, value: t(customValues[hash(`${label}|${turn}`) % customValues.length]) })); // 직접 항목(화면 언어로)
     return { turn, location, time, tip, stats, thoughts, custom }; // 상태창 반환
 } // 함수 종료
 

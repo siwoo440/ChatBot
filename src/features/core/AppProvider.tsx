@@ -7,6 +7,7 @@ import type { AppState } from "@/features/core/types"; // 상태 타입
 import { trackRewardProgress } from "@/features/rewards/reward-tracker"; // 미션 진행 추적
 import { isStorageQuotaError, LocalStorageGateway, type BackupReason, type LoadResult } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
 import { resolveLocale, setActiveLocale, t } from "@/lib/i18n"; // 화면 글자 번역·화면 언어
+import { useDocumentLanguage } from "@/features/core/use-document-language"; // 문서 언어·탭 제목 맞추기
 
 export interface StateRepository // 상태 저장 계약
 { // 구조 시작
@@ -192,10 +193,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
     const value = useMemo(() => ({ state, dispatch, storageError, storageNotice, dismissStorageNotice, createBackup, commitState }), [commitState, createBackup, dismissStorageNotice, dispatch, state, storageError, storageNotice]); // 문맥 값
     const locale = restored ? resolveLocale(state.settings.language, typeof navigator === "undefined" ? undefined : navigator.language) : "ko"; // 화면 언어(저장된 설정을 읽은 뒤에 정함, 그 전에는 서버와 같은 한국어)
     setActiveLocale(locale); // 아래 화면을 그리기 전에 언어를 정함
-    useEffect(() => // 문서 언어 표시 갱신
-    { // 효과 시작
-        document.documentElement.lang = locale; // 읽어 주는 도구와 브라우저에 화면 언어를 알림
-    }, [locale]); // 언어 의존
+    useDocumentLanguage(locale); // 문서 언어 표시와 브라우저 탭 제목을 화면 언어로
     return <AppContext.Provider value={value}>{restored ? <Fragment key={locale}>{children}</Fragment> : <p role="status">{t("로컬 대화를 불러오는 중입니다.")}</p>}</AppContext.Provider>; // 공급자 반환(언어가 바뀌면 화면을 새로 그림)
 } // 함수 종료
 

@@ -5,7 +5,7 @@ import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 다운로드
 import { ImportValidationError, isStorageQuotaError, LocalStorageGateway, type BackupSnapshot, type PreparedImport } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 function readFile(file: File): Promise<string> // 파일 읽기 함수
 { // 함수 시작
@@ -197,7 +197,7 @@ export function DataManagement() // 데이터 관리 화면
             {prepared === null ? null : <div className={styles.preview}><strong>{t("가져온 데이터 미리보기")}</strong><span>{t("스키마")} {prepared.summary.schemaVersion}</span><span>{t("캐릭터")} {prepared.summary.characterCount}{t("명 · 대화")} {prepared.summary.conversationCount}{t("개 · 메시지")} {prepared.summary.messageCount}{t("개")}</span><button type="button" className={styles.primary} onClick={confirmImport}>{t("가져오기 확인")}</button></div>} {/* 가져오기 미리보기 */}
             <div className={styles.backupList}> {/* 백업 목록 */}
                 <h3>{t("최근 로컬 백업")}</h3> {/* 백업 제목 */}
-                {backups.length === 0 ? <p>{t("아직 백업이 없습니다.")}</p> : backups.map((backup) => <article key={backup.id}><div><strong>{reasonLabel(backup.reason)} {t("백업")}</strong><span>{backup.createdAt === null ? t("시각 정보 없음") : new Date(backup.createdAt).toLocaleString("ko-KR")}</span></div><button type="button" className={styles.secondary} onClick={() => restore(backup.id)}>{t("복구")}</button></article>)} {/* 백업 항목 */}
+                {backups.length === 0 ? <p>{t("아직 백업이 없습니다.")}</p> : backups.map((backup) => <article key={backup.id}><div><strong>{reasonLabel(backup.reason)} {t("백업")}</strong><span>{backup.createdAt === null ? t("시각 정보 없음") : new Date(backup.createdAt).toLocaleString(localeTag())}</span></div><button type="button" className={styles.secondary} onClick={() => restore(backup.id)}>{t("복구")}</button></article>)} {/* 백업 항목 */}
             </div> {/* 백업 목록 종료 */}
             <button type="button" className={styles.danger} onClick={resetData}>{t("모든 로컬 데이터 초기화")}</button> {/* 초기화 버튼 */}
             {status.length === 0 ? null : <p className={styles.status} role="status">{status}</p>} {/* 성공 안내 */}

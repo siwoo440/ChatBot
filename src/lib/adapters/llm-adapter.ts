@@ -1,4 +1,5 @@
 import type { StatChange, StatJudgeInput } from "@/features/chat/stat-model"; // 스탯 판단 형식
+import type { Locale } from "@/lib/i18n"; // 화면 언어
 import type { Character, ChatTierId, Conversation, ConversationVersion, LengthMultiplier, Message, ThinkingDepth, WritingStyle } from "@/features/core/types"; // 도메인 타입
 
 export interface ChatReplyOptions // 대화방 설정에서 온 응답 조건
@@ -15,6 +16,7 @@ export interface ChatReplyOptions // 대화방 설정에서 온 응답 조건
     stats: Array<{ name: string; target: string | null; value: number; min: number; max: number }>; // 지금 스탯 값(역할극에 반영)
     lore: Array<{ title: string; keywords: string[]; content: string }>; // 최근 대화에 키워드가 나온 설정집 내용(가장 최근 것부터)
     examples: Array<{ user: string; reply: string }>; // 말투를 보여 주는 예시 대화
+    language?: Locale; // 답변 언어(없으면 한국어)
 } // 구조 종료
 import type { StoryPromptContext } from "@/lib/story/mock-story-writer"; // 스토리 문맥
 

@@ -1,5 +1,5 @@
 import type { StatDefinition, StatMode, StatRule, StatScope, StatusSnapshot, StatusTemplate, StatValue } from "@/features/core/types"; // 도메인 타입
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 export const STAT_LIMIT = 6; // 작품당 스탯 최대 수
 export const STAT_RULE_LIMIT = 5; // 스탯당 낱말 규칙 최대 수
@@ -130,7 +130,7 @@ export function judgeStatsMock(input: StatJudgeInput): StatChange[] // Mock AI �
 
 export function formatStatValue(stat: Pick<StatValue, "value" | "min" | "max">): string // 값 표시(0~100처럼 좁은 범위는 최댓값 함께)
 { // 함수 시작
-    return stat.max - stat.min <= 100 ? `${stat.value}/${stat.max}` : stat.value.toLocaleString("ko-KR"); // 표시 문자열
+    return stat.max - stat.min <= 100 ? `${stat.value}/${stat.max}` : stat.value.toLocaleString(localeTag()); // 표시 문자열
 } // 함수 종료
 
 export function formatStatDelta(delta: number): string // 변화 표시

@@ -6,7 +6,7 @@ import { useState } from "react"; // 리액트 상태
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import type { Character, CharacterDetailProfile, UserProfile } from "@/features/core/types"; // 도메인 타입
 import { getGenreKey, getGenreLabel } from "@/lib/theme/genre-theme"; // 장르 색 조회
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 type RankingPeriod = "weekly" | "daily" | "all"; // 랭킹 기간
 
@@ -27,7 +27,7 @@ function formatRankingScore(character: Character, period: RankingPeriod): string
 { // 함수 시작
     const divisor = period === "daily" ? 8200 : period === "weekly" ? 2300 : 1; // 기간별 환산값
     const score = period === "all" ? character.popularity : Math.max(1, Math.round(character.popularity / divisor)); // 샘플 수치 계산
-    return t("{0}회", [new Intl.NumberFormat("ko-KR", { notation: score >= 10000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(score)]); // 수치 문구 반환
+    return t("{0}회", [new Intl.NumberFormat(localeTag(), { notation: score >= 10000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(score)]); // 수치 문구 반환
 } // 함수 종료
 
 interface CharacterDiscoverySectionsProps // 보조 섹션 속성

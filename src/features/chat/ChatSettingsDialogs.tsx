@@ -9,7 +9,7 @@ import { getStyleSample, writingStyles } from "@/features/chat/suggestion-model"
 import { DEFAULT_PERSONA_ID } from "@/features/core/defaults"; // 기본 프로필
 import type { CharacterMemory, ChatFont, ChatFontSize, ChatTierId, MemoryCategory, Persona, TierOption, WorkUpdate, WritingStyle } from "@/features/core/types"; // 도메인 타입
 import styles from "@/features/chat/ChatPanels.module.css"; // 채팅 보조 영역 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 export function TierDialog({ tierOptions, onSave, onClose }: { tierOptions: Record<ChatTierId, TierOption>; onSave(options: Record<ChatTierId, TierOption>): void; onClose(): void }) // 답변 길이 및 생각 조절
 { // 함수 시작
@@ -30,7 +30,7 @@ export function TierDialog({ tierOptions, onSave, onClose }: { tierOptions: Reco
                             <button type="button" className={styles.tierRow} aria-expanded={open} onClick={() => setExpanded(open ? null : tier.id)}><strong>{t(tier.label)}</strong><span>{t("최대")} {getTierMaxCost(tier.id)} {t("토큰")}</span><span aria-hidden="true">{open ? "⌃" : "›"}</span></button> {/* 등급 줄 */}
                             {!open ? null : ( // 펼침 판정
                                 <div className={styles.tierBody}> {/* 조절 */}
-                                    <label>{t("답변 최대 길이 (")}{getReplyTokenLimit(option.length).toLocaleString("ko-KR")} {t("토큰)")}<input type="range" min={0} max={lengthOptions.length - 1} step={1} value={lengthIndex} aria-valuetext={t(lengthOptions[lengthIndex].label)} onChange={(event) => update(tier.id, { length: lengthOptions[Number(event.target.value)].value })} /></label> {/* 길이 */}
+                                    <label>{t("답변 최대 길이 (")}{getReplyTokenLimit(option.length).toLocaleString(localeTag())} {t("토큰)")}<input type="range" min={0} max={lengthOptions.length - 1} step={1} value={lengthIndex} aria-valuetext={t(lengthOptions[lengthIndex].label)} onChange={(event) => update(tier.id, { length: lengthOptions[Number(event.target.value)].value })} /></label> {/* 길이 */}
                                     <small className={styles.hintText}>{t("추가 500토큰 구간당")} {tier.extraPerBlock} {t("토큰")}</small> {/* 추가 비용 */}
                                     <div className={styles.rangeLabels} aria-hidden="true">{lengthOptions.map((item) => <span key={item.label}>{t(item.label)}</span>)}</div> {/* 눈금 */}
                                     <label>{t("생각 깊이")}<input type="range" min={0} max={thinkingOptions.length - 1} step={1} value={thinkingIndex} disabled={!canUseThinking(option.length)} aria-valuetext={t(thinkingOptions[thinkingIndex].label)} onChange={(event) => update(tier.id, { thinking: thinkingOptions[Number(event.target.value)].value })} /></label> {/* 생각 */}
@@ -86,7 +86,7 @@ export function MemoryDialog({ conversationId, characterId, memories, onUpsert, 
             {adding ? <div className={styles.memoryAdd}><label>{t(memoryCategoryLabels[category])} {t("추가")}<textarea value={draft} maxLength={MEMORY_CONTENT_LIMIT} rows={3} placeholder={t("기억해 둘 내용을 적어 주세요.")} onChange={(event) => setDraft(event.target.value)} /></label><div><button type="button" className={styles.secondaryButton} onClick={() => setAdding(false)}>{t("취소")}</button><button type="button" className={styles.primaryButton} onClick={add}>{t("등록")}</button></div></div> : null} {/* 추가 입력 */}
             {list.length === 0 ? <p className={styles.emptyText}>{category === "goal" ? t("이 대화의 목표를 추가해 보세요.") : t("요약 메모리가 추가되려면 더 많은 메시지가 필요해요.")}</p> : ( // 목록 판정
                 <ul className={styles.memoryList}> {/* 기억 목록 */}
-                    {list.map((memory) => <li key={memory.id}>{editing ? <><textarea aria-label={t("{0} 내용 수정", [memoryCategoryLabels[category]])} value={edits[memory.id] ?? memory.content} maxLength={MEMORY_CONTENT_LIMIT} rows={2} onChange={(event) => setEdits((current) => ({ ...current, [memory.id]: event.target.value }))} /><button type="button" className={styles.dangerText} aria-label={t("{0} 삭제", [memory.content])} onClick={() => onDelete(memory.id)}>{t("삭제")}</button></> : <><p>{memory.content}</p><small>{memory.editedByUser ? t("직접 작성 · ") : t("자동 요약 · ")}{new Date(memory.updatedAt).toLocaleDateString("ko-KR")}</small></>}</li>)} {/* 기억 */}
+                    {list.map((memory) => <li key={memory.id}>{editing ? <><textarea aria-label={t("{0} 내용 수정", [memoryCategoryLabels[category]])} value={edits[memory.id] ?? memory.content} maxLength={MEMORY_CONTENT_LIMIT} rows={2} onChange={(event) => setEdits((current) => ({ ...current, [memory.id]: event.target.value }))} /><button type="button" className={styles.dangerText} aria-label={t("{0} 삭제", [memory.content])} onClick={() => onDelete(memory.id)}>{t("삭제")}</button></> : <><p>{memory.content}</p><small>{memory.editedByUser ? t("직접 작성 · ") : t("자동 요약 · ")}{new Date(memory.updatedAt).toLocaleDateString(localeTag())}</small></>}</li>)} {/* 기억 */}
                 </ul> // 목록 종료
             )} {/* 목록 판정 종료 */}
         </ChatDialog> // 대화상자 종료
@@ -117,7 +117,7 @@ export function UserNoteDialog({ note, extended, onSave, onClose }: { note: stri
         <ChatDialog title={t("유저노트")} description={t("이 채팅방에서 반드시 기억해 줬으면 하는 내용을 적어 주세요.")} onClose={onClose} footer={<button type="button" className={styles.primaryButton} disabled={text.length > limit} onClick={() => { onSave(text.trim(), wide); onClose(); }}>{t("등록")}</button>}> {/* 대화상자 */}
             <label className={styles.fieldLabel}><span className="sr-only">{t("유저노트 내용")}</span><textarea value={text} rows={8} maxLength={USER_NOTE_EXTENDED_LIMIT} placeholder={t("잊으면 안 되는 중요한 내용, 추가하고 싶은 설정 등")} onChange={(event) => setText(event.target.value)} /></label> {/* 노트 */}
             <div className={styles.noteFoot}> {/* 아래 줄 */}
-                <label className={styles.switch}><input type="checkbox" role="switch" checked={wide} onChange={(event) => setWide(event.target.checked)} /><span><strong>{t("유저노트")} {USER_NOTE_EXTENDED_LIMIT.toLocaleString("ko-KR")}{t("자 확장")}</strong><small>{t("메시지당")} {USER_NOTE_EXTENDED_COST} {t("토큰 추가")}</small></span></label> {/* 확장 */}
+                <label className={styles.switch}><input type="checkbox" role="switch" checked={wide} onChange={(event) => setWide(event.target.checked)} /><span><strong>{t("유저노트")} {USER_NOTE_EXTENDED_LIMIT.toLocaleString(localeTag())}{t("자 확장")}</strong><small>{t("메시지당")} {USER_NOTE_EXTENDED_COST} {t("토큰 추가")}</small></span></label> {/* 확장 */}
                 <span className={styles.counter} data-over={text.length > limit ? "true" : undefined}>{text.length}/{limit}</span> {/* 글자 수 */}
             </div> {/* 아래 줄 종료 */}
             {text.length > limit ? <p className={styles.warnText} role="alert">{limit}{t("자 이하로 줄이거나 확장을 켜 주세요.")}</p> : null} {/* 초과 안내 */}

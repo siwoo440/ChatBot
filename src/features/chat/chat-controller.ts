@@ -6,6 +6,7 @@ import { evaluateStory, resolveRelationshipStage } from "@/lib/story/story-engin
 import { trySpend, trySpendAmount } from "@/lib/story/token-policy"; // 토큰 정책
 import { buildChatContext, type ChatContext } from "@/features/chat/chat-context"; // 대화 맥락
 import { matchLore, toExamplePrompt, toLorePrompt } from "@/features/chat/lore-model"; // 설정집·예시 대화
+import { getActiveLocale } from "@/lib/i18n"; // 화면 언어
 import { evaluateEvents, getFiredKeys } from "@/features/chat/event-model"; // 스탯 조건 이벤트
 import { getMessageCost } from "@/features/chat/chat-tiers"; // 메시지 비용
 import { fromRelationLevel, getRelationStat, readRelationLevel, toRelationLevel, type RelationBinding } from "@/features/chat/relation-model"; // 관계 스탯
@@ -203,7 +204,7 @@ export class ChatController // 채팅 제어기
         const settings = this.context.settings; // 대화방 설정
         const tierOption = settings.tierOptions[settings.tier]; // 등급별 길이·생각
         const stats = currentStatValues(this.statusTemplateFor(conversation, character), getStatusPeople(conversation, deriveDisplayName(character.name)), this.previousStatus(messages), this.relationBaselines(conversation, character, messages, version.relationshipLevel)).map((item) => ({ name: item.name, target: item.target, value: item.value, min: item.min, max: item.max })); // 지금 스탯 값
-        const options = { tier: settings.tier, length: tierOption.length, thinking: tierOption.thinking, writingStyle: settings.writingStyle, preventImpersonation: settings.preventImpersonation, persona: this.context.persona, userNote: settings.userNote, memories: this.context.memories, playGuide: this.context.playGuide, stats, lore: toLorePrompt(matchLore(this.context.lorebook, messages)), examples: toExamplePrompt(this.context.examples) }; // 응답 조건(설정집은 최근 대화에 키워드가 나온 것만)
+        const options = { tier: settings.tier, length: tierOption.length, thinking: tierOption.thinking, writingStyle: settings.writingStyle, preventImpersonation: settings.preventImpersonation, persona: this.context.persona, userNote: settings.userNote, memories: this.context.memories, playGuide: this.context.playGuide, stats, lore: toLorePrompt(matchLore(this.context.lorebook, messages)), examples: toExamplePrompt(this.context.examples), language: getActiveLocale() }; // 응답 조건(설정집은 최근 대화에 키워드가 나온 것만, 답변 언어는 화면 언어)
         if (conversation.mode !== "story") // 캐릭터 모드 판정
         { // 조건 시작
             return { character, conversation, version, messages, options }; // 캐릭터 입력 반환

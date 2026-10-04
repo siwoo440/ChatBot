@@ -1,6 +1,6 @@
 import type { Conversation } from "@/features/core/types"; // 대화 타입
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 interface CharacterActionBarProps // 대화 동작 속성
 { // 구조 시작
@@ -12,7 +12,7 @@ interface CharacterActionBarProps // 대화 동작 속성
 
 function formatRecentTime(value: string): string // 최근 시각 표시
 { // 함수 시작
-    return new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
+    return new Intl.DateTimeFormat(localeTag(), { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
 } // 함수 종료
 
 export function CharacterActionBar({ latestConversation, creating, onContinue, onStart }: CharacterActionBarProps) // 캐릭터 대화 동작

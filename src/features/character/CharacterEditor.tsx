@@ -23,7 +23,7 @@ import { WorkLoreFields } from "@/features/character/LoreEditor"; // 키워드 �
 import type { Character, CharacterDraft, PublicationStatus } from "@/features/core/types"; // 캐릭터 타입
 import { canUseImageForRating, findImageBySource, isGeneratedImageSource } from "@/features/images/image-model"; // 내 이미지 도구
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 const imageOptions = ["rian", "harin", "sera", "kyle", "noah", "miel", "yuna"].map((id) => `/images/characters/${id}.webp`); // 이미지 목록
 
@@ -85,7 +85,7 @@ const characterSteps: EditorStepDefinition[] = // 캐릭터 편집 단계
 
 export function formatSavedAt(value: string): string // 자동 저장 시각 표시
 { // 함수 시작
-    return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
+    return new Intl.DateTimeFormat(localeTag(), { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
 } // 함수 종료
 
 export function CharacterEditor({ characterId, initialImageId, llm }: { characterId?: string; initialImageId?: string; llm?: LLMAdapter }) // 캐릭터 편집기(이미지 스튜디오에서 고른 이미지로 시작 가능)

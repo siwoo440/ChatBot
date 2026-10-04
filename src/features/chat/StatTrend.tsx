@@ -11,7 +11,7 @@ const PAD = 7; // 안쪽 여백(끝 점이 잘리지 않게)
 
 function lineLabel(line: StatHistoryLine): string // 줄 이름(인물 + 스탯)
 { // 함수 시작
-    return line.target === null ? line.name : `${line.target} ${line.name}`; // 이름 반환
+    return line.target === null ? t(line.name) : `${line.target} ${t(line.name)}`; // 이름 반환(기본 스탯 이름은 화면 언어로)
 } // 함수 종료
 
 function Sparkline({ line }: { line: StatHistoryLine }) // 스탯 하나의 턴별 변화(한 줄 = 한 색, 세로축은 그 스탯의 최솟값~최댓값)

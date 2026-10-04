@@ -9,11 +9,11 @@ import { DataManagement } from "@/features/settings/DataManagement"; // 데이�
 import { getMemoryGroups, getReportEntries } from "@/features/settings/settings-insights"; // 메모리·신고 요약
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 function formatDate(value: string): string // 날짜 표시
 { // 함수 시작
-    return new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 날짜 반환
+    return new Intl.DateTimeFormat(localeTag(), { dateStyle: "medium", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 날짜 반환
 } // 함수 종료
 
 export function PrivacySettings() // 개인정보 및 보안 화면

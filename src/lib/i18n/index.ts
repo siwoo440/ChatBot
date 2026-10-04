@@ -38,6 +38,11 @@ function lookup(text: string): string // 사전에서 찾기(없으면 그대로
     return activeLocale === "en" && Object.hasOwn(en, text) ? en[text] : text; // 영어일 때만 바꿈
 } // 함수 종료
 
+export function translateTo(locale: Locale, text: string): string // 정한 언어로 바꾸기(화면 언어와 상관없이, 사전에 없으면 그대로)
+{ // 함수 시작
+    return locale === "en" && Object.hasOwn(en, text) ? en[text] : text; // 영어일 때만 바꿈
+} // 함수 종료
+
 export function t(value: string, params?: readonly unknown[]): string; // 글자 번역
 export function t<T>(value: T, params?: readonly unknown[]): T; // 글자가 아니면 그대로
 export function t(value: unknown, params?: readonly unknown[]): unknown // 화면 글자 번역({0}·{1} 자리에는 넘긴 값을 넣고, 넘긴 값이 사전에 있는 글자면 그것도 바꿈)

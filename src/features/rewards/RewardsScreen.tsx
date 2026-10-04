@@ -9,13 +9,13 @@ import { ATTENDANCE_CYCLE, attendanceRewards, getAttendanceView, getBonusView, g
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import settings from "@/features/settings/SettingsScreen.module.css"; // 설정 공통 스타일
 import styles from "@/features/rewards/RewardsScreen.module.css"; // 보상 화면 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 const RECORD_PREVIEW = 10; // 화면에 보여 줄 받은 기록 수
 
 function formatDateTime(value: string): string // 시각 표시
 { // 함수 시작
-    return new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
+    return new Intl.DateTimeFormat(localeTag(), { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(value)); // 한국 시각 반환
 } // 함수 종료
 
 export function RewardsScreen() // 출석과 미션 화면

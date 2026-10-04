@@ -12,7 +12,7 @@ import { getStoryCandidates } from "@/features/story/story-validation"; // 참�
 import { getRegionPolicy, getServiceRegion } from "@/lib/config/service-region"; // 지역 정책
 import { tokenCosts, trySpend } from "@/lib/story/token-policy"; // 토큰 비용
 import styles from "@/features/images/ImageStudio.module.css"; // 스튜디오 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 type GalleryFilter = "all" | "favorite"; // 갤러리 필터
 
@@ -160,7 +160,7 @@ function ImageCard({ image, locked, large = false, onFavorite, onDelete }: { ima
             </div> {/* 그림 종료 */}
             <div className={styles.cardBody}> {/* 본문 */}
                 <p className={styles.prompt}>{locked ? t("19세 이미지") : image.prompt}</p> {/* 설명 */}
-                <small>{t(imageStyleLabels[image.style])} · {t(imageAspectLabels[image.aspect])} · {new Date(image.createdAt).toLocaleDateString("ko-KR")}</small> {/* 옵션 */}
+                <small>{t(imageStyleLabels[image.style])} · {t(imageAspectLabels[image.aspect])} · {new Date(image.createdAt).toLocaleDateString(localeTag())}</small> {/* 옵션 */}
                 <div className={styles.cardActions}> {/* 동작 */}
                     <button type="button" aria-label={t("{0} 즐겨찾기", [name])} aria-pressed={image.favorite} onClick={onFavorite}>{image.favorite ? "★" : "☆"}</button> {/* 즐겨찾기 */}
                     {locked ? null : <Link href={`/characters/new?image=${encodeURIComponent(image.id)}` as Route} aria-label={t("캐릭터 대표 이미지로 쓰기")}>{t("캐릭터로 쓰기")}</Link>} {/* 캐릭터 활용 */}

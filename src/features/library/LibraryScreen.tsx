@@ -15,7 +15,7 @@ import { createSessionHref, getStoryCastEntries, isMatureStory, summarizeStoryCo
 import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 다운로드
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
 import styles from "@/features/library/LibraryScreen.module.css"; // 보관함 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 type LibraryTab = "created" | "drafts" | "stories" | "bookmarks" | "conversations" | "replies"; // 보관함 탭
 
@@ -109,7 +109,7 @@ function CharacterGrid({ characters, tab, isLocked, onDelete, onToggleBookmark, 
                         <span>{character.publicationStatus === "draft" ? t("임시 저장") : character.visibility === "public" ? t("전체 공개") : t("비공개")}</span> {/* 공개 상태 */}
                         <Link href={`/characters/${character.id}` as Route} aria-label={t("{0} 상세 보기", [character.name])}><h2>{character.name}</h2></Link> {/* 상세 링크 */}
                         <p>{isLocked(character) ? t("19세 이용가 캐릭터입니다. 19+를 켜면 내용을 볼 수 있습니다.") : character.summary}</p> {/* 한 줄 소개 */}
-                        <small>{t("최근 수정")} {new Date(character.updatedAt).toLocaleDateString("ko-KR")}</small> {/* 수정 시각 */}
+                        <small>{t("최근 수정")} {new Date(character.updatedAt).toLocaleDateString(localeTag())}</small> {/* 수정 시각 */}
                         <div className={styles.cardActions}> {/* 카드 동작 */}
                             {tab === "bookmarks" ? <button type="button" aria-label={t("{0} 보관 해제", [character.name])} onClick={() => onToggleBookmark(character.id)}>{t("보관 해제")}</button> : <><Link href={`/characters/${character.id}/edit` as Route}>{t("수정")}</Link><button type="button" onClick={() => onTogglePublication(character)}>{character.publicationStatus === "draft" ? t("공개 전환") : t("임시 전환")}</button><button type="button" aria-label={t("{0} 삭제", [character.name])} onClick={() => onDelete(character)}>{t("삭제")}</button></>} {/* 탭별 동작 */}
                         </div> {/* 동작 종료 */}
@@ -161,7 +161,7 @@ function StoryGrid({ stories, isStoryLocked }: { stories: Story[]; isStoryLocked
                                 <Link href={`/stories/${encodeURIComponent(story.id)}` as Route}><h2>{t(story.title)}</h2></Link> {/* 상세 링크 */}
                                 <p>{locked ? t("19세 이용가 스토리입니다. 19+를 켜면 내용을 볼 수 있습니다.") : story.summary}</p> {/* 한 줄 소개 */}
                                 <small>{t("등장인물")} {story.cast.length}{t("명 ·")} {names}</small> {/* 등장인물 */}
-                                <small>{t("최근 수정")} {new Date(story.updatedAt).toLocaleDateString("ko-KR")}</small> {/* 수정 시각 */}
+                                <small>{t("최근 수정")} {new Date(story.updatedAt).toLocaleDateString(localeTag())}</small> {/* 수정 시각 */}
                                 <div className={styles.cardActions}> {/* 카드 동작 */}
                                     <Link href={`/stories/${encodeURIComponent(story.id)}/edit` as Route} aria-label={t("{0} 수정", [story.title])}>{t("수정")}</Link> {/* 수정 */}
                                     <button type="button" aria-label={`${story.title} ${action}`} onClick={() => togglePublication(story)}>{action}</button> {/* 공개 전환 */}
@@ -296,7 +296,7 @@ function ConversationSection({ isLocked, isStoryLocked, stories, title, conversa
                     const presetName = story === undefined ? profile.startPresets.find((preset) => preset.id === conversation.startSettings.presetId)?.name ?? t("기본 설정") : t("스토리 시작 장면"); // 시작 설정 이름
                     const subtitle = story === undefined ? `${character.name} · ${t(summary.relationshipStage)} · ${t(summary.emotion)}` : t("스토리 · 등장인물 {0}명 · {1}", [conversation.storyCast.length, summary.emotion]); // 카드 부제
                     const preview = story === undefined ? summary.lastMessage : summarizeStoryContent(summary.lastMessage, conversation.storyCast); // 최근 메시지 미리보기
-                    const recentTime = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(summary.updatedAt)); // 최근 시각 표시
+                    const recentTime = new Intl.DateTimeFormat(localeTag(), { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(summary.updatedAt)); // 최근 시각 표시
                     return <article key={conversation.id} className={styles.conversationCard} data-mode={conversation.mode} data-genre={getGenreKey(story?.tags ?? character.tags)} data-locked={locked ? "true" : undefined}><Link href={createSessionHref(conversation) as Route} onClick={() => onSelect(conversation)}><Image src={story?.coverImage ?? character.coverImage} alt="" width={88} height={88} /><span><strong>{t(conversation.title)}</strong><small>{subtitle}</small><small className={styles.conversationMeta}>{t("시작:")} {presetName} {t("· 최근")} {recentTime}</small><p>{locked ? t("19+ 잠금 · 19+를 켜면 대화를 볼 수 있습니다.") : preview}</p></span></Link>{editing ? <div className={styles.renameRow}><label>{t("대화 이름")}<input value={renameDraft} maxLength={60} onChange={(event) => onRenameDraft(event.target.value)} /></label><button type="button" onClick={onSaveRename}>{t("이름 저장")}</button><button type="button" onClick={onCancelRename}>{t("취소")}</button></div> : null}<div className={styles.conversationActions}><button type="button" aria-label={t("{0} 이름 변경", [conversation.title])} onClick={() => onStartRename(conversation)}>{t("이름 변경")}</button>{conversation.archivedAt === null ? <button type="button" aria-label={t("{0} 보관", [conversation.title])} onClick={() => onArchive(conversation)}>{t("보관")}</button> : <button type="button" aria-label={t("{0} 복구", [conversation.title])} onClick={() => onRestore(conversation)}>{t("복구")}</button>}<button type="button" aria-label={t("{0} 내보내기", [conversation.title])} onClick={() => onExport(conversation)}>{t("내보내기")}</button><button type="button" aria-label={t("{0} 삭제", [conversation.title])} onClick={() => onDelete(conversation)}>{t("삭제")}</button></div></article>; // 대화 카드 반환
                 })} {/* 순회 종료 */}
             </div> {/* 격자 종료 */}
@@ -314,7 +314,7 @@ function ReplyList({ entries, onRemove }: { entries: BookmarkEntry[]; onRemove(m
         <ul className={styles.replyList} aria-label={t("책갈피한 답변")}> {/* 책갈피 목록 */}
             {entries.map((entry) => ( // 책갈피 순회
                 <li key={entry.messageId}> {/* 책갈피 */}
-                    <Link href={entry.href as Route}><strong>{t(entry.title)}</strong><span>{entry.excerpt}</span><small>{new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(entry.createdAt))}</small></Link> {/* 답변으로 이동 */}
+                    <Link href={entry.href as Route}><strong>{t(entry.title)}</strong><span>{entry.excerpt}</span><small>{new Intl.DateTimeFormat(localeTag(), { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" }).format(new Date(entry.createdAt))}</small></Link> {/* 답변으로 이동 */}
                     <button type="button" aria-label={t("{0} 책갈피 빼기: {1}", [entry.title, entry.excerpt])} onClick={() => onRemove(entry.messageId)}>{t("책갈피 빼기")}</button> {/* 빼기 */}
                 </li> // 책갈피 종료
             ))} {/* 순회 종료 */}
