@@ -1,5 +1,6 @@
 import type { Character } from "@/features/core/types"; // 캐릭터 타입
 import { getGenreKey, type GenreKey } from "@/lib/theme/genre-theme"; // 장르 색 도구
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export interface TagStat // 태그 통계
 { // 구조 시작
@@ -91,7 +92,7 @@ export function buildCreatorStats(characters: readonly Character[]): CreatorStat
             genreCounts.set(genre, (genreCounts.get(genre) ?? 0) + 1); // 장르 누적
         } // 순회 종료
         const genre = [...genreCounts.entries()].sort((left, right) => right[1] - left[1])[0]?.[0] ?? "other"; // 대표 장르
-        return { creatorId, creatorName: sorted[0]?.creatorName ?? "알 수 없는 제작자", works: sorted, totalPopularity: sorted.reduce((sum, work) => sum + work.popularity, 0), topTags: tagStats.slice(0, 3).map((stat) => stat.tag), genre }; // 제작자 통계 반환
+        return { creatorId, creatorName: sorted[0]?.creatorName ?? t("알 수 없는 제작자"), works: sorted, totalPopularity: sorted.reduce((sum, work) => sum + work.popularity, 0), topTags: tagStats.slice(0, 3).map((stat) => stat.tag), genre }; // 제작자 통계 반환
     }).sort((left, right) => right.totalPopularity - left.totalPopularity || left.creatorName.localeCompare(right.creatorName, "ko")); // 대화 합계 순서 반환
 } // 함수 종료
 

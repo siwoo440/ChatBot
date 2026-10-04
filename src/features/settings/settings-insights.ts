@@ -2,6 +2,7 @@
 import { reportReasonLabels } from "@/features/character/report-reasons"; // 신고 사유 이름
 import type { AppState, CharacterMemory } from "@/features/core/types"; // 도메인 타입
 import { createSessionHref } from "@/features/story/story-model"; // 대화 주소
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export interface ActivitySummary // 내 활동 요약
 { // 구조 시작
@@ -31,7 +32,7 @@ export function getFollowedCreators(state: Pick<AppState, "characters" | "storie
     { // 순회 시작
         const characters = state.characters.filter((character) => character.creatorId === creatorId); // 그 제작자의 캐릭터
         const stories = state.stories.filter((story) => story.creatorId === creatorId); // 그 제작자의 스토리
-        return { creatorId, name: characters[0]?.creatorName ?? stories[0]?.creatorName ?? "알 수 없는 제작자", works: characters.length + stories.length }; // 제작자 반환
+        return { creatorId, name: characters[0]?.creatorName ?? stories[0]?.creatorName ?? t("알 수 없는 제작자"), works: characters.length + stories.length }; // 제작자 반환
     }); // 순회 종료
 } // 함수 종료
 
@@ -54,7 +55,7 @@ export function getMemoryGroups(state: Pick<AppState, "memories" | "conversation
     return [...groups.entries()].map(([conversationId, memories]) => // 묶음 순회
     { // 순회 시작
         const conversation = state.conversations.find((item) => item.id === conversationId); // 대화방
-        return { conversationId, title: conversation?.title ?? "지워진 대화", href: conversation === undefined ? null : createSessionHref(conversation), memories: [...memories].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)) }; // 묶음 반환
+        return { conversationId, title: conversation?.title ?? t("지워진 대화"), href: conversation === undefined ? null : createSessionHref(conversation), memories: [...memories].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)) }; // 묶음 반환
     }).sort((left, right) => newest(right.memories).localeCompare(newest(left.memories))); // 최근에 바뀐 대화방 순
 } // 함수 종료
 
@@ -68,7 +69,7 @@ export interface ReportEntry // 내가 한 신고 한 건
 
 export function getReportEntries(state: Pick<AppState, "localReports" | "characters">): ReportEntry[] // 내가 한 신고 목록(최근 순)
 { // 함수 시작
-    return [...state.localReports].sort((left, right) => right.createdAt.localeCompare(left.createdAt)).map((report) => ({ id: report.id, characterName: state.characters.find((character) => character.id === report.characterId)?.name ?? "지워진 캐릭터", reason: reportReasonLabels[report.reason], createdAt: report.createdAt })); // 표시용 반환
+    return [...state.localReports].sort((left, right) => right.createdAt.localeCompare(left.createdAt)).map((report) => ({ id: report.id, characterName: state.characters.find((character) => character.id === report.characterId)?.name ?? t("지워진 캐릭터"), reason: reportReasonLabels[report.reason], createdAt: report.createdAt })); // 표시용 반환
 } // 함수 종료
 
 export interface NotificationWindow // 하루 막대에 그릴 허용 시간
@@ -95,7 +96,7 @@ export function getNotificationWindow(startTime: string, endTime: string): Notif
     const length = end - start; // 길이(분)
     const hours = Math.floor(length / 60); // 시간
     const minutes = length % 60; // 분
-    return { startPercent: start / 1440 * 100, widthPercent: length / 1440 * 100, label: [hours === 0 ? "" : `${hours}시간`, minutes === 0 ? "" : `${minutes}분`].filter(Boolean).join(" ") }; // 막대 반환
+    return { startPercent: start / 1440 * 100, widthPercent: length / 1440 * 100, label: [hours === 0 ? "" : t("{0}시간", [hours]), minutes === 0 ? "" : t("{0}분", [minutes])].filter(Boolean).join(" ") }; // 막대 반환
 } // 함수 종료
 
 export function formatBytes(bytes: number): string // 저장 용량 표시
@@ -116,14 +117,14 @@ export function buildDiagnostics(input: DiagnosticsInput): string // 문의할 �
 { // 함수 시작
     const { state } = input; // 앱 상태
     return [ // 줄 목록
-        "Mate Verse 진단 정보", // 제목
-        `앱 버전: ${input.appVersion}`, // 앱 버전
-        `데이터 버전: ${state.schemaVersion}`, // 데이터 버전
-        `응답 방식: ${state.providerMode === "mock" ? "로컬 Mock(외부 API 없음)" : state.providerMode}`, // 응답 방식
-        `저장 용량: ${input.storageBytes === null ? "알 수 없음" : formatBytes(input.storageBytes)}`, // 저장 용량
-        `작품: 캐릭터 ${state.characters.length}개 · 스토리 ${state.stories.length}개 · 이미지 ${state.images.length}장`, // 작품 수
-        `대화: 대화방 ${state.conversations.length}개 · 메시지 ${state.messages.length}개`, // 대화 수
-        `화면: ${input.viewport === null ? "알 수 없음" : `${input.viewport.width}×${input.viewport.height}`}`, // 화면 크기
-        `브라우저: ${input.userAgent ?? "알 수 없음"}`, // 브라우저
+        t("Mate Verse 진단 정보"), // 제목
+        t("앱 버전: {0}", [input.appVersion]), // 앱 버전
+        t("데이터 버전: {0}", [state.schemaVersion]), // 데이터 버전
+        t("응답 방식: {0}", [state.providerMode === "mock" ? t("로컬 Mock(외부 API 없음)") : state.providerMode]), // 응답 방식
+        t("저장 용량: {0}", [input.storageBytes === null ? t("알 수 없음") : formatBytes(input.storageBytes)]), // 저장 용량
+        t("작품: 캐릭터 {0}개 · 스토리 {1}개 · 이미지 {2}장", [state.characters.length, state.stories.length, state.images.length]), // 작품 수
+        t("대화: 대화방 {0}개 · 메시지 {1}개", [state.conversations.length, state.messages.length]), // 대화 수
+        t("화면: {0}", [input.viewport === null ? t("알 수 없음") : `${input.viewport.width}×${input.viewport.height}`]), // 화면 크기
+        t("브라우저: {0}", [input.userAgent ?? t("알 수 없음")]), // 브라우저
     ].join("\n"); // 한 덩어리 글
 } // 함수 종료

@@ -1,11 +1,12 @@
 "use client"; // 클라이언트 컴포넌트
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type ReactNode } from "react"; // 리액트 도구
+import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, type Dispatch, type ReactNode } from "react"; // 리액트 도구
 import { appReducer, type AppAction } from "@/features/core/app-reducer"; // 앱 리듀서
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import type { AppState } from "@/features/core/types"; // 상태 타입
 import { trackRewardProgress } from "@/features/rewards/reward-tracker"; // 미션 진행 추적
 import { isStorageQuotaError, LocalStorageGateway, type BackupReason, type LoadResult } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
+import { resolveLocale, setActiveLocale, t } from "@/lib/i18n"; // 화면 글자 번역·화면 언어
 
 export interface StateRepository // 상태 저장 계약
 { // 구조 시작
@@ -125,7 +126,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
         } // 시도 종료
         catch (error: unknown) // 저장 실패 처리
         { // 오류 시작
-            const message = describeStorageFailure(error, "브라우저 저장공간이 가득 차 최근 변경 내용을 저장하지 못했습니다.", "저장하지 못했습니다. 브라우저 저장공간을 확인해 주세요."); // 원인별 안내
+            const message = describeStorageFailure(error, t("브라우저 저장공간이 가득 차 최근 변경 내용을 저장하지 못했습니다."), t("저장하지 못했습니다. 브라우저 저장공간을 확인해 주세요.")); // 원인별 안내
             queueMicrotask(() => setStorageError(message)); // 오류 안내 예약
         } // 오류 종료
     }, [repository, state]); // 상태 변경 의존
@@ -151,7 +152,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
         } // 시도 종료
         catch (error: unknown) // 백업 오류 처리
         { // 오류 시작
-            setStorageError(describeStorageFailure(error, "브라우저 저장공간이 가득 차 백업하지 못했습니다. 삭제를 중단했습니다.", "백업하지 못했습니다. 삭제를 중단했습니다.")); // 백업 오류 안내
+            setStorageError(describeStorageFailure(error, t("브라우저 저장공간이 가득 차 백업하지 못했습니다. 삭제를 중단했습니다."), t("백업하지 못했습니다. 삭제를 중단했습니다."))); // 백업 오류 안내
             return false; // 백업 실패 반환
         } // 오류 종료
     }, [repository, state]); // 함수 종료
@@ -183,13 +184,19 @@ export function AppProvider({ children, initialState = createInitialState(), rep
         } // 시도 종료
         catch (error: unknown) // 저장 실패 처리
         { // 실패 시작
-            setStorageError(describeStorageFailure(error, "브라우저 저장공간이 가득 차 변경 내용을 적용하지 않았습니다.", "저장하지 못해 변경 내용을 적용하지 않았습니다.")); // 저장 오류 안내
+            setStorageError(describeStorageFailure(error, t("브라우저 저장공간이 가득 차 변경 내용을 적용하지 않았습니다."), t("저장하지 못해 변경 내용을 적용하지 않았습니다."))); // 저장 오류 안내
             return false; // 저장 실패 반환
         } // 실패 종료
     }, [dispatch, repository]); // 함수 종료
     const dismissStorageNotice = useCallback(() => setStorageNotice(null), []); // 안내 닫기 함수
     const value = useMemo(() => ({ state, dispatch, storageError, storageNotice, dismissStorageNotice, createBackup, commitState }), [commitState, createBackup, dismissStorageNotice, dispatch, state, storageError, storageNotice]); // 문맥 값
-    return <AppContext.Provider value={value}>{restored ? children : <p role="status">로컬 대화를 불러오는 중입니다.</p>}</AppContext.Provider>; // 공급자 반환
+    const locale = restored ? resolveLocale(state.settings.language, typeof navigator === "undefined" ? undefined : navigator.language) : "ko"; // 화면 언어(저장된 설정을 읽은 뒤에 정함, 그 전에는 서버와 같은 한국어)
+    setActiveLocale(locale); // 아래 화면을 그리기 전에 언어를 정함
+    useEffect(() => // 문서 언어 표시 갱신
+    { // 효과 시작
+        document.documentElement.lang = locale; // 읽어 주는 도구와 브라우저에 화면 언어를 알림
+    }, [locale]); // 언어 의존
+    return <AppContext.Provider value={value}>{restored ? <Fragment key={locale}>{children}</Fragment> : <p role="status">{t("로컬 대화를 불러오는 중입니다.")}</p>}</AppContext.Provider>; // 공급자 반환(언어가 바뀌면 화면을 새로 그림)
 } // 함수 종료
 
 export function useAppStore(): AppStore // 앱 저장소 훅

@@ -1,6 +1,7 @@
 "use client"; // 클라이언트 컴포넌트
 
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 function SunIcon() // 해 아이콘(밝은 모드)
 { // 함수 시작
@@ -17,7 +18,7 @@ export function ThemeToggle() // 헤더 다크 모드 스위치(사이트 전체
     const { state, dispatch } = useAppStore(); // 앱 상태
     const dark = state.settings.theme === "dark"; // 다크 모드 여부
     return ( // 스위치 반환
-        <button type="button" role="switch" className="app-theme-toggle" data-state={dark ? "on" : "off"} aria-checked={dark} aria-label="다크 모드" title={dark ? "밝은 화면으로 바꾸기" : "어두운 화면으로 바꾸기"} onClick={() => dispatch({ type: "update-settings", settings: { theme: dark ? "light" : "dark" } })}> {/* 다크 모드 스위치 */}
+        <button type="button" role="switch" className="app-theme-toggle" data-state={dark ? "on" : "off"} aria-checked={dark} aria-label={t("다크 모드")} title={dark ? t("밝은 화면으로 바꾸기") : t("어두운 화면으로 바꾸기")} onClick={() => dispatch({ type: "update-settings", settings: { theme: dark ? "light" : "dark" } })}> {/* 다크 모드 스위치 */}
             {dark ? <MoonIcon /> : <SunIcon />} {/* 지금 테마 아이콘 */}
         </button> // 스위치 종료
     ); // 반환 종료

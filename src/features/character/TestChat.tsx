@@ -15,6 +15,7 @@ import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // Mock 대화
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색
 import panels from "@/features/chat/ChatPanels.module.css"; // 대화상자 버튼 스타일
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export const TEST_CHAT_TURN_LIMIT = 10; // 시험 대화 최대 턴
 export const TEST_CHAT_BALANCE = 99_999; // 시험 대화용 가짜 잔액(실제 지갑은 건드리지 않음)
@@ -95,15 +96,15 @@ export function TestChat({ title, tags, start, onClose, llm }: TestChatProps) //
         } // 조건 종료
     }; // 함수 종료
     return ( // 대화상자 반환
-        <ChatDialog title={`${title} 시험 대화`} description="저장하기 전에 지금 내용으로 대화해 봐요. 기록이 남지 않고 토큰을 쓰지 않아요." onClose={onClose} wide footer={<><span className={styles.testTurns}>{turns}/{TEST_CHAT_TURN_LIMIT}턴</span><button type="button" className={panels.secondaryButton} disabled={busy || turns === 0} onClick={restart}>처음부터 다시</button><button type="button" className={panels.secondaryButton} onClick={onClose}>닫기</button></>}> {/* 시험 대화 */}
+        <ChatDialog title={t("{0} 시험 대화", [title])} description={t("저장하기 전에 지금 내용으로 대화해 봐요. 기록이 남지 않고 토큰을 쓰지 않아요.")} onClose={onClose} wide footer={<><span className={styles.testTurns}>{turns}/{TEST_CHAT_TURN_LIMIT}{t("턴")}</span><button type="button" className={panels.secondaryButton} disabled={busy || turns === 0} onClick={restart}>{t("처음부터 다시")}</button><button type="button" className={panels.secondaryButton} onClick={onClose}>{t("닫기")}</button></>}> {/* 시험 대화 */}
             <div className={styles.testChat} data-genre={getGenreKey(tags)}> {/* 대화 영역 */}
                 <MessageList messages={messages} streamingMessageId={streaming} busy={busy} showSceneImages storyCast={conversation?.mode === "story" ? getStoryCastEntries(snapshot, conversation.storyCast) : undefined} /> {/* 메시지 */}
                 <StatusPanel messages={messages} open onToggle={() => undefined} /> {/* 상태창(스탯·칭호·그래프) */}
                 <form className={styles.testForm} onSubmit={send}> {/* 입력(안내와 함께 늘 보이게 아래에 붙임) */}
-                    {lorebook.length === 0 || turns === 0 ? null : <p className={styles.testLore}>{usedLore.length === 0 ? "이번 답변에는 설정집을 쓰지 않았어요. 최근 대화에 키워드가 나오지 않았어요." : <>이번 답변에 참고한 설정: <strong>{usedLore.map((entry) => entry.title).join(", ")}</strong></>}</p>} {/* 쓰인 설정(제작자만 보는 확인용) */}
-                    {full ? <p className={styles.testLore}>시험 대화는 {TEST_CHAT_TURN_LIMIT}턴까지예요. ‘처음부터 다시’로 새로 해 볼 수 있어요.</p> : null} {/* 한도 안내 */}
-                    <label><span className="sr-only">시험 메시지</span><textarea value={text} rows={2} placeholder="시험해 볼 말을 적어 보세요" disabled={busy || full} onChange={(event) => setText(event.target.value)} onKeyDown={handleKey} /></label> {/* 시험 메시지 */}
-                    <button type="submit" className={panels.primaryButton} disabled={busy || full || text.trim().length === 0}>보내기</button> {/* 보내기 */}
+                    {lorebook.length === 0 || turns === 0 ? null : <p className={styles.testLore}>{usedLore.length === 0 ? t("이번 답변에는 설정집을 쓰지 않았어요. 최근 대화에 키워드가 나오지 않았어요.") : <>{t("이번 답변에 참고한 설정:")} <strong>{usedLore.map((entry) => entry.title).join(", ")}</strong></>}</p>} {/* 쓰인 설정(제작자만 보는 확인용) */}
+                    {full ? <p className={styles.testLore}>{t("시험 대화는")} {TEST_CHAT_TURN_LIMIT}{t("턴까지예요. ‘처음부터 다시’로 새로 해 볼 수 있어요.")}</p> : null} {/* 한도 안내 */}
+                    <label><span className="sr-only">{t("시험 메시지")}</span><textarea value={text} rows={2} placeholder={t("시험해 볼 말을 적어 보세요")} disabled={busy || full} onChange={(event) => setText(event.target.value)} onKeyDown={handleKey} /></label> {/* 시험 메시지 */}
+                    <button type="submit" className={panels.primaryButton} disabled={busy || full || text.trim().length === 0}>{t("보내기")}</button> {/* 보내기 */}
                 </form> {/* 입력 종료 */}
             </div> {/* 대화 영역 종료 */}
         </ChatDialog> // 시험 대화 종료

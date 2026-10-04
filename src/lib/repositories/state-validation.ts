@@ -7,6 +7,7 @@ import { STAT_LIMIT } from "@/features/chat/stat-model"; // 스탯 개수 한도
 import { isGeneratedImageSource } from "@/features/images/image-model"; // 생성 이미지 형식
 import { INVITE_QUALIFY_MESSAGES, isInviteCode } from "@/features/rewards/referral-model"; // 초대 코드 형식
 import { STORY_CAST_LIMIT } from "@/features/story/story-model"; // 등장인물 최대 수
+import { languageSettings } from "@/lib/i18n"; // 언어 설정 목록
 
 export const platformModes = ["auto", "mobile", "tablet", "desktop"] as const; // 플랫폼 목록
 export const resolutionModes = ["auto", "compact", "comfortable", "wide"] as const; // 해상도 목록
@@ -278,7 +279,8 @@ export function isAppSettings(value: unknown): value is AppSettings // 설정 �
         && isBoolean(value.proactiveMessageEnabled) // 선제 메시지 확인
         && isString(value.notificationStartTime) // 시작 시각 확인
         && isString(value.notificationEndTime) // 종료 시각 확인
-        && isFiniteNumber(value.dailyNotificationLimit); // 알림 제한 확인
+        && isFiniteNumber(value.dailyNotificationLimit) // 알림 제한 확인
+        && (value.language === undefined || isOneOf(value.language, languageSettings)); // 언어 설정 확인(선택 항목, 없으면 자동)
 } // 함수 종료
 
 export function hasAppStateData(value: unknown, conversationValidator: (item: unknown) => boolean = isConversation, messageValidator: (item: unknown) => boolean = isMessage): value is Record<string, unknown> // 앱 상태 내용 판정 함수

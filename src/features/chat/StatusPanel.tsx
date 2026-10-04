@@ -7,6 +7,7 @@ import { StatTrend } from "@/features/chat/StatTrend"; // 턴별 스탯 그래�
 import { formatStatusText, getStatusRows } from "@/features/chat/status-model"; // 복사 문구·인물 줄
 import type { Message, StatusSnapshot, StatValue } from "@/features/core/types"; // 도메인 타입
 import styles from "@/features/chat/ChatPanels.module.css"; // 채팅 보조 영역 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 interface StatusPanelProps // 고정 상태창 속성
 { // 구조 시작
@@ -84,29 +85,29 @@ export function StatusPanel({ messages, open, onToggle, initialStats = [] }: Sta
         } // 실패 종료
     }; // 함수 종료
     return ( // 상태창 반환
-        <section className={styles.statusPanel} aria-label="상태창" data-open={open ? "true" : undefined}> {/* 고정 상태창 */}
+        <section className={styles.statusPanel} aria-label={t("상태창")} data-open={open ? "true" : undefined}> {/* 고정 상태창 */}
             <header className={styles.statusHead}> {/* 머리 줄 */}
                 <button type="button" className={styles.statusToggle} aria-expanded={open} onClick={onToggle}><span aria-hidden="true">{open ? "▾" : "▸"}</span> INFO</button> {/* 접기·펼치기 */}
                 {statuses.length === 0 ? null : ( // 턴 이동 판정
                     <div className={styles.statusNav}> {/* 턴 이동 */}
-                        <button type="button" aria-label="이전 턴 상태창" disabled={index <= 0} onClick={() => move(-1)}>‹</button> {/* 이전 */}
-                        <span aria-live="polite">{status?.turn ?? 0}턴 · {index + 1}/{statuses.length}</span> {/* 위치 */}
-                        <button type="button" aria-label="다음 턴 상태창" disabled={index >= statuses.length - 1} onClick={() => move(1)}>›</button> {/* 다음 */}
-                        {index < statuses.length - 1 ? <button type="button" className={styles.statusLatest} onClick={() => { setSelected(null); setCopied(false); }}>최신</button> : null} {/* 최신으로 */}
-                        {lines.length === 0 ? null : <button type="button" aria-expanded={chartOpen} aria-controls="status-trend" onClick={() => setChartOpen(!chartOpen)}>그래프</button>} {/* 턴별 스탯 그래프 */}
-                        <button type="button" className={styles.statusCopy} aria-label="상태창 복사" onClick={copy}>{copied ? "복사됨" : "복사"}</button> {/* 복사 */}
+                        <button type="button" aria-label={t("이전 턴 상태창")} disabled={index <= 0} onClick={() => move(-1)}>‹</button> {/* 이전 */}
+                        <span aria-live="polite">{status?.turn ?? 0}{t("턴 ·")} {index + 1}/{statuses.length}</span> {/* 위치 */}
+                        <button type="button" aria-label={t("다음 턴 상태창")} disabled={index >= statuses.length - 1} onClick={() => move(1)}>›</button> {/* 다음 */}
+                        {index < statuses.length - 1 ? <button type="button" className={styles.statusLatest} onClick={() => { setSelected(null); setCopied(false); }}>{t("최신")}</button> : null} {/* 최신으로 */}
+                        {lines.length === 0 ? null : <button type="button" aria-expanded={chartOpen} aria-controls="status-trend" onClick={() => setChartOpen(!chartOpen)}>{t("그래프")}</button>} {/* 턴별 스탯 그래프 */}
+                        <button type="button" className={styles.statusCopy} aria-label={t("상태창 복사")} onClick={copy}>{copied ? t("복사됨") : t("복사")}</button> {/* 복사 */}
                     </div> // 이동 종료
                 )} {/* 이동 판정 종료 */}
             </header> {/* 머리 줄 종료 */}
-            {!open ? null : status === undefined ? <div className={styles.statusEmpty}><p>첫 응답부터 매 턴 상태창이 여기 고정돼 갱신돼요.</p>{initialStats.length === 0 ? null : <p className={styles.statusStats} aria-label="시작 스탯">{initialStats.map((item) => <StatChip key={`${item.statId}-${item.target ?? ""}`} item={{ ...item, name: item.target === null ? item.name : `${item.target} ${item.name}` }} />)}</p>}</div> : ( // 내용 판정
+            {!open ? null : status === undefined ? <div className={styles.statusEmpty}><p>{t("첫 응답부터 매 턴 상태창이 여기 고정돼 갱신돼요.")}</p>{initialStats.length === 0 ? null : <p className={styles.statusStats} aria-label={t("시작 스탯")}>{initialStats.map((item) => <StatChip key={`${item.statId}-${item.target ?? ""}`} item={{ ...item, name: item.target === null ? item.name : `${item.target} ${item.name}` }} />)}</p>}</div> : ( // 내용 판정
                 <div className={styles.statusBody} data-latest={index === statuses.length - 1 ? "true" : undefined}> {/* 내용 */}
                     {status.location === null && status.time === null ? null : <p className={styles.statusLine}>{status.location === null ? null : <span>📍 {status.location}</span>}{status.time === null ? null : <span>⏳ {status.time}</span>}</p>} {/* 장소·시간 */}
-                    {status.tip === null ? null : <p className={styles.statusTip}>💡 팁: {status.tip}</p>} {/* 팁 */}
+                    {status.tip === null ? null : <p className={styles.statusTip}>{t("💡 팁:")} {status.tip}</p>} {/* 팁 */}
                     {getStatusRows(status).map((row) => <p key={row.name} className={styles.statusPerson}><strong>{row.name}</strong>{row.stats.map((item) => <StatChip key={item.statId} item={item} />)}{row.thought === null ? null : <q>{row.thought}</q>}</p>)} {/* 인물별 스탯·속마음 */}
-                    {status.stats.some((item) => item.target === null) ? <p className={styles.statusPerson}><strong>공통</strong>{status.stats.filter((item) => item.target === null).map((item) => <StatChip key={item.statId} item={item} />)}</p> : null} {/* 공통 스탯 */}
-                    {status.custom.map((item) => <p key={item.label} className={styles.statusCustom}><span>{item.label}</span>{item.value}</p>)} {/* 직접 항목 */}
-                    {titles.length === 0 ? null : <p className={styles.statusTitles} aria-label="칭호"><span aria-hidden="true">🏅</span>{titles.map((item) => <span key={`${item.title}-${item.target ?? ""}`} className={styles.titleChip}>{item.target === null ? item.title : `${item.target} · ${item.title}`}</span>)}</p>} {/* 이벤트로 얻은 칭호 */}
-                    {ending === null ? null : <p className={styles.statusEnding}>🎬 엔딩 도달: {ending.name}{ending.target === null ? "" : ` (${ending.target})`} · 이야기는 계속 이어 갈 수 있어요.</p>} {/* 엔딩 표시 */}
+                    {status.stats.some((item) => item.target === null) ? <p className={styles.statusPerson}><strong>{t("공통")}</strong>{status.stats.filter((item) => item.target === null).map((item) => <StatChip key={item.statId} item={item} />)}</p> : null} {/* 공통 스탯 */}
+                    {status.custom.map((item) => <p key={item.label} className={styles.statusCustom}><span>{t(item.label)}</span>{item.value}</p>)} {/* 직접 항목 */}
+                    {titles.length === 0 ? null : <p className={styles.statusTitles} aria-label={t("칭호")}><span aria-hidden="true">🏅</span>{titles.map((item) => <span key={`${item.title}-${item.target ?? ""}`} className={styles.titleChip}>{item.target === null ? item.title : `${item.target} · ${item.title}`}</span>)}</p>} {/* 이벤트로 얻은 칭호 */}
+                    {ending === null ? null : <p className={styles.statusEnding}>{t("🎬 엔딩 도달:")} {ending.name}{ending.target === null ? "" : ` (${ending.target})`} {t("· 이야기는 계속 이어 갈 수 있어요.")}</p>} {/* 엔딩 표시 */}
                 </div> // 내용 종료
             )} {/* 내용 판정 종료 */}
             {open && chartOpen && lines.length > 0 ? <div id="status-trend"><StatTrend lines={lines} /></div> : null} {/* 턴별 스탯 그래프 */}

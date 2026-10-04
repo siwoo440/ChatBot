@@ -2,6 +2,7 @@ import { createDefaultPersona, createDefaultReferralState, createDefaultRewardSt
 import type { AppState } from "@/features/core/types"; // 앱 상태 타입
 import { mockCharacters, mockConversations, mockConversationVersions, mockMessages, mockProfile } from "@/mocks/fixtures"; // Mock 기준값
 import { mockStories } from "@/mocks/story-fixtures"; // 예시 스토리
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export function createInitialState(): AppState // 초기 상태 생성 함수
 { // 함수 시작
@@ -15,7 +16,7 @@ export function createInitialState(): AppState // 초기 상태 생성 함수
         images: [], // 생성 이미지 갤러리
         personas: [createDefaultPersona(mockProfile, "2026-09-22T00:00:00.000Z")], // 기본 대화 프로필
         conversationFolders: [], // 대화 폴더
-        notifications: [{ id: "notice-welcome", kind: "notice", title: "Mate Verse에 오신 걸 환영해요", body: "대화 오른쪽 패널에서 대화 프로필·유저 노트·요약 메모리를 설정할 수 있어요.", href: null, read: false, createdAt: "2026-09-22T00:00:00.000Z" }], // 알림
+        notifications: [{ id: "notice-welcome", kind: "notice", title: t("Mate Verse에 오신 걸 환영해요"), body: t("대화 오른쪽 패널에서 대화 프로필·유저 노트·요약 메모리를 설정할 수 있어요."), href: null, read: false, createdAt: "2026-09-22T00:00:00.000Z" }], // 알림
         conversations: structuredClone(mockConversations), // 대화방 복사본
         conversationVersions: structuredClone(mockConversationVersions), // 대화 버전 복사본
         messages: structuredClone(mockMessages), // 메시지 복사본

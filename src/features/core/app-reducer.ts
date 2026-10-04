@@ -9,6 +9,7 @@ import { checkAttendance, claimMission, claimMissionBonus } from "@/features/rew
 
 export const NOTIFICATION_LIMIT = 30; // 알림 보관 최대 수
 import { trySpend, type TokenAction } from "@/lib/story/token-policy"; // 토큰 정책
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export type AppAction = // 앱 동작
     | { type: "toggle-left-panel"; exclusive?: boolean } // 왼쪽 패널 전환
@@ -75,7 +76,7 @@ function recordChatSpend(state: AppState, conversation: Conversation, after: Tok
     const parts = splitChatSpend(state.wallet, after, spent); // 대화·장면 이미지로 나눔
     let records = state.tokenRecords; // 누적 기록
     let balance = state.wallet.balance; // 기록 뒤 잔액
-    for (const [source, label, amount] of [["chat", "대화", parts.chat], ["scene-image", "장면 이미지 만들기", parts.image]] as const) // 종류 순회
+    for (const [source, label, amount] of [["chat", t("대화"), parts.chat], ["scene-image", t("장면 이미지 만들기"), parts.image]] as const) // 종류 순회
     { // 순회 시작
         if (amount > 0) // 쓴 토큰 있음
         { // 조건 시작
@@ -174,7 +175,7 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
                 return state; // 변경 없음
             } // 조건 종료
             const cost = state.wallet.balance - action.wallet.balance; // 이미지에 쓴 토큰
-            const tokenRecords = cost > 0 ? addTokenRecord(state.tokenRecords, { id: `spend-studio-image-${action.image.id}`, direction: "spend", source: "studio-image", label: "이미지 만들기", work: action.image.prompt.slice(0, 40), amount: cost, balance: action.wallet.balance, createdAt: action.image.createdAt }) : state.tokenRecords; // 쓴 기록
+            const tokenRecords = cost > 0 ? addTokenRecord(state.tokenRecords, { id: `spend-studio-image-${action.image.id}`, direction: "spend", source: "studio-image", label: t("이미지 만들기"), work: action.image.prompt.slice(0, 40), amount: cost, balance: action.wallet.balance, createdAt: action.image.createdAt }) : state.tokenRecords; // 쓴 기록
             return { ...state, images: [structuredClone(action.image), ...state.images], wallet: structuredClone(action.wallet), tokenRecords }; // 최근 순 추가와 지갑·기록 반영
         } // 추가 범위 종료
         case "toggle-image-favorite": // 이미지 즐겨찾기 전환

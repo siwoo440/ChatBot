@@ -5,6 +5,7 @@ import { chatTiers, getChatTier, getTierCost } from "@/features/chat/chat-tiers"
 import { TierDialog } from "@/features/chat/ChatSettingsDialogs"; // 길이·생각 대화상자
 import type { ChatTierId, ConversationSettings, TierOption } from "@/features/core/types"; // 도메인 타입
 import styles from "@/features/chat/ChatPanels.module.css"; // 채팅 보조 영역 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export function TierSelector({ settings, onSelect, onSaveOptions }: { settings: ConversationSettings; onSelect(tier: ChatTierId): void; onSaveOptions(options: Record<ChatTierId, TierOption>): void }) // 채팅 머리말의 모델 등급 선택
 { // 함수 시작
@@ -32,11 +33,11 @@ export function TierSelector({ settings, onSelect, onSaveOptions }: { settings: 
     const current = getChatTier(settings.tier); // 현재 등급
     return ( // 선택기 반환
         <div ref={rootRef} className={styles.tierSelector} onKeyDown={handleKey}> {/* 선택기 */}
-            <button type="button" className={styles.tierButton} aria-haspopup="menu" aria-expanded={open} aria-label={`채팅 모델 ${current.label}, 메시지당 ${getTierCost(settings.tier, settings.tierOptions[settings.tier])} 토큰`} onClick={() => setOpen(!open)}><span className={styles.tierDot} data-tier={current.id} aria-hidden="true" />{current.label}<span aria-hidden="true">⌄</span></button> {/* 현재 등급 */}
+            <button type="button" className={styles.tierButton} aria-haspopup="menu" aria-expanded={open} aria-label={t("채팅 모델 {0}, 메시지당 {1} 토큰", [current.label, getTierCost(settings.tier, settings.tierOptions[settings.tier])])} onClick={() => setOpen(!open)}><span className={styles.tierDot} data-tier={current.id} aria-hidden="true" />{t(current.label)}<span aria-hidden="true">⌄</span></button> {/* 현재 등급 */}
             {!open ? null : ( // 목록 판정
-                <div className={styles.tierMenu} role="menu" aria-label="채팅 모델 선택"> {/* 등급 목록 */}
-                    {chatTiers.map((tier) => <button key={tier.id} type="button" role="menuitemradio" aria-checked={tier.id === settings.tier} onClick={() => { onSelect(tier.id); setOpen(false); }}><span className={styles.tierDot} data-tier={tier.id} aria-hidden="true" /><span><strong>{tier.label}</strong><small>{tier.description}</small></span><em>{getTierCost(tier.id, settings.tierOptions[tier.id])} 토큰</em></button>)} {/* 등급 */}
-                    <button type="button" role="menuitem" className={styles.tierMenuLink} onClick={() => { setOpen(false); setDialogOpen(true); }}>답변 길이 및 생각 조절</button> {/* 상세 설정 */}
+                <div className={styles.tierMenu} role="menu" aria-label={t("채팅 모델 선택")}> {/* 등급 목록 */}
+                    {chatTiers.map((tier) => <button key={tier.id} type="button" role="menuitemradio" aria-checked={tier.id === settings.tier} onClick={() => { onSelect(tier.id); setOpen(false); }}><span className={styles.tierDot} data-tier={tier.id} aria-hidden="true" /><span><strong>{t(tier.label)}</strong><small>{t(tier.description)}</small></span><em>{getTierCost(tier.id, settings.tierOptions[tier.id])} {t("토큰")}</em></button>)} {/* 등급 */}
+                    <button type="button" role="menuitem" className={styles.tierMenuLink} onClick={() => { setOpen(false); setDialogOpen(true); }}>{t("답변 길이 및 생각 조절")}</button> {/* 상세 설정 */}
                 </div> // 목록 종료
             )} {/* 목록 판정 종료 */}
             {dialogOpen ? <TierDialog tierOptions={settings.tierOptions} onSave={onSaveOptions} onClose={() => setDialogOpen(false)} /> : null} {/* 길이·생각 */}

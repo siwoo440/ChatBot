@@ -19,6 +19,7 @@ import styles from "@/features/character/CharacterDetail.module.css"; // 상세 
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import type { ReportReason } from "@/features/core/types"; // 신고 사유 타입
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 색 조회
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export function CharacterDetail({ characterId }: { characterId: string }) // 캐릭터 상세
 { // 함수 시작
@@ -37,9 +38,9 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
     if (character === undefined || initialProfile === null) // 캐릭터 부재 판정
     { // 조건 시작
         return ( // 부재 화면 반환
-            <StatusScreen tone="not-found" label="CHARACTER NOT FOUND" title="캐릭터를 찾을 수 없습니다" description="주소가 잘못되었거나 이 브라우저에서 삭제된 캐릭터입니다."> {/* 부재 안내 */}
-                <Link href="/">메인으로 돌아가기</Link> {/* 메인 링크 */}
-                <Link href={"/library" as Route}>보관함 열기</Link> {/* 보관함 링크 */}
+            <StatusScreen tone="not-found" label="CHARACTER NOT FOUND" title={t("캐릭터를 찾을 수 없습니다")} description={t("주소가 잘못되었거나 이 브라우저에서 삭제된 캐릭터입니다.")}> {/* 부재 안내 */}
+                <Link href="/">{t("메인으로 돌아가기")}</Link> {/* 메인 링크 */}
+                <Link href={"/library" as Route}>{t("보관함 열기")}</Link> {/* 보관함 링크 */}
             </StatusScreen> // 부재 안내 종료
         ); // 반환 종료
     } // 조건 종료
@@ -84,11 +85,11 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
                 throw new Error("clipboard-unavailable"); // 클립보드 오류
             } // 조건 종료
             await navigator.clipboard.writeText(window.location.href); // 현재 링크 복사
-            setShareStatus("공유 링크를 복사했습니다."); // 성공 상태 설정
+            setShareStatus(t("공유 링크를 복사했습니다.")); // 성공 상태 설정
         } // 시도 종료
         catch // 복사 실패 처리
         { // 실패 시작
-            setShareStatus("공유 링크를 복사하지 못했습니다."); // 실패 상태 설정
+            setShareStatus(t("공유 링크를 복사하지 못했습니다.")); // 실패 상태 설정
         } // 실패 종료
     }; // 함수 종료
     const openReport = (trigger: HTMLButtonElement) => // 신고 창 열기

@@ -2,6 +2,7 @@
 import { AFFECTION_STAT_ID } from "@/features/chat/stat-model"; // 기본 호감도 스탯
 import type { StatDefinition, StatusSnapshot, StatusTemplate, StatValue, StoryEvent, StoryEventCondition, TriggeredEvent } from "@/features/core/types"; // 도메인 타입
 import { scenePaths } from "@/lib/assets/scene-paths"; // 장면 그림 경로
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export const EVENT_LIMIT = 8; // 작품당 이벤트 최대 수
 export const EVENT_NAME_LIMIT = 20; // 이벤트 이름 최대 글자 수
@@ -123,9 +124,9 @@ export function createDefaultEvents(template: StatusTemplate): StoryEvent[] // �
         return []; // 예시 없음
     } // 조건 종료
     return [ // 예시 이벤트
-        { id: "event-closer", name: "한 걸음 가까이", condition: "stat-min", statId: AFFECTION_STAT_ID, value: 20, narration: `${EVENT_NAME_TOKEN}의 말투가 눈에 띄게 부드러워졌다.`, scene: null, title: "말벗", ending: false, notify: true }, // 호감도 20
+        { id: "event-closer", name: "한 걸음 가까이", condition: "stat-min", statId: AFFECTION_STAT_ID, value: 20, narration: `${EVENT_NAME_TOKEN}의 말투가 눈에 띄게 부드러워졌다.`, scene: null, title: t("말벗"), ending: false, notify: true }, // 호감도 20
         { id: "event-open-heart", name: "마음을 연 순간", condition: "stat-min", statId: AFFECTION_STAT_ID, value: 50, narration: `${EVENT_NAME_TOKEN}이(가) 처음으로 속마음을 털어놓는다.`, scene: scenePaths.fallback, title: "", ending: false, notify: true }, // 호감도 50(특별 장면)
-        { id: "event-special", name: "특별한 사이", condition: "stat-min", statId: AFFECTION_STAT_ID, value: 80, narration: `이제 ${EVENT_NAME_TOKEN}에게 당신은 없어서는 안 될 사람이 되었다.`, scene: null, title: "특별한 사이", ending: true, notify: true }, // 호감도 80(엔딩)
+        { id: "event-special", name: "특별한 사이", condition: "stat-min", statId: AFFECTION_STAT_ID, value: 80, narration: `이제 ${EVENT_NAME_TOKEN}에게 당신은 없어서는 안 될 사람이 되었다.`, scene: null, title: t("특별한 사이"), ending: true, notify: true }, // 호감도 80(엔딩)
         { id: "event-deep-night", name: "깊어 가는 밤", condition: "turn", statId: null, value: 10, narration: "창밖의 불빛이 하나둘 꺼지고, 이야기는 더 깊어진다.", scene: null, title: "", ending: false, notify: false }, // 10턴
     ]; // 예시 종료
 } // 함수 종료
@@ -144,29 +145,29 @@ export function validateEvents(events: readonly StoryEvent[], stats: readonly St
 { // 함수 시작
     if (events.length > EVENT_LIMIT) // 개수 판정
     { // 조건 시작
-        return `이벤트는 ${EVENT_LIMIT}개까지 만들 수 있습니다.`; // 개수 오류
+        return t("이벤트는 {0}개까지 만들 수 있습니다.", [EVENT_LIMIT]); // 개수 오류
     } // 조건 종료
     if (new Set(events.map((event) => event.id)).size !== events.length) // 식별자 중복 판정
     { // 조건 시작
-        return "이벤트 식별자가 겹칩니다."; // 중복 오류
+        return t("이벤트 식별자가 겹칩니다."); // 중복 오류
     } // 조건 종료
     for (const [index, event] of events.entries()) // 이벤트 순회
     { // 순회 시작
-        const label = `이벤트 ${index + 1}`; // 오류 앞머리
+        const label = t("이벤트 {0}", [index + 1]); // 오류 앞머리
         const name = event.name.trim(); // 이름
         if (name.length === 0) // 이름 없음
         { // 조건 시작
-            return `${label}: 이름을 입력해 주세요.`; // 이름 오류
+            return t("{0}: 이름을 입력해 주세요.", [label]); // 이름 오류
         } // 조건 종료
         if (name.length > EVENT_NAME_LIMIT) // 이름 길이
         { // 조건 시작
-            return `${label}: 이름은 ${EVENT_NAME_LIMIT}자 이하여야 합니다.`; // 길이 오류
+            return t("{0}: 이름은 {1}자 이하여야 합니다.", [label, EVENT_NAME_LIMIT]); // 길이 오류
         } // 조건 종료
         if (event.condition === "turn") // 턴 조건
         { // 조건 시작
             if (!Number.isInteger(event.value) || event.value < 1 || event.value > EVENT_TURN_LIMIT) // 턴 범위
             { // 조건 시작
-                return `${label}: 턴은 1~${EVENT_TURN_LIMIT} 사이 정수여야 합니다.`; // 턴 오류
+                return t("{0}: 턴은 1~{1} 사이 정수여야 합니다.", [label, EVENT_TURN_LIMIT]); // 턴 오류
             } // 조건 종료
         } // 조건 종료
         else // 스탯 조건
@@ -174,24 +175,24 @@ export function validateEvents(events: readonly StoryEvent[], stats: readonly St
             const stat = stats.find((item) => item.id === event.statId); // 조건 스탯
             if (stat === undefined) // 없는 스탯
             { // 조건 시작
-                return `${label}: 조건으로 쓸 스탯을 골라 주세요.`; // 스탯 오류
+                return t("{0}: 조건으로 쓸 스탯을 골라 주세요.", [label]); // 스탯 오류
             } // 조건 종료
             if (!Number.isInteger(event.value) || event.value < stat.min || event.value > stat.max) // 값 범위
             { // 조건 시작
-                return `${label}: 기준 값은 스탯 범위(${stat.min}~${stat.max}) 안의 정수여야 합니다.`; // 값 오류
+                return t("{0}: 기준 값은 스탯 범위({1}~{2}) 안의 정수여야 합니다.", [label, stat.min, stat.max]); // 값 오류
             } // 조건 종료
         } // 분기 종료
         if (event.narration.trim().length > EVENT_NARRATION_LIMIT) // 내레이션 길이
         { // 조건 시작
-            return `${label}: 내레이션은 ${EVENT_NARRATION_LIMIT}자 이하여야 합니다.`; // 길이 오류
+            return t("{0}: 내레이션은 {1}자 이하여야 합니다.", [label, EVENT_NARRATION_LIMIT]); // 길이 오류
         } // 조건 종료
         if (event.title.trim().length > EVENT_TITLE_LIMIT) // 칭호 길이
         { // 조건 시작
-            return `${label}: 칭호는 ${EVENT_TITLE_LIMIT}자 이하여야 합니다.`; // 길이 오류
+            return t("{0}: 칭호는 {1}자 이하여야 합니다.", [label, EVENT_TITLE_LIMIT]); // 길이 오류
         } // 조건 종료
         if (event.narration.trim().length === 0 && event.scene === null && event.title.trim().length === 0 && !event.ending) // 결과 없음
         { // 조건 시작
-            return `${label}: 내레이션·특별 장면·칭호·엔딩 가운데 하나는 정해 주세요.`; // 결과 오류
+            return t("{0}: 내레이션·특별 장면·칭호·엔딩 가운데 하나는 정해 주세요.", [label]); // 결과 오류
         } // 조건 종료
     } // 순회 종료
     return null; // 오류 없음

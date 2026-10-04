@@ -1,3 +1,4 @@
+import type { LanguageSetting } from "@/lib/i18n"; // 언어 설정
 export type ProviderMode = "mock"; // 공급자 모드
 export type MessageRole = "user" | "assistant" | "system"; // 메시지 역할
 export type PlatformMode = "auto" | "mobile" | "tablet" | "desktop"; // 플랫폼 모드
@@ -499,6 +500,7 @@ export interface AppSettings // 앱 설정 구조
     showSceneImages: boolean; // 대화 속 상황 이미지 보기
     statusPanelOpen: boolean; // 고정 상태창 펼침
     chatPanelOpen: boolean; // 채팅방 설정 패널 펼침(넓은 화면)
+    language?: LanguageSetting; // 화면 언어(없으면 자동: 브라우저 언어를 따름)
 } // 구조 종료
 
 export type ImageStyle = "anime" | "illustration" | "watercolor" | "cinematic"; // 이미지 그림체

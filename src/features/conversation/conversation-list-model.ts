@@ -4,6 +4,7 @@ import { getConversationSummary, type ConversationSummary } from "@/features/con
 import type { AppState, Character, Conversation, ConversationFilter, ConversationFolder, ConversationSort, StatusSnapshot, Story } from "@/features/core/types"; // 도메인 타입
 import { isMatureStory } from "@/features/story/story-model"; // 19세 스토리 판정
 import { getDateParts, getDayNumber } from "@/lib/time/date-key"; // 시간대 기준 날짜
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export const CONVERSATION_PIN_LIMIT = 5; // 대화방 고정 최대 개수
 
@@ -65,27 +66,27 @@ export function formatConversationTime(iso: string, now: Date): string // 짧은
     const minutes = Math.floor((now.getTime() - time.getTime()) / 60_000); // 경과 분
     if (minutes < 1) // 1분 미만 판정
     { // 조건 시작
-        return "방금 전"; // 방금 표시
+        return t("방금 전"); // 방금 표시
     } // 조건 종료
     if (minutes < 60) // 1시간 미만 판정
     { // 조건 시작
-        return `${minutes}분 전`; // 분 표시
+        return t("{0}분 전", [minutes]); // 분 표시
     } // 조건 종료
     const days = getCalendarDayDifference(iso, now); // 날짜 차이
     if (days <= 0) // 같은 날 판정
     { // 조건 시작
-        return `${Math.floor(minutes / 60)}시간 전`; // 시간 표시
+        return t("{0}시간 전", [Math.floor(minutes / 60)]); // 시간 표시
     } // 조건 종료
     if (days === 1) // 어제 판정
     { // 조건 시작
-        return "어제"; // 어제 표시
+        return t("어제"); // 어제 표시
     } // 조건 종료
     if (days < 7) // 일주일 안 판정
     { // 조건 시작
-        return `${days}일 전`; // 일 표시
+        return t("{0}일 전", [days]); // 일 표시
     } // 조건 종료
     const target = getDateParts(time); // 대상 날짜
-    return target.year === getDateParts(now).year ? `${target.month}월 ${target.day}일` : `${target.year}. ${target.month}. ${target.day}.`; // 날짜 표시
+    return target.year === getDateParts(now).year ? t("{0}월 {1}일", [target.month, target.day]) : `${target.year}. ${target.month}. ${target.day}.`; // 날짜 표시
 } // 함수 종료
 
 function getInitial(character: string): string // 음절 초성 조회
@@ -201,12 +202,12 @@ export function groupConversationItems(items: readonly ConversationListItem[], s
     const inFolder = (item: ConversationListItem) => item.conversation.folderId !== null && folderIds.has(item.conversation.folderId); // 폴더 대화 판정
     const rest = sortConversationItems(items.filter((item) => !item.pinned && !inFolder(item)), sort); // 나머지 정렬
     const folderGroups = folders.map((folder): ConversationListGroup => ({ id: `folder-${folder.id}`, label: folder.name, folderId: folder.id, items: sortConversationItems(items.filter((item) => !item.pinned && item.conversation.folderId === folder.id), sort) })).filter((group) => showEmptyFolders || group.items.length > 0); // 폴더 묶음
-    const groups: ConversationListGroup[] = [...(pinned.length === 0 ? [] : [{ id: "pinned", label: "고정됨", items: pinned }]), ...folderGroups]; // 고정·폴더 묶음
+    const groups: ConversationListGroup[] = [...(pinned.length === 0 ? [] : [{ id: "pinned", label: t("고정됨"), items: pinned }]), ...folderGroups]; // 고정·폴더 묶음
     if (sort !== "recent") // 최근순 외 판정
     { // 조건 시작
-        return rest.length === 0 ? groups : [...groups, { id: "all", label: "전체 대화", items: rest }]; // 단일 묶음 반환
+        return rest.length === 0 ? groups : [...groups, { id: "all", label: t("전체 대화"), items: rest }]; // 단일 묶음 반환
     } // 조건 종료
-    const buckets: ConversationListGroup[] = [{ id: "today", label: "오늘", items: [] }, { id: "yesterday", label: "어제", items: [] }, { id: "week", label: "최근 7일", items: [] }, { id: "older", label: "이전", items: [] }]; // 날짜 묶음
+    const buckets: ConversationListGroup[] = [{ id: "today", label: t("오늘"), items: [] }, { id: "yesterday", label: t("어제"), items: [] }, { id: "week", label: t("최근 7일"), items: [] }, { id: "older", label: t("이전"), items: [] }]; // 날짜 묶음
     for (const item of rest) // 항목 순회
     { // 순회 시작
         const days = getCalendarDayDifference(item.lastActivityAt, now); // 날짜 차이

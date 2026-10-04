@@ -1,4 +1,5 @@
 import { ChatScreen } from "@/features/chat/ChatScreen"; // 채팅 화면
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 interface ChatPageProps // 페이지 속성
 { // 구조 시작
@@ -10,5 +11,5 @@ export default async function ChatPage({ params, searchParams }: ChatPageProps) 
 { // 함수 시작
     const { characterId } = await params; // 캐릭터 식별자
     const query = await searchParams; // 검색 매개변수 조회
-    return <ChatScreen key={`${query.conversation ?? "new"}:${query.version ?? "current"}`} characterId={characterId} initialConversationId={query.conversation} initialVersionId={query.version} initialMessageId={query.message} />; // 채팅 화면 반환
+    return <ChatScreen key={`${query.conversation ?? "new"}:${query.version ?? "current"}`} characterId={characterId} initialConversationId={query.conversation} initialVersionId={query.version} initialMessageId={t(query.message)} />; // 채팅 화면 반환
 } // 함수 종료

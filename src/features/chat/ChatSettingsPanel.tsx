@@ -9,6 +9,7 @@ import { writingStyles } from "@/features/chat/suggestion-model"; // 문체 이�
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import type { ConversationSettings, WorkUpdate } from "@/features/core/types"; // 도메인 타입
 import styles from "@/features/chat/ChatPanels.module.css"; // 채팅 보조 영역 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export type ChatDialogId = "guide" | "persona" | "note" | "style" | "memory" | "shortcuts" | "tier" | "font" | "updates"; // 대화상자 종류
 type DialogId = ChatDialogId; // 내부 이름
@@ -50,34 +51,34 @@ export function ChatSettingsPanel(props: ChatSettingsPanelProps) // 채팅방 �
     const toggleItem = (label: string, checked: boolean, onChange: (value: boolean) => void) => <li><label className={styles.toggleRow}><span>{label}</span><input type="checkbox" role="switch" checked={checked} onChange={(event) => onChange(event.target.checked)} /></label></li>; // 켜고 끄기 줄
     const latestUpdate = props.updates[0]; // 최신 업데이트
     return ( // 패널 반환
-        <section className={styles.settingsPanel} aria-label="채팅방 설정 메뉴"> {/* 설정 패널 */}
+        <section className={styles.settingsPanel} aria-label={t("채팅방 설정 메뉴")}> {/* 설정 패널 */}
             {props.sceneImages.length === 0 ? null : ( // 상황 이미지 판정
-                <div className={styles.sceneStrip} aria-label="상황 이미지 모음"> {/* 이미지 모음 */}
-                    {props.sceneImages.map((src, index) => <button key={`${src.slice(-24)}-${index}`} type="button" aria-label={`상황 이미지 ${index + 1} 장면으로`} disabled={props.busy} data-current={props.currentScene === src ? "true" : undefined} onClick={() => props.onApplyScene(src)}><Image src={src} alt="" width={120} height={90} unoptimized={src.startsWith("data:")} /></button>)} {/* 이미지 */}
+                <div className={styles.sceneStrip} aria-label={t("상황 이미지 모음")}> {/* 이미지 모음 */}
+                    {props.sceneImages.map((src, index) => <button key={`${src.slice(-24)}-${index}`} type="button" aria-label={t("상황 이미지 {0} 장면으로", [index + 1])} disabled={props.busy} data-current={props.currentScene === src ? "true" : undefined} onClick={() => props.onApplyScene(src)}><Image src={src} alt="" width={120} height={90} unoptimized={src.startsWith("data:")} /></button>)} {/* 이미지 */}
                 </div> // 모음 종료
             )} {/* 이미지 판정 종료 */}
-            <h3>대화 설정</h3> {/* 묶음 제목 */}
+            <h3>{t("대화 설정")}</h3> {/* 묶음 제목 */}
             <ul className={styles.menu}> {/* 메뉴 */}
-                {menuItem("guide", "플레이 가이드")} {/* 플레이 가이드 */}
-                {menuItem("persona", "대화 프로필", persona?.name)} {/* 대화 프로필 */}
-                {menuItem("note", "유저 노트", settings.userNote.length === 0 ? "" : `${settings.userNote.length}자`)} {/* 유저 노트 */}
-                {menuItem("style", "문체 변경", writingStyles.find((item) => item.id === settings.writingStyle)?.label)} {/* 문체 */}
-                {menuItem("memory", "요약 메모리", `${memoryCount}개`)} {/* 요약 메모리 */}
-                {menuItem("shortcuts", "키보드 단축키")} {/* 단축키 */}
+                {menuItem("guide", t("플레이 가이드"))} {/* 플레이 가이드 */}
+                {menuItem("persona", t("대화 프로필"), persona?.name)} {/* 대화 프로필 */}
+                {menuItem("note", t("유저 노트"), settings.userNote.length === 0 ? "" : t("{0}자", [settings.userNote.length]))} {/* 유저 노트 */}
+                {menuItem("style", t("문체 변경"), writingStyles.find((item) => item.id === settings.writingStyle)?.label)} {/* 문체 */}
+                {menuItem("memory", t("요약 메모리"), t("{0}개", [memoryCount]))} {/* 요약 메모리 */}
+                {menuItem("shortcuts", t("키보드 단축키"))} {/* 단축키 */}
             </ul> {/* 메뉴 종료 */}
-            <h3>스토리 고급 설정</h3> {/* 묶음 제목 */}
+            <h3>{t("스토리 고급 설정")}</h3> {/* 묶음 제목 */}
             <ul className={styles.menu}> {/* 메뉴 */}
-                {menuItem("tier", "답변 길이 및 생각 조절", `${lengthOptions.find((item) => item.value === tierOption.length)?.label ?? "기본"} · 생각 ${thinkingOptions.find((item) => item.value === tierOption.thinking)?.label ?? "끄기"}`)} {/* 길이·생각 */}
-                {toggleItem("유저 사칭 방지", settings.preventImpersonation, (value) => props.onUpdateSettings({ preventImpersonation: value }))} {/* 사칭 방지 */}
+                {menuItem("tier", t("답변 길이 및 생각 조절"), t("{0} · 생각 {1}", [lengthOptions.find((item) => item.value === tierOption.length)?.label ?? t("기본"), thinkingOptions.find((item) => item.value === tierOption.thinking)?.label ?? t("끄기")]))} {/* 길이·생각 */}
+                {toggleItem(t("유저 사칭 방지"), settings.preventImpersonation, (value) => props.onUpdateSettings({ preventImpersonation: value }))} {/* 사칭 방지 */}
             </ul> {/* 메뉴 종료 */}
-            <h3>전체 설정</h3> {/* 묶음 제목 */}
+            <h3>{t("전체 설정")}</h3> {/* 묶음 제목 */}
             <ul className={styles.menu}> {/* 메뉴 */}
-                {menuItem("font", "글꼴", chatFontOptions.find((item) => item.id === state.settings.chatFont)?.label)} {/* 글꼴 */}
-                {toggleItem("상황 이미지 보기", state.settings.showSceneImages, (value) => dispatch({ type: "update-settings", settings: { showSceneImages: value } }))} {/* 상황 이미지 */}
+                {menuItem("font", t("글꼴"), chatFontOptions.find((item) => item.id === state.settings.chatFont)?.label)} {/* 글꼴 */}
+                {toggleItem(t("상황 이미지 보기"), state.settings.showSceneImages, (value) => dispatch({ type: "update-settings", settings: { showSceneImages: value } }))} {/* 상황 이미지 */}
             </ul> {/* 메뉴 종료 */}
-            <h3>업데이트 정보</h3> {/* 묶음 제목 */}
+            <h3>{t("업데이트 정보")}</h3> {/* 묶음 제목 */}
             <ul className={styles.menu}>{menuItem("updates", latestUpdate?.version ?? "V1", latestUpdate?.date)}</ul> {/* 업데이트 */}
-            <h3>시작 설정</h3> {/* 묶음 제목 */}
+            <h3>{t("시작 설정")}</h3> {/* 묶음 제목 */}
             <p className={styles.plainValue}>{props.presetName}</p> {/* 시작 설정(나의 토큰은 오른쪽 패널 보유 토큰과 같아 뺌) */}
             {dialog === "guide" ? <PlayGuideDialog text={props.playGuide} onClose={close} /> : null} {/* 플레이 가이드 */}
             {dialog === "persona" ? <PersonaDialog personas={state.personas} currentId={persona?.id ?? ""} onSelect={(personaId) => props.onUpdateSettings({ personaId: personaId === state.personas[0]?.id ? null : personaId })} onUpsert={(item) => dispatch({ type: "upsert-persona", persona: item })} onDelete={(personaId) => dispatch({ type: "delete-persona", personaId })} onClose={close} /> : null} {/* 대화 프로필 */}

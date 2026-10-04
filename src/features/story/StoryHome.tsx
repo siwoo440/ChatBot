@@ -9,6 +9,7 @@ import { RewardsBanner } from "@/features/rewards/RewardsBanner"; // 출석·미
 import { StoryCard } from "@/features/story/StoryCard"; // 스토리 카드
 import { getDiscoverableStories, getStoryCastEntries } from "@/features/story/story-model"; // 스토리 모델
 import styles from "@/features/story/Story.module.css"; // 스토리 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export function StoryHome() // 스토리 모드 홈
 { // 함수 시작
@@ -21,20 +22,20 @@ export function StoryHome() // 스토리 모드 홈
             <ModeSwitch /> {/* 모드 전환 */}
             <header className={styles.hero}> {/* 머리말 */}
                 <div> {/* 머리말 문구 */}
-                    <span className={styles.eyebrow}>STORY MODE · 상황극</span> {/* 표제 */}
-                    <h1>여러 인물과 함께 만드는 <span className={styles.titleHighlight}>하나의 이야기</span></h1> {/* 제목 */}
-                    <p className={styles.lead}>등장인물 여럿이 함께하는 스토리도, 한 명과 펼치는 상황극도 있어요. 내 역할을 맡아 장면을 이어 가 보세요.</p> {/* 설명 */}
+                    <span className={styles.eyebrow}>{t("STORY MODE · 상황극")}</span> {/* 표제 */}
+                    <h1>{t("여러 인물과 함께 만드는")} <span className={styles.titleHighlight}>{t("하나의 이야기")}</span></h1> {/* 제목 */}
+                    <p className={styles.lead}>{t("등장인물 여럿이 함께하는 스토리도, 한 명과 펼치는 상황극도 있어요. 내 역할을 맡아 장면을 이어 가 보세요.")}</p> {/* 설명 */}
                 </div> {/* 문구 종료 */}
-                <div className={styles.heroAside}><Link href={"/stories/new" as Route} className={styles.createLink}>＋ 새 스토리 만들기</Link></div> {/* 만들기(메인의 검색창 자리) */}
+                <div className={styles.heroAside}><Link href={"/stories/new" as Route} className={styles.createLink}>{t("＋ 새 스토리 만들기")}</Link></div> {/* 만들기(메인의 검색창 자리) */}
             </header> {/* 머리말 종료 */}
             <RewardsBanner /> {/* 출석·미션 */}
             <section className={styles.section} aria-labelledby="story-list-title"> {/* 공개 스토리 */}
-                <h2 id="story-list-title" className={styles.sectionTitle}>지금 시작할 수 있는 스토리</h2> {/* 구역 제목 */}
-                {stories.length === 0 ? <p className={styles.empty}>아직 공개된 스토리가 없습니다.</p> : <div className={styles.grid}>{stories.map((story) => <StoryCard key={story.id} story={story} cast={getStoryCastEntries(state, story.cast)} />)}</div>} {/* 카드 목록 */}
+                <h2 id="story-list-title" className={styles.sectionTitle}>{t("지금 시작할 수 있는 스토리")}</h2> {/* 구역 제목 */}
+                {stories.length === 0 ? <p className={styles.empty}>{t("아직 공개된 스토리가 없습니다.")}</p> : <div className={styles.grid}>{stories.map((story) => <StoryCard key={story.id} story={story} cast={getStoryCastEntries(state, story.cast)} />)}</div>} {/* 카드 목록 */}
             </section> {/* 공개 스토리 종료 */}
             {myStories.length === 0 ? null : ( // 내 스토리 판정
                 <section className={styles.section} aria-labelledby="my-story-title"> {/* 내 스토리 */}
-                    <h2 id="my-story-title" className={styles.sectionTitle}>내가 만든 스토리</h2> {/* 구역 제목 */}
+                    <h2 id="my-story-title" className={styles.sectionTitle}>{t("내가 만든 스토리")}</h2> {/* 구역 제목 */}
                     <div className={styles.grid}>{myStories.map((story) => <StoryCard key={story.id} story={story} cast={getStoryCastEntries(state, story.cast)} />)}</div> {/* 카드 목록 */}
                 </section> // 내 스토리 종료
             )} {/* 내 스토리 판정 종료 */}

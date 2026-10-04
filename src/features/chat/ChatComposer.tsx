@@ -5,6 +5,7 @@ import { CHAT_MESSAGE_MAX_LENGTH } from "@/features/conversation/conversation-ve
 import type { StoryCastMember } from "@/features/core/types"; // 등장인물 타입
 import { addressText } from "@/features/story/story-model"; // 말 걸 상대 붙이기
 import styles from "@/features/chat/ChatScreen.module.css"; // 채팅 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export interface ComposerCommand // 명령어
 { // 구조 시작
@@ -131,30 +132,30 @@ export function ChatComposer({ busy, onSend, onCancel, storyCast, onContinue, ge
         <> {/* 입력 묶음 */}
             {storyCast === undefined ? null : ( // 스토리 조작 판정
                 <div className={styles.storyControls}> {/* 스토리 조작 */}
-                    <label>말 걸 상대<select aria-label="말 걸 상대" value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}><option value="all">전체</option>{storyCast.map((member) => <option key={member.characterId} value={member.characterId}>{member.displayName}</option>)}</select></label> {/* 상대 선택 */}
-                    <button type="button" className={styles.continueButton} disabled={busy || onContinue === undefined} onClick={() => void onContinue?.()}>이야기 진행</button> {/* 이야기 진행 */}
+                    <label>{t("말 걸 상대")}<select aria-label={t("말 걸 상대")} value={target} disabled={busy} onChange={(event) => setTarget(event.target.value)}><option value="all">{t("전체")}</option>{storyCast.map((member) => <option key={member.characterId} value={member.characterId}>{member.displayName}</option>)}</select></label> {/* 상대 선택 */}
+                    <button type="button" className={styles.continueButton} disabled={busy || onContinue === undefined} onClick={() => void onContinue?.()}>{t("이야기 진행")}</button> {/* 이야기 진행 */}
                 </div> // 스토리 조작 종료
             )} {/* 스토리 조작 판정 종료 */}
             {suggestions === null ? null : ( // 추천 답변 판정
-                <div className={styles.suggestions} role="group" aria-label="추천 답변"> {/* 추천 답변 */}
+                <div className={styles.suggestions} role="group" aria-label={t("추천 답변")}> {/* 추천 답변 */}
                     {suggestions.map((item) => <button key={item} type="button" onClick={() => { setText(item); setSuggestions(null); inputRef.current?.focus(); }}>{item}</button>)} {/* 추천 */}
                 </div> // 추천 종료
             )} {/* 추천 판정 종료 */}
             {!commandOpen ? null : ( // 명령어 판정
-                <div ref={commandRef} className={styles.commandMenu} role="menu" aria-label="명령어" onKeyDown={handleCommandKey}> {/* 명령어 */}
-                    {commands.map((command) => <button key={command.id} type="button" role="menuitem" onClick={() => { setCommandOpen(false); command.run(); }}><strong>{command.label}</strong><small>{command.description}</small></button>)} {/* 명령 */}
+                <div ref={commandRef} className={styles.commandMenu} role="menu" aria-label={t("명령어")} onKeyDown={handleCommandKey}> {/* 명령어 */}
+                    {commands.map((command) => <button key={command.id} type="button" role="menuitem" onClick={() => { setCommandOpen(false); command.run(); }}><strong>{t(command.label)}</strong><small>{t(command.description)}</small></button>)} {/* 명령 */}
                 </div> // 명령어 종료
             )} {/* 명령어 판정 종료 */}
             <form onSubmit={submit}> {/* 전송 양식 */}
-                <label><span className="sr-only">메시지</span><textarea ref={inputRef} value={text} maxLength={CHAT_MESSAGE_MAX_LENGTH} onChange={(event) => setText(event.target.value)} onKeyDown={handleInputKey} placeholder={storyCast === undefined ? "이야기를 이어가세요 (/ 명령어)" : "대사나 행동을 적어 상황극을 이어가세요 (/ 명령어)"} disabled={busy} /></label> {/* 메시지 입력 */}
-                {messageCost === undefined ? null : <small id="composer-cost" className={styles.sendCost} data-short={affordable ? undefined : "true"} title={`메시지를 보내면 ${messageCost}토큰을 써요(지금 고른 채팅 등급·답변 길이 기준).`}>{affordable ? `${messageCost}토큰 사용` : "토큰 부족"}</small>} {/* 보내기 전 예상 비용 */}
-                {busy ? <button type="button" onClick={onCancel}>응답 중단</button> : <button type="submit" disabled={text.trim().length === 0} aria-describedby={messageCost === undefined ? undefined : "composer-cost"}>전송</button>} {/* 요청 제어 버튼 */}
+                <label><span className="sr-only">{t("메시지")}</span><textarea ref={inputRef} value={text} maxLength={CHAT_MESSAGE_MAX_LENGTH} onChange={(event) => setText(event.target.value)} onKeyDown={handleInputKey} placeholder={storyCast === undefined ? t("이야기를 이어가세요 (/ 명령어)") : t("대사나 행동을 적어 상황극을 이어가세요 (/ 명령어)")} disabled={busy} /></label> {/* 메시지 입력 */}
+                {messageCost === undefined ? null : <small id="composer-cost" className={styles.sendCost} data-short={affordable ? undefined : "true"} title={t("메시지를 보내면 {0}토큰을 써요(지금 고른 채팅 등급·답변 길이 기준).", [messageCost])}>{affordable ? t("{0}토큰 사용", [messageCost]) : t("토큰 부족")}</small>} {/* 보내기 전 예상 비용 */}
+                {busy ? <button type="button" onClick={onCancel}>{t("응답 중단")}</button> : <button type="submit" disabled={text.trim().length === 0} aria-describedby={messageCost === undefined ? undefined : "composer-cost"}>{t("전송")}</button>} {/* 요청 제어 버튼 */}
             </form> {/* 양식 종료 */}
-            <div className={styles.composerTools} role="group" aria-label="입력 보조"> {/* 입력 보조 */}
-                <button type="button" aria-label="지문 넣기" title="지문(*행동*) 넣기 · Alt+8" disabled={busy} onClick={insertAction}>*</button> {/* 지문 */}
-                <button type="button" aria-label="명령어 열기" title="명령어 · 빈 입력창에서 /" aria-expanded={commandOpen} disabled={busy || commands.length === 0} onClick={() => setCommandOpen(!commandOpen)}>/</button> {/* 명령어 */}
-                {onGenerateScene === undefined ? null : <button type="button" aria-label="장면 이미지 생성 · 20토큰" title="마지막 응답 아래에 장면 이미지를 만들어요 · 20토큰" disabled={busy} onClick={onGenerateScene}>장면 이미지 · 20</button>} {/* 장면 이미지 */}
-                <button type="button" className={styles.suggestButton} aria-expanded={suggestions !== null} disabled={busy || getSuggestions === undefined} onClick={toggleSuggestions}>추천답변</button> {/* 추천 답변 */}
+            <div className={styles.composerTools} role="group" aria-label={t("입력 보조")}> {/* 입력 보조 */}
+                <button type="button" aria-label={t("지문 넣기")} title={t("지문(*행동*) 넣기 · Alt+8")} disabled={busy} onClick={insertAction}>*</button> {/* 지문 */}
+                <button type="button" aria-label={t("명령어 열기")} title={t("명령어 · 빈 입력창에서 /")} aria-expanded={commandOpen} disabled={busy || commands.length === 0} onClick={() => setCommandOpen(!commandOpen)}>/</button> {/* 명령어 */}
+                {onGenerateScene === undefined ? null : <button type="button" aria-label={t("장면 이미지 생성 · 20토큰")} title={t("마지막 응답 아래에 장면 이미지를 만들어요 · 20토큰")} disabled={busy} onClick={onGenerateScene}>{t("장면 이미지 · 20")}</button>} {/* 장면 이미지 */}
+                <button type="button" className={styles.suggestButton} aria-expanded={suggestions !== null} disabled={busy || getSuggestions === undefined} onClick={toggleSuggestions}>{t("추천답변")}</button> {/* 추천 답변 */}
             </div> {/* 보조 종료 */}
         </> // 입력 묶음 종료
     ); // 반환 종료

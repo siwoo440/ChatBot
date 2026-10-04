@@ -3,6 +3,7 @@ import type { EditMessageResult } from "@/features/chat/chat-controller"; // 수
 import type { MessageVersionGroup } from "@/features/conversation/conversation-versioning"; // 버전 그룹 타입
 import type { Message } from "@/features/core/types"; // 메시지 타입
 import type { StoryCastEntry } from "@/features/story/story-model"; // 스토리 등장인물
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 interface MessageListProps // 메시지 목록 속성
 { // 구조 시작
@@ -30,7 +31,7 @@ export function MessageList({ messages, streamingMessageId = null, busy = false,
     const lastAssistantIndex = messages.findLastIndex((message) => message.role === "assistant"); // 마지막 응답 위치
     const lastAssistantId = lastAssistantIndex > lastUserIndex && lastUserIndex >= 0 ? messages[lastAssistantIndex]?.id ?? null : null; // 유효 응답 식별자
     return ( // 목록 반환
-        <ol aria-label="대화 메시지" aria-live="polite" aria-busy={streamingMessageId !== null}> {/* 메시지 영역 */}
+        <ol aria-label={t("대화 메시지")} aria-live="polite" aria-busy={streamingMessageId !== null}> {/* 메시지 영역 */}
             {messages.map((message) => <MessageItem key={message.id} message={message} streaming={message.id === streamingMessageId} busy={busy} allowRegenerate={allowRegenerate && message.id === lastAssistantId} versionGroup={message.role === "user" ? getVersionGroup?.(message) ?? null : null} onRegenerate={onRegenerate} onEdit={onEdit} onDelete={onDelete} onSelectVersion={onSelectVersion} onDeleteVersion={onDeleteVersion} storyCast={storyCast} showSceneImage={showSceneImages} found={foundIds.includes(message.id)} focused={focusId === message.id} onToggleBookmark={onToggleBookmark} onSceneCard={onSceneCard} />)} {/* 메시지 순회 */}
         </ol> // 영역 종료
     ); // 반환 종료

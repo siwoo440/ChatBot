@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n"; // 화면 글자 번역
+
 export const USAGE_REMINDER_INTERVAL_MS = 60 * 60_000; // 이용 시간 알림 간격(60분)
 const MAX_TICK_GAP_MS = 2 * 60_000; // 한 번에 더할 최대 시간(잠든 기기 보정)
 
@@ -41,9 +43,9 @@ export function formatUsageDuration(ms: number): string // 이용 시간 표시
     const minutes = totalMinutes % 60; // 남은 분
     if (hours === 0) // 1시간 미만 판정
     { // 조건 시작
-        return `${minutes}분`; // 분 표시
+        return t("{0}분", [minutes]); // 분 표시
     } // 조건 종료
-    return minutes === 0 ? `${hours}시간` : `${hours}시간 ${minutes}분`; // 시간 표시
+    return minutes === 0 ? t("{0}시간", [hours]) : t("{0}시간 {1}분", [hours, minutes]); // 시간 표시
 } // 함수 종료
 
 export function parseUsageRecord(raw: string | null): UsageRecord // 저장 기록 해석

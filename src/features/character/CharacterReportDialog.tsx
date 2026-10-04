@@ -4,6 +4,7 @@ import { useEffect, useRef, type KeyboardEvent } from "react"; // 리액트 도�
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import { reportReasonOptions } from "@/features/character/report-reasons"; // 신고 사유 목록
 import type { ReportReason } from "@/features/core/types"; // 신고 사유 타입
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 const reasons = reportReasonOptions; // 신고 사유 목록(설정의 신고 기록과 같은 이름)
 
@@ -57,22 +58,22 @@ export function CharacterReportDialog({ characterName, reason, onReasonChange, o
         <div className={styles.dialogBackdrop}> {/* 대화상자 배경 */}
             <section ref={dialogRef} className={styles.reportDialog} role="dialog" aria-modal="true" aria-labelledby="report-title" onKeyDown={trapFocus}> {/* 신고 대화상자 */}
                 <div className={styles.reportHeader}> {/* 신고 머리말 */}
-                    <div><span className={styles.eyebrow}>REPORT</span><h2 id="report-title">캐릭터 신고</h2></div> {/* 신고 제목 */}
-                    <button type="button" aria-label="신고 창 닫기" onClick={onCancel}>×</button> {/* 닫기 버튼 */}
+                    <div><span className={styles.eyebrow}>REPORT</span><h2 id="report-title">{t("캐릭터 신고")}</h2></div> {/* 신고 제목 */}
+                    <button type="button" aria-label={t("신고 창 닫기")} onClick={onCancel}>×</button> {/* 닫기 버튼 */}
                 </div> {/* 머리말 종료 */}
-                <p><strong>{characterName}</strong>에서 확인한 문제를 선택해 주세요. 신고 내용은 이 브라우저에만 저장됩니다.</p> {/* 신고 안내 */}
+                <p><strong>{characterName}</strong>{t("에서 확인한 문제를 선택해 주세요. 신고 내용은 이 브라우저에만 저장됩니다.")}</p> {/* 신고 안내 */}
                 <fieldset className={styles.reportReasons}> {/* 신고 사유 목록 */}
-                    <legend>신고 사유</legend> {/* 사유 표제 */}
+                    <legend>{t("신고 사유")}</legend> {/* 사유 표제 */}
                     {reasons.map((item) => ( // 사유 순회
                         <label key={item.id}> {/* 사유 항목 */}
-                            <input type="radio" name="report-reason" value={item.id} aria-label={item.label} checked={reason === item.id} onChange={() => onReasonChange(item.id)} /> {/* 사유 선택 */}
-                            <span><strong>{item.label}</strong><small>{item.description}</small></span> {/* 사유 설명 */}
+                            <input type="radio" name="report-reason" value={item.id} aria-label={t(item.label)} checked={reason === item.id} onChange={() => onReasonChange(item.id)} /> {/* 사유 선택 */}
+                            <span><strong>{t(item.label)}</strong><small>{t(item.description)}</small></span> {/* 사유 설명 */}
                         </label> // 사유 항목 종료
                     ))} {/* 순회 종료 */}
                 </fieldset> {/* 사유 목록 종료 */}
                 <div className={styles.reportActions}> {/* 신고 동작 */}
-                    <button type="button" onClick={onCancel}>취소</button> {/* 취소 버튼 */}
-                    <button type="button" onClick={onSubmit}>신고 접수</button> {/* 접수 버튼 */}
+                    <button type="button" onClick={onCancel}>{t("취소")}</button> {/* 취소 버튼 */}
+                    <button type="button" onClick={onSubmit}>{t("신고 접수")}</button> {/* 접수 버튼 */}
                 </div> {/* 동작 종료 */}
             </section> {/* 대화상자 종료 */}
         </div> // 배경 종료

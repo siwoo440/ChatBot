@@ -3,6 +3,7 @@ import { NOTIFICATION_LIMIT, type AppAction } from "@/features/core/app-reducer"
 import type { AppNotification, AppState, MissionId } from "@/features/core/types"; // 상태 타입
 import { recordInviteeMessages } from "@/features/rewards/referral-model"; // 초대받은 뒤 메시지 세기
 import { dailyMissions, getMissionState, recordMissionProgress } from "@/features/rewards/reward-model"; // 미션 규칙
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 function countMissionEvents(previous: AppState, next: AppState, action: AppAction): Array<[MissionId, number]> // 이번 동작으로 생긴 미션 진행
 { // 함수 시작
@@ -56,7 +57,7 @@ export function trackRewardProgress(previous: AppState, next: AppState, action: 
     { // 생성 시작
         const mission = dailyMissions.find((item) => item.id === missionId); // 미션 정의
         const id = `reward-mission-${dateKey}-${missionId}`; // 날짜·미션별 한 번
-        return mission === undefined || next.notifications.some((item) => item.id === id) ? [] : [{ id, kind: "reward" as const, title: "오늘의 미션 완료", body: `${mission.title} · ${mission.reward}토큰을 받을 수 있어요.`, href: "/rewards", read: false, createdAt: now }]; // 알림 반환
+        return mission === undefined || next.notifications.some((item) => item.id === id) ? [] : [{ id, kind: "reward" as const, title: t("오늘의 미션 완료"), body: t("{0} · {1}토큰을 받을 수 있어요.", [mission.title, mission.reward]), href: "/rewards", read: false, createdAt: now }]; // 알림 반환
     }); // 생성 종료
     return { ...next, rewards, referral, notifications: notices.length === 0 ? next.notifications : [...notices, ...next.notifications].slice(0, NOTIFICATION_LIMIT) }; // 진행·알림 반영
 } // 함수 종료

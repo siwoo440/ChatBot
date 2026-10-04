@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react"; // 리액트 도구
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export interface EditorStepDefinition // 편집 단계 정의
 { // 구조 시작
@@ -59,15 +60,15 @@ export function useEditorSteps(steps: readonly EditorStepDefinition[], startExpa
 export function EditorStepNav({ steps, controller, errors }: { steps: readonly EditorStepDefinition[]; controller: EditorStepController; errors: Record<string, unknown> }) // 단계 이동 줄과 보기 방식 전환
 { // 함수 시작
     return ( // 이동 줄 반환
-        <nav className={styles.stepNav} aria-label="편집 단계"> {/* 편집 단계 */}
+        <nav className={styles.stepNav} aria-label={t("편집 단계")}> {/* 편집 단계 */}
             <ol> {/* 단계 목록 */}
                 {steps.map((step, index) => // 단계 순회
                 { // 순회 시작
                     const hasError = step.fields.some((field) => errors[field] !== undefined); // 확인할 입력 여부
-                    return <li key={step.id}><button type="button" aria-current={controller.mode === "steps" && controller.current === step.id ? "step" : undefined} data-error={hasError ? "true" : undefined} onClick={() => controller.select(step.id)}><span aria-hidden="true">{index + 1}</span>{step.label}{hasError ? <span className="sr-only">, 확인할 입력 있음</span> : null}</button></li>; // 단계 버튼
+                    return <li key={step.id}><button type="button" aria-current={controller.mode === "steps" && controller.current === step.id ? "step" : undefined} data-error={hasError ? "true" : undefined} onClick={() => controller.select(step.id)}><span aria-hidden="true">{index + 1}</span>{t(step.label)}{hasError ? <span className="sr-only">{t(", 확인할 입력 있음")}</span> : null}</button></li>; // 단계 버튼
                 })} {/* 순회 종료 */}
             </ol> {/* 목록 종료 */}
-            <button type="button" className={styles.stepMode} aria-pressed={controller.mode === "all"} onClick={controller.toggleMode}>{controller.mode === "all" ? "단계별로 보기" : "전체 펼쳐 보기"}</button> {/* 보기 방식 */}
+            <button type="button" className={styles.stepMode} aria-pressed={controller.mode === "all"} onClick={controller.toggleMode}>{controller.mode === "all" ? t("단계별로 보기") : t("전체 펼쳐 보기")}</button> {/* 보기 방식 */}
         </nav> // 편집 단계 종료
     ); // 반환 종료
 } // 함수 종료
@@ -77,12 +78,12 @@ export function EditorStepSection({ steps, step, controller, children }: { steps
     const index = steps.findIndex((item) => item.id === step.id); // 단계 위치
     return ( // 묶음 반환
         <section className={styles.step} id={`editor-step-${step.id}`} aria-labelledby={`editor-step-${step.id}-title`} hidden={!controller.isVisible(step.id)}> {/* 단계 */}
-            <div className={styles.stepHead}><h2 id={`editor-step-${step.id}-title`}><span>{index + 1}/{steps.length}</span>{step.label}</h2><p>{step.hint}</p></div> {/* 단계 제목과 설명 */}
+            <div className={styles.stepHead}><h2 id={`editor-step-${step.id}-title`}><span>{index + 1}/{steps.length}</span>{t(step.label)}</h2><p>{t(step.hint)}</p></div> {/* 단계 제목과 설명 */}
             {children} {/* 입력 */}
             {controller.mode !== "steps" ? null : ( // 단계 이동 판정
                 <div className={styles.stepActions}> {/* 단계 이동 */}
-                    {index === 0 ? <span /> : <button type="button" className={styles.smallButton} onClick={controller.previous}>‹ 이전 단계</button>} {/* 이전 */}
-                    {index >= steps.length - 1 ? <span className={styles.hint}>마지막 단계예요. 아래에서 저장해 주세요.</span> : <button type="button" className={styles.smallButton} data-next="true" onClick={controller.next}>다음 단계 ›</button>} {/* 다음 */}
+                    {index === 0 ? <span /> : <button type="button" className={styles.smallButton} onClick={controller.previous}>{t("‹ 이전 단계")}</button>} {/* 이전 */}
+                    {index >= steps.length - 1 ? <span className={styles.hint}>{t("마지막 단계예요. 아래에서 저장해 주세요.")}</span> : <button type="button" className={styles.smallButton} data-next="true" onClick={controller.next}>{t("다음 단계 ›")}</button>} {/* 다음 */}
                 </div> // 단계 이동 종료
             )} {/* 판정 종료 */}
         </section> // 단계 종료

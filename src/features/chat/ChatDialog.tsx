@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react"; // 리액트 도구
 import { createPortal } from "react-dom"; // 문서 끝에 그리기(닫힌·움직이는 패널 안에서도 보이게)
 import styles from "@/features/chat/ChatDialog.module.css"; // 대화상자 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 interface ChatDialogProps // 대화상자 속성
 { // 구조 시작
@@ -60,7 +61,7 @@ export function ChatDialog({ title, description, onClose, footer, children, wide
             <section ref={panelRef} className={styles.dialog} data-wide={wide ? "true" : undefined} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={handleKey}> {/* 대화상자 */}
                 <header className={styles.header}> {/* 머리말 */}
                     <h2 id={titleId}>{title}</h2> {/* 제목 */}
-                    <button type="button" className={styles.close} data-dialog-close="" aria-label={`${title} 닫기`} onClick={onClose}>×</button> {/* 닫기 */}
+                    <button type="button" className={styles.close} data-dialog-close="" aria-label={t("{0} 닫기", [title])} onClick={onClose}>×</button> {/* 닫기 */}
                 </header> {/* 머리말 종료 */}
                 {description === undefined ? null : <p className={styles.description}>{description}</p>} {/* 설명 */}
                 <div className={styles.body}>{children}</div> {/* 내용 */}

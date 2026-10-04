@@ -4,6 +4,7 @@ import { useState } from "react"; // 리액트 상태
 import { createExcerpt, getBookmarkedMessages, moveMatch, REVIEW_QUERY_LIMIT, searchMessages } from "@/features/chat/review-model"; // 다시 보기 규칙
 import type { Message } from "@/features/core/types"; // 메시지 타입
 import styles from "@/features/chat/ReviewBar.module.css"; // 다시 보기 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 interface ReviewBarProps // 대화 다시 보기 속성
 { // 구조 시작
@@ -47,18 +48,18 @@ export function ReviewBar({ messages, onFound, onJump, onClose }: ReviewBarProps
     }; // 함수 종료
     const position = matches.length === 0 ? -1 : Math.min(Math.max(index, 0), matches.length - 1); // 표시할 위치
     return ( // 다시 보기 반환
-        <section id="chat-review-bar" className={styles.bar} aria-label="대화 다시 보기"> {/* 대화 다시 보기 */}
+        <section id="chat-review-bar" className={styles.bar} aria-label={t("대화 다시 보기")}> {/* 대화 다시 보기 */}
             <div className={styles.row}> {/* 검색 줄 */}
-                <label className={styles.search}><span className="sr-only">대화 검색</span><input type="search" value={query} maxLength={REVIEW_QUERY_LIMIT} placeholder="이 대화에서 찾기" autoFocus onChange={(event) => search(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); move(event.shiftKey ? -1 : 1); } }} /></label> {/* 검색어(Enter로 다음, Shift+Enter로 이전) */}
-                <span className={styles.count} role="status" aria-label="찾은 말">{query.trim().length === 0 ? "" : matches.length === 0 ? "찾은 말 없음" : `${position + 1}/${matches.length}`}</span> {/* 찾은 수 */}
-                <button type="button" aria-label="이전 찾은 말" disabled={matches.length === 0} onClick={() => move(-1)}>‹</button> {/* 이전 */}
-                <button type="button" aria-label="다음 찾은 말" disabled={matches.length === 0} onClick={() => move(1)}>›</button> {/* 다음 */}
-                <button type="button" className={styles.bookmarkToggle} aria-expanded={showBookmarks} aria-controls="chat-review-bookmarks" onClick={() => setShowBookmarks(!showBookmarks)}>책갈피 {bookmarks.length}</button> {/* 책갈피 목록 열기 */}
-                <button type="button" aria-label="대화 다시 보기 닫기" onClick={close}>×</button> {/* 닫기 */}
+                <label className={styles.search}><span className="sr-only">{t("대화 검색")}</span><input type="search" value={query} maxLength={REVIEW_QUERY_LIMIT} placeholder={t("이 대화에서 찾기")} autoFocus onChange={(event) => search(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); move(event.shiftKey ? -1 : 1); } }} /></label> {/* 검색어(Enter로 다음, Shift+Enter로 이전) */}
+                <span className={styles.count} role="status" aria-label={t("찾은 말")}>{query.trim().length === 0 ? "" : matches.length === 0 ? t("찾은 말 없음") : `${position + 1}/${matches.length}`}</span> {/* 찾은 수 */}
+                <button type="button" aria-label={t("이전 찾은 말")} disabled={matches.length === 0} onClick={() => move(-1)}>‹</button> {/* 이전 */}
+                <button type="button" aria-label={t("다음 찾은 말")} disabled={matches.length === 0} onClick={() => move(1)}>›</button> {/* 다음 */}
+                <button type="button" className={styles.bookmarkToggle} aria-expanded={showBookmarks} aria-controls="chat-review-bookmarks" onClick={() => setShowBookmarks(!showBookmarks)}>{t("책갈피")} {bookmarks.length}</button> {/* 책갈피 목록 열기 */}
+                <button type="button" aria-label={t("대화 다시 보기 닫기")} onClick={close}>×</button> {/* 닫기 */}
             </div> {/* 검색 줄 종료 */}
             {showBookmarks ? ( // 책갈피 목록 판정
                 <div id="chat-review-bookmarks" className={styles.bookmarks}> {/* 책갈피 목록 */}
-                    {bookmarks.length === 0 ? <p>아직 책갈피한 답변이 없어요. 답변 아래의 ‘책갈피’를 눌러 모아 보세요.</p> : <ul aria-label="책갈피한 답변">{bookmarks.map((message) => <li key={message.id}><button type="button" onClick={() => onJump(message.id)}>{createExcerpt(message.content)}</button></li>)}</ul>} {/* 답변으로 이동 */}
+                    {bookmarks.length === 0 ? <p>{t("아직 책갈피한 답변이 없어요. 답변 아래의 ‘책갈피’를 눌러 모아 보세요.")}</p> : <ul aria-label={t("책갈피한 답변")}>{bookmarks.map((message) => <li key={message.id}><button type="button" onClick={() => onJump(message.id)}>{createExcerpt(message.content)}</button></li>)}</ul>} {/* 답변으로 이동 */}
                 </div> // 목록 종료
             ) : null} {/* 판정 종료 */}
         </section> // 다시 보기 종료

@@ -1,5 +1,6 @@
 // 키워드 설정집과 예시 대화: 제작자가 적어 둔 배경 설정을 대화에 키워드가 나올 때만 AI에게 넘기고, 말투를 보여 주는 예시 대화를 함께 넘긴다.
 import type { ExampleDialogue, LoreEntry, Message } from "@/features/core/types"; // 도메인 타입
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export const LORE_LIMIT = 20; // 설정집 항목 최대 수
 export const LORE_TITLE_LIMIT = 20; // 설정 이름 최대 글자 수
@@ -61,7 +62,7 @@ export function validateLorebook(lorebook: readonly LoreEntry[]): string | null 
 { // 함수 시작
     if (lorebook.length > LORE_LIMIT) // 개수 판정
     { // 조건 시작
-        return `설정집은 ${LORE_LIMIT}개까지 만들 수 있습니다.`; // 개수 오류
+        return t("설정집은 {0}개까지 만들 수 있습니다.", [LORE_LIMIT]); // 개수 오류
     } // 조건 종료
     for (const [index, entry] of lorebook.entries()) // 항목 순회
     { // 순회 시작
@@ -70,15 +71,15 @@ export function validateLorebook(lorebook: readonly LoreEntry[]): string | null 
         const content = entry.content.trim(); // 내용
         if (title.length === 0 || title.length > LORE_TITLE_LIMIT) // 이름 판정
         { // 조건 시작
-            return `설정 ${index + 1}의 이름을 1~${LORE_TITLE_LIMIT}자로 적어 주세요.`; // 이름 오류
+            return t("설정 {0}의 이름을 1~{1}자로 적어 주세요.", [index + 1, LORE_TITLE_LIMIT]); // 이름 오류
         } // 조건 종료
         if (keywords.length === 0 || keywords.length > LORE_KEYWORD_LIMIT || keywords.some((keyword) => keyword.length > LORE_KEYWORD_LENGTH)) // 키워드 판정
         { // 조건 시작
-            return `설정 ${index + 1}의 키워드를 1~${LORE_KEYWORD_LIMIT}개(각 ${LORE_KEYWORD_LENGTH}자 이하) 적어 주세요.`; // 키워드 오류
+            return t("설정 {0}의 키워드를 1~{1}개(각 {2}자 이하) 적어 주세요.", [index + 1, LORE_KEYWORD_LIMIT, LORE_KEYWORD_LENGTH]); // 키워드 오류
         } // 조건 종료
         if (content.length === 0 || content.length > LORE_CONTENT_LIMIT) // 내용 판정
         { // 조건 시작
-            return `설정 ${index + 1}의 내용을 1~${LORE_CONTENT_LIMIT}자로 적어 주세요.`; // 내용 오류
+            return t("설정 {0}의 내용을 1~{1}자로 적어 주세요.", [index + 1, LORE_CONTENT_LIMIT]); // 내용 오류
         } // 조건 종료
     } // 순회 종료
     return null; // 통과
@@ -88,7 +89,7 @@ export function validateExamples(examples: readonly ExampleDialogue[]): string |
 { // 함수 시작
     if (examples.length > EXAMPLE_LIMIT) // 개수 판정
     { // 조건 시작
-        return `예시 대화는 ${EXAMPLE_LIMIT}쌍까지 만들 수 있습니다.`; // 개수 오류
+        return t("예시 대화는 {0}쌍까지 만들 수 있습니다.", [EXAMPLE_LIMIT]); // 개수 오류
     } // 조건 종료
     for (const [index, example] of examples.entries()) // 예시 순회
     { // 순회 시작
@@ -96,11 +97,11 @@ export function validateExamples(examples: readonly ExampleDialogue[]): string |
         const reply = example.reply.trim(); // 답
         if (user.length === 0 || user.length > EXAMPLE_USER_LIMIT) // 사용자 말 판정
         { // 조건 시작
-            return `예시 ${index + 1}의 사용자 말을 1~${EXAMPLE_USER_LIMIT}자로 적어 주세요.`; // 사용자 말 오류
+            return t("예시 {0}의 사용자 말을 1~{1}자로 적어 주세요.", [index + 1, EXAMPLE_USER_LIMIT]); // 사용자 말 오류
         } // 조건 종료
         if (reply.length === 0 || reply.length > EXAMPLE_REPLY_LIMIT) // 답 판정
         { // 조건 시작
-            return `예시 ${index + 1}의 답을 1~${EXAMPLE_REPLY_LIMIT}자로 적어 주세요.`; // 답 오류
+            return t("예시 {0}의 답을 1~{1}자로 적어 주세요.", [index + 1, EXAMPLE_REPLY_LIMIT]); // 답 오류
         } // 조건 종료
     } // 순회 종료
     return null; // 통과

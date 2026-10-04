@@ -3,6 +3,7 @@ import type { AppState, AttendanceState, DailyMissionState, MissionId, RewardSta
 import { addTokenRecord, TOKEN_RECORD_LIMIT } from "@/lib/story/token-ledger"; // 토큰 기록
 import { getDailyUsage } from "@/lib/story/token-policy"; // 오늘 사용량
 import { getDateKey } from "@/lib/time/date-key"; // 한국 시간 날짜 키
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export const ATTENDANCE_CYCLE = 7; // 도장판 칸 수
 export const attendanceRewards: readonly number[] = [5, 5, 5, 5, 5, 5, 20]; // 1~7일차 보상(일주일 50토큰)
@@ -154,7 +155,7 @@ export function checkAttendance(state: AppState, now: string): AppState // 출�
     } // 조건 종료
     const dateKey = getDateKey(new Date(now)); // 오늘
     const attended: AppState = { ...state, rewards: { ...state.rewards, attendance: { lastDate: dateKey, cycleDay: view.nextDay, totalDays: view.totalDays + 1 } } }; // 도장 찍기
-    return grantTokens(attended, { id: `attendance-${dateKey}`, source: "attendance", label: `출석 ${view.nextDay}일차`, amount: view.nextReward, now }); // 보상 지급
+    return grantTokens(attended, { id: `attendance-${dateKey}`, source: "attendance", label: t("출석 {0}일차", [view.nextDay]), amount: view.nextReward, now }); // 보상 지급
 } // 함수 종료
 
 export function claimMission(state: AppState, missionId: MissionId, now: string): AppState // 미션 보상 받기
@@ -166,7 +167,7 @@ export function claimMission(state: AppState, missionId: MissionId, now: string)
     } // 조건 종료
     const today = getMissionState(state.rewards.missions, new Date(now)); // 오늘 상태
     const claimed: AppState = { ...state, rewards: { ...state.rewards, missions: { ...today, claimed: [...today.claimed, missionId] } } }; // 받음 표시
-    return grantTokens(claimed, { id: `mission-${today.dateKey}-${missionId}`, source: "mission", label: `미션: ${view.definition.title}`, amount: view.definition.reward, now }); // 보상 지급
+    return grantTokens(claimed, { id: `mission-${today.dateKey}-${missionId}`, source: "mission", label: t("미션: {0}", [view.definition.title]), amount: view.definition.reward, now }); // 보상 지급
 } // 함수 종료
 
 export function claimMissionBonus(state: AppState, now: string): AppState // 모두 완료 보너스 받기
@@ -178,5 +179,5 @@ export function claimMissionBonus(state: AppState, now: string): AppState // 모
     } // 조건 종료
     const today = getMissionState(state.rewards.missions, new Date(now)); // 오늘 상태
     const claimed: AppState = { ...state, rewards: { ...state.rewards, missions: { ...today, bonusClaimed: true } } }; // 받음 표시
-    return grantTokens(claimed, { id: `mission-bonus-${today.dateKey}`, source: "mission-bonus", label: "미션 모두 완료 보너스", amount: bonus.reward, now }); // 보상 지급
+    return grantTokens(claimed, { id: `mission-bonus-${today.dateKey}`, source: "mission-bonus", label: t("미션 모두 완료 보너스"), amount: bonus.reward, now }); // 보상 지급
 } // 함수 종료

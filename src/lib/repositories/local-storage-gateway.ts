@@ -2,6 +2,7 @@ import { createInitialState } from "@/features/core/initial-state"; // 초기 �
 import type { AppState } from "@/features/core/types"; // 도메인 타입
 import { addMissingBuiltInStories, migrateParsedState } from "@/lib/repositories/state-migrations"; // 버전 변환
 import { isAppState, isFiniteNumber, isOneOf, isRecord, isString } from "@/lib/repositories/state-validation"; // 데이터 검사
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export { addMissingBuiltInStories, migrateVersionEight, migrateVersionEleven, migrateVersionFifteen, migrateVersionFive, migrateVersionFourteen, migrateVersionNine, migrateVersionSeven, migrateVersionSix, migrateVersionSixteen, migrateVersionTen, migrateVersionThirteen, migrateVersionTwelve } from "@/lib/repositories/state-migrations"; // 기존 이름 유지(버전 변환)
 export { isAppState } from "@/lib/repositories/state-validation"; // 기존 이름 유지(데이터 검사)
@@ -52,7 +53,7 @@ export class StorageWriteError extends Error // 저장 오류 클래스
 { // 클래스 시작
     public constructor(cause: unknown) // 생성자
     { // 생성자 시작
-        super("브라우저 저장공간에 데이터를 기록하지 못했습니다.", { cause }); // 오류 내용 설정
+        super(t("브라우저 저장공간에 데이터를 기록하지 못했습니다."), { cause }); // 오류 내용 설정
         this.name = "StorageWriteError"; // 오류 이름 설정
     } // 생성자 종료
 } // 클래스 종료
@@ -112,16 +113,16 @@ function parseImportState(raw: string): AppState // 가져오기 분석 함수
     } // 시도 종료
     catch (error: unknown) // 분석 실패 처리
     { // 실패 시작
-        throw new ImportValidationError("올바른 JSON 파일이 아닙니다.", error); // 분석 오류 변환
+        throw new ImportValidationError(t("올바른 JSON 파일이 아닙니다."), error); // 분석 오류 변환
     } // 실패 종료
     if (isRecord(parsed) && isFiniteNumber(parsed.schemaVersion) && parsed.schemaVersion > 18) // 미래 버전 판정
     { // 미래 버전 시작
-        throw new ImportValidationError("지원하지 않는 데이터 버전입니다."); // 미래 버전 오류
+        throw new ImportValidationError(t("지원하지 않는 데이터 버전입니다.")); // 미래 버전 오류
     } // 미래 버전 종료
     const state = migrateParsedState(parsed); // 상태 변환
     if (state === null) // 변환 실패 판정
     { // 변환 실패 시작
-        throw new ImportValidationError("MATE:VERSE 상태 파일 형식이 아닙니다."); // 형식 오류
+        throw new ImportValidationError(t("MATE:VERSE 상태 파일 형식이 아닙니다.")); // 형식 오류
     } // 변환 실패 종료
     return state; // 검증 상태 반환
 } // 함수 종료
@@ -197,7 +198,7 @@ function preserveCorruptedData(raw: string, storage: Storage): void // 손상 �
 function rejectStoredState(raw: string, storage: Storage): LoadResult // 저장 상태 거부 함수
 { // 함수 시작
     preserveCorruptedData(raw, storage); // 원본 백업
-    return { state: createInitialState(), recovered: true, warning: "저장 데이터가 올바르지 않아 원본을 유지했습니다. 백업 내보내기로 확인해 주세요." }; // 비파괴 결과 반환
+    return { state: createInitialState(), recovered: true, warning: t("저장 데이터가 올바르지 않아 원본을 유지했습니다. 백업 내보내기로 확인해 주세요.") }; // 비파괴 결과 반환
 } // 함수 종료
 
 function recoverState(raw: string, storage: Storage): LoadResult // 손상 복구 함수
@@ -205,7 +206,7 @@ function recoverState(raw: string, storage: Storage): LoadResult // 손상 복�
     const state = createInitialState(); // 초기 상태 생성
     preserveCorruptedData(raw, storage); // 원본 백업
     writeItem(storage, stateKey, JSON.stringify(state)); // 초기 상태 저장
-    return { state, recovered: true, warning: "손상된 저장 데이터를 백업하고 초기 상태로 복구했습니다." }; // 복구 결과 반환
+    return { state, recovered: true, warning: t("손상된 저장 데이터를 백업하고 초기 상태로 복구했습니다.") }; // 복구 결과 반환
 } // 함수 종료
 
 function parseAndMigrate(raw: string, storage: Storage): LoadResult // 분석 변환 함수
@@ -228,7 +229,7 @@ function parseAndMigrate(raw: string, storage: Storage): LoadResult // 분석 �
         { // 저장 필요 시작
             writeItem(storage, stateKey, JSON.stringify(migrated)); // 변환 상태 저장
         } // 저장 필요 종료
-        return { state: migrated, recovered: false, warning: changed ? "저장 데이터를 최신 버전으로 업데이트했습니다." : null }; // 변환 결과 반환
+        return { state: migrated, recovered: false, warning: changed ? t("저장 데이터를 최신 버전으로 업데이트했습니다.") : null }; // 변환 결과 반환
     } // 변환 성공 종료
     return rejectStoredState(raw, storage); // 잘못된 상태 비파괴 거부
 } // 함수 종료
@@ -253,7 +254,7 @@ export class LocalStorageGateway // 로컬 저장소 클래스
     { // 함수 시작
         if (!isAppState(state)) // 상태 검증
         { // 검증 실패 시작
-            throw new TypeError("유효한 앱 상태만 저장할 수 있습니다."); // 상태 오류 발생
+            throw new TypeError(t("유효한 앱 상태만 저장할 수 있습니다.")); // 상태 오류 발생
         } // 검증 실패 종료
         writeItem(this.storage, stateKey, JSON.stringify(state)); // 상태 직렬화 저장
     } // 함수 종료
@@ -283,7 +284,7 @@ export class LocalStorageGateway // 로컬 저장소 클래스
     { // 함수 시작
         if (!isAppState(prepared.state)) // 상태 유효성 판정
         { // 잘못된 상태 시작
-            throw new ImportValidationError("검증된 상태만 가져올 수 있습니다."); // 상태 오류 발생
+            throw new ImportValidationError(t("검증된 상태만 가져올 수 있습니다.")); // 상태 오류 발생
         } // 잘못된 상태 종료
         this.createBackup("import"); // 현재 상태 백업
         const state = structuredClone(prepared.state); // 가져올 상태 복사
@@ -311,7 +312,7 @@ export class LocalStorageGateway // 로컬 저장소 클래스
     { // 함수 시작
         if (!isAppState(state)) // 상태 유효성 판정
         { // 잘못된 상태 시작
-            throw new TypeError("유효한 앱 상태만 백업할 수 있습니다."); // 상태 오류 발생
+            throw new TypeError(t("유효한 앱 상태만 백업할 수 있습니다.")); // 상태 오류 발생
         } // 잘못된 상태 종료
         const raw = JSON.stringify(state); // 상태 원본 생성
         const backups = readStoredBackups(this.storage); // 기존 백업 조회
@@ -333,7 +334,7 @@ export class LocalStorageGateway // 로컬 저장소 클래스
         const backup = readStoredBackups(this.storage).find((item) => item.id === id); // 백업 조회
         if (backup === undefined) // 백업 부재 판정
         { // 백업 부재 시작
-            throw new ImportValidationError("복구할 백업을 찾을 수 없습니다."); // 백업 오류 발생
+            throw new ImportValidationError(t("복구할 백업을 찾을 수 없습니다.")); // 백업 오류 발생
         } // 백업 부재 종료
         const prepared = this.prepareImport(backup.raw); // 백업 검증
         this.createBackup("restore"); // 현재 상태 백업

@@ -32,7 +32,7 @@ export const settingsNavigation: SettingsNavigationGroup[] = // 오른쪽 패널
         label: "설정", // 설정 이름
         items: // 설정 항목
         [ // 항목 시작
-            { href: "/settings/display", label: "화면 레이아웃", description: "기기 모드와 채팅 배치" }, // 화면 항목
+            { href: "/settings/display", label: "화면 레이아웃", description: "언어와 채팅 배치" }, // 화면 항목
             { href: "/settings/notifications", label: "알림과 선제 메시지", description: "허용 시간과 하루 횟수" }, // 알림 항목
         ], // 항목 종료
     }, // 설정 묶음 종료

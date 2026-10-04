@@ -2,6 +2,7 @@
 import type { AppState, InvitedFriend, ReferralState } from "@/features/core/types"; // 상태 타입
 import { grantTokens } from "@/features/rewards/reward-model"; // 토큰 지급
 import { getDateKey } from "@/lib/time/date-key"; // 한국 시간 날짜 키
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export const INVITE_CODE_LENGTH = 8; // 초대 코드 길이
 export const INVITE_WELCOME_REWARD = 30; // 초대받은 사람 환영 보너스
@@ -94,7 +95,7 @@ export function redeemInviteCode(state: AppState, input: string, now: string): A
         return state; // 변화 없음
     } // 조건 종료
     const redeemed: AppState = { ...state, referral: { ...state.referral, redeemedCode: normalizeInviteCode(input), redeemedAt: now, qualifyingMessages: 0 } }; // 받은 코드 기록
-    return grantTokens(redeemed, { id: "invite-welcome", source: "invite-welcome", label: "친구 초대 환영 보너스", amount: INVITE_WELCOME_REWARD, now }); // 보너스 지급
+    return grantTokens(redeemed, { id: "invite-welcome", source: "invite-welcome", label: t("친구 초대 환영 보너스"), amount: INVITE_WELCOME_REWARD, now }); // 보너스 지급
 } // 함수 종료
 
 export function recordInviteeMessages(referral: ReferralState, amount: number): ReferralState // 초대받은 뒤 보낸 메시지 세기(초대해 준 친구의 보상 조건)
@@ -132,11 +133,11 @@ export function applyInviteConfirmations(state: AppState, confirmations: InviteC
             continue; // 다음 친구
         } // 조건 종료
         const rewarded = countRewardedInMonth(next.referral.friends, monthKey) < INVITE_MONTHLY_LIMIT; // 이번 달 한도 안
-        const friend: InvitedFriend = { id: confirmation.id, nickname: confirmation.nickname.trim().slice(0, 20) || "친구", qualifiedAt: confirmation.qualifiedAt, rewardedAt: rewarded ? now : null }; // 친구 기록
+        const friend: InvitedFriend = { id: confirmation.id, nickname: confirmation.nickname.trim().slice(0, 20) || t("친구"), qualifiedAt: confirmation.qualifiedAt, rewardedAt: rewarded ? now : null }; // 친구 기록
         next = { ...next, referral: { ...next.referral, friends: [friend, ...next.referral.friends].slice(0, INVITE_FRIEND_LIMIT) } }; // 최근 순 기록
         if (rewarded) // 보상 지급
         { // 조건 시작
-            next = grantTokens(next, { id: `invite-friend-${friend.id}`, source: "invite-friend", label: `친구 초대: ${friend.nickname}`, amount: INVITE_FRIEND_REWARD, now }); // 30토큰
+            next = grantTokens(next, { id: `invite-friend-${friend.id}`, source: "invite-friend", label: t("친구 초대: {0}", [friend.nickname]), amount: INVITE_FRIEND_REWARD, now }); // 30토큰
         } // 조건 종료
     } // 순회 종료
     return next; // 반영 상태

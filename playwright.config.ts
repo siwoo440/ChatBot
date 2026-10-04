@@ -10,6 +10,7 @@ export default defineConfig( // 설정 내보내기
     use: // 공통 사용 설정
     { // 공통 설정 시작
         baseURL, // 기본 주소
+        locale: "ko-KR", // 화면 언어를 한국어로 고정(자동 언어는 브라우저 언어를 따름)
         trace: "on-first-retry", // 재시도 추적
     }, // 공통 설정 종료
     projects: // 브라우저 목록

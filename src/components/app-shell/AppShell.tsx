@@ -13,6 +13,7 @@ import { getClaimableCount } from "@/features/rewards/reward-model"; // 받을 �
 import { formatUsageDuration } from "@/features/safety/usage-time"; // 이용 시간 표시
 import { useUsageReminder } from "@/features/safety/useUsageReminder"; // 이용 시간 알림
 import styles from "@/components/app-shell/AppShell.module.css"; // 앱 셸 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export function AppShell({ children }: { children: ReactNode }) // 앱 셸
 { // 함수 시작
@@ -83,16 +84,16 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
                 <div className={styles.storageMessages}> {/* 상단 메시지 묶음 */}
                     {usageReminder.due ? ( // 이용 시간 알림 판정
                         <div className={styles.storageNotice} data-tone="rest" role="status"> {/* 이용 시간 알림 */}
-                            <p>{formatUsageDuration(usageReminder.activeMs)} 동안 이용했어요. 잠깐 쉬어 가도 대화는 그대로 남아 있어요.</p> {/* 알림 문구 */}
-                            <button type="button" onClick={usageReminder.acknowledge}>계속 이용하기</button> {/* 알림 확인 */}
+                            <p>{formatUsageDuration(usageReminder.activeMs)} {t("동안 이용했어요. 잠깐 쉬어 가도 대화는 그대로 남아 있어요.")}</p> {/* 알림 문구 */}
+                            <button type="button" onClick={usageReminder.acknowledge}>{t("계속 이용하기")}</button> {/* 알림 확인 */}
                         </div> // 이용 시간 알림 종료
                     ) : null} {/* 이용 시간 알림 판정 종료 */}
                     {storageError === null ? null : <p className={styles.storageError} role="alert">{storageError}</p>} {/* 저장 오류 */}
                     {storageNotice === null ? null : ( // 저장소 안내 판정
                         <div className={styles.storageNotice} data-tone={storageNotice.tone} role="status"> {/* 저장소 안내 */}
-                            <p>{storageNotice.message}</p> {/* 안내 문구 */}
-                            {storageNotice.tone === "warning" ? <Link href={"/settings/privacy#data" as Route} onClick={closePanelsForNavigation}>데이터 관리 열기</Link> : null} {/* 데이터 관리 링크 */}
-                            <button type="button" onClick={dismissStorageNotice}>닫기</button> {/* 안내 닫기 */}
+                            <p>{t(storageNotice.message)}</p> {/* 안내 문구 */}
+                            {storageNotice.tone === "warning" ? <Link href={"/settings/privacy#data" as Route} onClick={closePanelsForNavigation}>{t("데이터 관리 열기")}</Link> : null} {/* 데이터 관리 링크 */}
+                            <button type="button" onClick={dismissStorageNotice}>{t("닫기")}</button> {/* 안내 닫기 */}
                         </div> // 저장소 안내 종료
                     )} {/* 안내 판정 종료 */}
                 </div> // 메시지 묶음 종료
@@ -102,7 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
                 <div className={styles.content}>{children}</div> {/* 중앙 콘텐츠 */}
                 <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} rewards={state.rewards} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 사용자 패널 */}
             </div> {/* 그리드 종료 */}
-            {(state.settings.leftPanelOpen || state.settings.rightPanelOpen) ? <button type="button" className={styles.scrim} aria-label="열린 패널 닫기" onClick={closePanels} /> : null} {/* 패널 배경 */}
+            {(state.settings.leftPanelOpen || state.settings.rightPanelOpen) ? <button type="button" className={styles.scrim} aria-label={t("열린 패널 닫기")} onClick={closePanels} /> : null} {/* 패널 배경 */}
             <MobileBottomNavigation onNavigate={closePanelsForNavigation} /> {/* 모바일 하단 메뉴 */}
         </div> // 셸 종료
     ); // 반환 종료

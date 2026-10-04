@@ -1,4 +1,5 @@
 import type { StatDefinition, StatMode, StatRule, StatScope, StatusSnapshot, StatusTemplate, StatValue } from "@/features/core/types"; // 도메인 타입
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export const STAT_LIMIT = 6; // 작품당 스탯 최대 수
 export const STAT_RULE_LIMIT = 5; // 스탯당 낱말 규칙 최대 수
@@ -151,53 +152,53 @@ export function validateStats(stats: readonly StatDefinition[]): string | null /
 { // 함수 시작
     if (stats.length > STAT_LIMIT) // 개수 판정
     { // 조건 시작
-        return `스탯은 ${STAT_LIMIT}개까지 만들 수 있습니다.`; // 개수 오류
+        return t("스탯은 {0}개까지 만들 수 있습니다.", [STAT_LIMIT]); // 개수 오류
     } // 조건 종료
     const names = new Set<string>(); // 이름 중복 확인
     for (const stat of stats) // 스탯 순회
     { // 순회 시작
         const name = stat.name.trim(); // 이름
-        const label = name.length === 0 ? "이름 없는 스탯" : `‘${name}’`; // 오류 표시 이름
+        const label = name.length === 0 ? t("이름 없는 스탯") : `‘${name}’`; // 오류 표시 이름
         if (name.length === 0 || name.length > STAT_NAME_LIMIT) // 이름 길이
         { // 조건 시작
-            return `스탯 이름은 1~${STAT_NAME_LIMIT}자로 적어 주세요.`; // 이름 오류
+            return t("스탯 이름은 1~{0}자로 적어 주세요.", [STAT_NAME_LIMIT]); // 이름 오류
         } // 조건 종료
         if (names.has(name)) // 이름 중복
         { // 조건 시작
-            return `스탯 이름 ${label}이(가) 겹칩니다.`; // 중복 오류
+            return t("스탯 이름 {0}이(가) 겹칩니다.", [label]); // 중복 오류
         } // 조건 종료
         names.add(name); // 기록
         if (stat.icon.trim().length > STAT_ICON_LIMIT) // 아이콘 길이
         { // 조건 시작
-            return `${label} 아이콘은 이모지 한두 개로 적어 주세요.`; // 아이콘 오류
+            return t("{0} 아이콘은 이모지 한두 개로 적어 주세요.", [label]); // 아이콘 오류
         } // 조건 종료
         if (![stat.initial, stat.min, stat.max].every((value) => isWholeNumber(value, STAT_VALUE_BOUND))) // 숫자 판정
         { // 조건 시작
-            return `${label}의 초기값·최솟값·최댓값은 -${STAT_VALUE_BOUND}~${STAT_VALUE_BOUND} 사이 정수로 적어 주세요.`; // 숫자 오류
+            return t("{0}의 초기값·최솟값·최댓값은 -{1}~{2} 사이 정수로 적어 주세요.", [label, STAT_VALUE_BOUND, STAT_VALUE_BOUND]); // 숫자 오류
         } // 조건 종료
         if (stat.min >= stat.max) // 범위 판정
         { // 조건 시작
-            return `${label}의 최솟값은 최댓값보다 작아야 합니다.`; // 범위 오류
+            return t("{0}의 최솟값은 최댓값보다 작아야 합니다.", [label]); // 범위 오류
         } // 조건 종료
         if (stat.initial < stat.min || stat.initial > stat.max) // 초기값 판정
         { // 조건 시작
-            return `${label}의 초기값은 ${stat.min}~${stat.max} 사이여야 합니다.`; // 초기값 오류
+            return t("{0}의 초기값은 {1}~{2} 사이여야 합니다.", [label, stat.min, stat.max]); // 초기값 오류
         } // 조건 종료
         if (!isWholeNumber(stat.perTurn, STAT_CHANGE_BOUND)) // 매 턴 변화 판정
         { // 조건 시작
-            return `${label}의 매 턴 변화는 -${STAT_CHANGE_BOUND}~${STAT_CHANGE_BOUND} 사이 정수로 적어 주세요.`; // 변화 오류
+            return t("{0}의 매 턴 변화는 -{1}~{2} 사이 정수로 적어 주세요.", [label, STAT_CHANGE_BOUND, STAT_CHANGE_BOUND]); // 변화 오류
         } // 조건 종료
         if (stat.rules.length > STAT_RULE_LIMIT) // 규칙 수 판정
         { // 조건 시작
-            return `${label}의 낱말 규칙은 ${STAT_RULE_LIMIT}개까지 만들 수 있습니다.`; // 규칙 수 오류
+            return t("{0}의 낱말 규칙은 {1}개까지 만들 수 있습니다.", [label, STAT_RULE_LIMIT]); // 규칙 수 오류
         } // 조건 종료
         if (stat.rules.some((rule: StatRule) => rule.keyword.trim().length === 0 || rule.keyword.trim().length > STAT_KEYWORD_LIMIT || !isWholeNumber(rule.delta, STAT_CHANGE_BOUND) || rule.delta === 0)) // 규칙 내용 판정
         { // 조건 시작
-            return `${label}의 낱말 규칙은 낱말(1~${STAT_KEYWORD_LIMIT}자)과 0이 아닌 변화(-${STAT_CHANGE_BOUND}~${STAT_CHANGE_BOUND})가 필요합니다.`; // 규칙 오류
+            return t("{0}의 낱말 규칙은 낱말(1~{1}자)과 0이 아닌 변화(-{2}~{3})가 필요합니다.", [label, STAT_KEYWORD_LIMIT, STAT_CHANGE_BOUND, STAT_CHANGE_BOUND]); // 규칙 오류
         } // 조건 종료
         if (!Number.isInteger(stat.aiMaxChange) || stat.aiMaxChange < 1 || stat.aiMaxChange > STAT_CHANGE_BOUND) // AI 한도 판정
         { // 조건 시작
-            return `${label}의 AI 한 턴 최대 변화는 1~${STAT_CHANGE_BOUND} 사이 정수로 적어 주세요.`; // AI 한도 오류
+            return t("{0}의 AI 한 턴 최대 변화는 1~{1} 사이 정수로 적어 주세요.", [label, STAT_CHANGE_BOUND]); // AI 한도 오류
         } // 조건 종료
     } // 순회 종료
     return null; // 오류 없음

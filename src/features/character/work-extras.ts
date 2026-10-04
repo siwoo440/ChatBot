@@ -4,6 +4,7 @@ import { normalizeRelationStatId } from "@/features/chat/relation-model"; // 관
 import { normalizeStats, validateStats } from "@/features/chat/stat-model"; // 스탯 정리·검증
 import type { WorkExtras } from "@/features/core/defaults"; // 작품 추가 필드
 import type { WorkUpdate } from "@/features/core/types"; // 업데이트 기록
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export const PLAY_GUIDE_LIMIT = 2000; // 플레이 가이드 최대 글자 수
 export const CUSTOM_LABEL_LIMIT = 10; // 직접 항목 이름 최대 글자 수
@@ -22,11 +23,11 @@ export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추�
     const errors: WorkExtrasErrors = {}; // 오류 목록
     if (draft.playGuide.trim().length > PLAY_GUIDE_LIMIT) // 가이드 길이 판정
     { // 조건 시작
-        errors.playGuide = `플레이 가이드는 ${PLAY_GUIDE_LIMIT}자 이하여야 합니다.`; // 길이 오류
+        errors.playGuide = t("플레이 가이드는 {0}자 이하여야 합니다.", [PLAY_GUIDE_LIMIT]); // 길이 오류
     } // 조건 종료
     if (draft.statusTemplate.customLabels.some((label) => label.trim().length > CUSTOM_LABEL_LIMIT)) // 직접 항목 길이 판정
     { // 조건 시작
-        errors.statusTemplate = `상태창 직접 항목 이름은 ${CUSTOM_LABEL_LIMIT}자 이하여야 합니다.`; // 항목 오류
+        errors.statusTemplate = t("상태창 직접 항목 이름은 {0}자 이하여야 합니다.", [CUSTOM_LABEL_LIMIT]); // 항목 오류
     } // 조건 종료
     const statError = validateStats(draft.statusTemplate.stats); // 스탯 검증
     if (statError !== null && errors.statusTemplate === undefined) // 스탯 오류
@@ -35,11 +36,11 @@ export function validateWorkExtras(draft: WorkExtras): WorkExtrasErrors // 추�
     } // 조건 종료
     if (draft.updates.length > UPDATE_LIMIT) // 기록 수 판정
     { // 조건 시작
-        errors.updates = `업데이트 기록은 ${UPDATE_LIMIT}개까지 남길 수 있습니다.`; // 개수 오류
+        errors.updates = t("업데이트 기록은 {0}개까지 남길 수 있습니다.", [UPDATE_LIMIT]); // 개수 오류
     } // 조건 종료
     else if (draft.updates.some((update) => update.version.trim().length === 0 || update.version.trim().length > 20 || update.note.trim().length === 0 || update.note.trim().length > UPDATE_NOTE_LIMIT)) // 기록 내용 판정
     { // 조건 시작
-        errors.updates = `업데이트 기록은 버전(1~20자)과 내용(1~${UPDATE_NOTE_LIMIT}자)이 필요합니다.`; // 내용 오류
+        errors.updates = t("업데이트 기록은 버전(1~20자)과 내용(1~{0}자)이 필요합니다.", [UPDATE_NOTE_LIMIT]); // 내용 오류
     } // 조건 종료
     const eventError = validateEvents(draft.events, draft.statusTemplate.stats); // 이벤트 검증
     if (eventError !== null) // 이벤트 오류

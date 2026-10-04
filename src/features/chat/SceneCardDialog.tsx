@@ -5,6 +5,7 @@ import { ChatDialog } from "@/features/chat/ChatDialog"; // 대화상자
 import { SCENE_CARD_HEIGHT, SCENE_CARD_TEXT_LIMIT, SCENE_CARD_WIDTH, sceneCardFileName, toCardText, toPlainText, wrapCardLines } from "@/features/chat/review-model"; // 카드 규칙
 import panels from "@/features/chat/ChatPanels.module.css"; // 대화상자 버튼 스타일
 import styles from "@/features/chat/SceneCard.module.css"; // 카드 스타일
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 interface SceneCardDialogProps // 명장면 카드 속성
 { // 구조 시작
@@ -108,11 +109,11 @@ export function SceneCardDialog({ title, speaker, content, image, onClose }: Sce
             anchor.download = sceneCardFileName(title, new Date()); // 파일 이름
             anchor.click(); // 내려받기
             URL.revokeObjectURL(url); // 임시 주소 해제
-            setStatus("명장면 카드를 이미지로 저장했습니다."); // 성공 안내
+            setStatus(t("명장면 카드를 이미지로 저장했습니다.")); // 성공 안내
         } // 시도 종료
         catch // 저장 실패
         { // 실패 시작
-            setStatus("이미지로 저장하지 못했습니다. 글 복사를 이용해 주세요."); // 실패 안내
+            setStatus(t("이미지로 저장하지 못했습니다. 글 복사를 이용해 주세요.")); // 실패 안내
         } // 실패 종료
         finally // 정리
         { // 정리 시작
@@ -124,28 +125,28 @@ export function SceneCardDialog({ title, speaker, content, image, onClose }: Sce
         try // 복사 시도
         { // 시도 시작
             await navigator.clipboard.writeText(`“${cardText}”\n— ${speaker}, ${title}`); // 클립보드 쓰기
-            setStatus("카드 글을 복사했습니다."); // 성공 안내
+            setStatus(t("카드 글을 복사했습니다.")); // 성공 안내
         } // 시도 종료
         catch // 복사 실패
         { // 실패 시작
-            setStatus("글을 복사하지 못했습니다."); // 실패 안내
+            setStatus(t("글을 복사하지 못했습니다.")); // 실패 안내
         } // 실패 종료
     }; // 함수 종료
     const empty = cardText.length === 0; // 빈 글
     return ( // 대화상자 반환
-        <ChatDialog title="명장면 카드" description="마음에 든 장면을 그림 한 장으로 남겨요. 글은 고칠 수 있어요." onClose={onClose} wide footer={<><button type="button" className={panels.secondaryButton} disabled={empty} onClick={() => void copy()}>글 복사</button><button type="button" className={panels.primaryButton} disabled={empty || saving} onClick={() => void save()}>이미지로 저장</button></>}> {/* 명장면 카드 */}
+        <ChatDialog title={t("명장면 카드")} description={t("마음에 든 장면을 그림 한 장으로 남겨요. 글은 고칠 수 있어요.")} onClose={onClose} wide footer={<><button type="button" className={panels.secondaryButton} disabled={empty} onClick={() => void copy()}>{t("글 복사")}</button><button type="button" className={panels.primaryButton} disabled={empty || saving} onClick={() => void save()}>{t("이미지로 저장")}</button></>}> {/* 명장면 카드 */}
             <div className={styles.layout}> {/* 미리보기와 입력 */}
-                <figure className={styles.card} aria-label="카드 미리보기" style={image === null ? undefined : { backgroundImage: `url("${image}")` }}> {/* 카드 미리보기 */}
+                <figure className={styles.card} aria-label={t("카드 미리보기")} style={image === null ? undefined : { backgroundImage: `url("${image}")` }}> {/* 카드 미리보기 */}
                     <div className={styles.cardShade}> {/* 글자 뒤 어둠 */}
                         <strong>{speaker}</strong> {/* 인물 */}
-                        <p>{empty ? "카드에 넣을 글을 적어 주세요." : cardText}</p> {/* 대사 */}
+                        <p>{empty ? t("카드에 넣을 글을 적어 주세요.") : cardText}</p> {/* 대사 */}
                         <figcaption><span>{title}</span><b>Mate Verse</b></figcaption> {/* 작품과 서비스 이름 */}
                     </div> {/* 어둠 종료 */}
                 </figure> {/* 미리보기 종료 */}
                 <div className={styles.side}> {/* 입력 */}
-                    <label className={styles.field}>카드에 넣을 글<textarea value={text} rows={7} maxLength={SCENE_CARD_TEXT_LIMIT} onChange={(event) => { setText(event.target.value); setStatus(""); }} /></label> {/* 글 */}
-                    <p className={styles.count}>{text.length}/{SCENE_CARD_TEXT_LIMIT}자 · 저장 크기 {SCENE_CARD_WIDTH}×{SCENE_CARD_HEIGHT}</p> {/* 글자 수와 크기 */}
-                    {status.length === 0 ? null : <p className={styles.status} role="status" aria-label="카드 안내">{status}</p>} {/* 안내 */}
+                    <label className={styles.field}>{t("카드에 넣을 글")}<textarea value={text} rows={7} maxLength={SCENE_CARD_TEXT_LIMIT} onChange={(event) => { setText(event.target.value); setStatus(""); }} /></label> {/* 글 */}
+                    <p className={styles.count}>{text.length}/{SCENE_CARD_TEXT_LIMIT}{t("자 · 저장 크기")} {SCENE_CARD_WIDTH}×{SCENE_CARD_HEIGHT}</p> {/* 글자 수와 크기 */}
+                    {status.length === 0 ? null : <p className={styles.status} role="status" aria-label={t("카드 안내")}>{status}</p>} {/* 안내 */}
                 </div> {/* 입력 종료 */}
             </div> {/* 묶음 종료 */}
         </ChatDialog> // 카드 종료

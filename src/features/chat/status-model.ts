@@ -2,6 +2,7 @@ import { computeStats, formatStatDelta, formatStatValue, type StatBaseline, type
 import type { Conversation, StatusSnapshot, StatusTemplate, StatValue } from "@/features/core/types"; // 도메인 타입
 import { getGenreKey } from "@/lib/theme/genre-theme"; // 장르 판정
 import { getDateParts } from "@/lib/time/date-key"; // 서울 날짜
+import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 export interface StatusContext // 상태창 계산 입력
 { // 구조 시작
@@ -95,7 +96,7 @@ export function formatStatusText(status: StatusSnapshot): string // 복사용 �
     } // 조건 종료
     if (status.tip !== null) // 팁 판정
     { // 조건 시작
-        lines.push(`[💡팁: ${status.tip}]`); // 팁 줄
+        lines.push(t("[💡팁: {0}]", [status.tip])); // 팁 줄
     } // 조건 종료
     const chip = (item: StatValue) => `${item.icon}${item.name} ${formatStatValue(item)}(${formatStatDelta(item.delta)})`; // 스탯 글자
     for (const person of getStatusRows(status)) // 인물 순회
@@ -105,7 +106,7 @@ export function formatStatusText(status: StatusSnapshot): string // 복사용 �
     const shared = status.stats.filter((item) => item.target === null); // 공통 스탯
     if (shared.length > 0) // 공통 판정
     { // 조건 시작
-        lines.push(`[공통 ${shared.map(chip).join(" ")}]`); // 공통 줄
+        lines.push(t("[공통 {0}]", [shared.map(chip).join(" ")])); // 공통 줄
     } // 조건 종료
     for (const item of status.custom) // 직접 항목 순회
     { // 순회 시작
