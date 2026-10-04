@@ -1,6 +1,7 @@
 // 서버 통로: 브라우저와 AI 회사 사이에 서서 열쇠를 숨기고, 지시문을 조립해 보내고, 답을 글자 조각으로 흘려보낸다. 열쇠가 없거나 꺼져 있으면 브라우저가 연습용 AI로 답한다.
+import { getChatTier } from "@/features/chat/chat-tiers"; // 채팅 등급
 import { CHAT_BODY_LIMIT, isChatAllowedFrom, takeChatSlot } from "@/lib/llm/chat-gate"; // 문지기
-import { getTierAvailability, isRealChatEnabled, resolveModel } from "@/lib/llm/model-catalog"; // 모델 목록
+import { getLocalModelNames, getTierAvailability, isRealChatEnabled, resolveModel } from "@/lib/llm/model-catalog"; // 모델 목록
 import { buildChatPrompt, parseChatRequest } from "@/lib/llm/prompt-builder"; // 지시문 만들기
 import { ProviderError, streamProviderReply } from "@/lib/llm/providers"; // AI 회사 연결
 
@@ -17,7 +18,7 @@ export function GET(request: Request): Response // 등급별로 실제 AI를 쓸
     const allowed = isChatAllowedFrom(request.headers.get("host")); // 이 요청에 허용되는지
     const availability = getTierAvailability(); // 등급별 가능 여부
     const tiers = Object.fromEntries(Object.entries(availability).map(([tier, ready]) => [tier, allowed && ready])); // 허용되지 않으면 모두 불가
-    return Response.json({ enabled: allowed && isRealChatEnabled(), tiers }, { headers: { "cache-control": "no-store" } }); // 상태 반환
+    return Response.json({ enabled: allowed && isRealChatEnabled(), tiers, models: allowed ? getLocalModelNames() : {} }, { headers: { "cache-control": "no-store" } }); // 상태 반환(내 컴퓨터 모델은 이름도 알려 줌)
 } // 함수 종료
 
 export async function POST(request: Request): Promise<Response> // 답변 받기
@@ -49,9 +50,9 @@ export async function POST(request: Request): Promise<Response> // 답변 받기
     { // 조건 시작
         return refuse(400, "bad-request"); // 거절
     } // 조건 종료
-    if (chat.character.contentRating === "mature") // 19세 작품
+    if (chat.character.contentRating === "mature" && !getChatTier(chat.tier).mature) // 19세 작품을 외부 AI 등급으로 요청
     { // 조건 시작
-        return refuse(422, "mature-not-supported"); // 외부 AI 약관 때문에 연습용으로
+        return refuse(422, "mature-not-supported"); // 외부 AI 약관 때문에 연습용으로(직접 돌리는 공개 모델 등급만 답함)
     } // 조건 종료
     const model = resolveModel(chat.tier); // 등급의 모델
     if (model === null) // 열쇠 없음
@@ -70,8 +71,10 @@ export async function POST(request: Request): Promise<Response> // 답변 받기
     } // 시도 종료
     catch (error) // 회사 오류
     { // 실패 시작
-        const status = error instanceof ProviderError ? error.status : 502; // 회사가 준 상태
-        return refuse(status === 401 || status === 403 ? 502 : status === 429 ? 429 : 502, status === 401 || status === 403 ? "bad-key" : status === 429 ? "provider-busy" : "provider-error", error instanceof Error ? error.message.slice(0, 200) : ""); // 이유 알림
+        const status = error instanceof ProviderError ? error.status : 0; // 회사가 준 상태(연결조차 안 되면 0)
+        const local = model.provider === "local"; // 내 컴퓨터 모델 여부
+        const code = local && status === 0 ? "model-offline" : local && status === 404 ? "model-missing" : status === 401 || status === 403 ? "bad-key" : status === 429 ? "provider-busy" : "provider-error"; // 이유(내 컴퓨터 모델은 프로그램 꺼짐·모델 없음을 따로 알림)
+        return refuse(code === "provider-busy" ? 429 : 502, code, error instanceof Error ? error.message.slice(0, 200) : ""); // 이유 알림
     } // 실패 종료
     const encoder = new TextEncoder(); // 글자 변환
     const stream = new ReadableStream<Uint8Array>( // 브라우저로 보내는 흐름

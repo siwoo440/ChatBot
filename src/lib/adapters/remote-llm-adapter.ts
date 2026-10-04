@@ -1,11 +1,12 @@
-// 실제 AI 어댑터: 실제 AI를 쓸 수 있는 등급이면 서버 통로로 답을 받고, 아니면(열쇠 없음·19세 작품·서버 없음) 연습용 AI로 답한다. 요약과 스탯 판단은 아직 연습용 규칙을 쓴다.
+// 실제 AI 어댑터: 실제 AI를 쓸 수 있는 등급이면 서버 통로로 답을 받고, 아니면(열쇠 없음·외부 AI 등급의 19세 작품·서버 없음) 연습용 AI로 답한다. 요약과 스탯 판단은 아직 연습용 규칙을 쓴다.
 import type { ChatReplyOptions, LLMAdapter, LLMInput, SummaryInput } from "@/lib/adapters/llm-adapter"; // 어댑터 계약
 import { loadModelStatus, type ModelStatus } from "@/lib/adapters/model-status"; // 실제 AI 상태
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // 연습용 AI
+import { getChatTier } from "@/features/chat/chat-tiers"; // 채팅 등급
 import type { StatChange, StatJudgeInput } from "@/features/chat/stat-model"; // 스탯 판단 형식
 import type { ChatRequest } from "@/lib/llm/prompt-builder"; // 서버 통로 요청
 
-export type ChatServiceCode = "bad-key" | "rate-limited" | "provider-busy" | "provider-error" | "local-only" | "bad-request" | "too-large" | "unknown"; // 실패 이유
+export type ChatServiceCode = "bad-key" | "rate-limited" | "provider-busy" | "provider-error" | "model-offline" | "model-missing" | "local-only" | "bad-request" | "too-large" | "unknown"; // 실패 이유
 
 export class ChatServiceError extends Error // 실제 AI 실패(이유 코드 포함)
 { // 클래스 시작
@@ -17,9 +18,9 @@ export class ChatServiceError extends Error // 실제 AI 실패(이유 코드 �
 } // 클래스 종료
 
 const fallbackCodes = new Set(["disabled", "no-key", "mature-not-supported"]); // 연습용으로 넘기는 이유
-const knownCodes = new Set<ChatServiceCode>(["bad-key", "rate-limited", "provider-busy", "provider-error", "local-only", "bad-request", "too-large"]); // 화면에 알리는 이유
+const knownCodes = new Set<ChatServiceCode>(["bad-key", "rate-limited", "provider-busy", "provider-error", "model-offline", "model-missing", "local-only", "bad-request", "too-large"]); // 화면에 알리는 이유
 
-export function isMatureInput(input: Pick<LLMInput, "character" | "contentRating">): boolean // 19세 작품 여부(외부 AI 약관 때문에 연습용으로 답함)
+export function isMatureInput(input: Pick<LLMInput, "character" | "contentRating">): boolean // 19세 작품 여부(외부 AI 등급은 약관 때문에 연습용으로 답하고, 직접 돌리는 공개 모델 등급만 실제로 답함)
 { // 함수 시작
     return input.character.contentRating === "mature" || input.contentRating === "mature"; // 캐릭터·작품 등급
 } // 함수 종료
@@ -46,7 +47,7 @@ export class RemoteLLMAdapter implements LLMAdapter // 실제 AI 어댑터
     { // 함수 시작
         const options = input.options; // 응답 조건
         const status = await this.status(); // 실제 AI 상태
-        if (options === undefined || status.tiers[options.tier] !== true || isMatureInput(input)) // 연습용으로 답할 경우
+        if (options === undefined || status.tiers[options.tier] !== true || (isMatureInput(input) && !getChatTier(options.tier).mature)) // 연습용으로 답할 경우(19세 작품은 공개 모델 등급만 실제 AI)
         { // 조건 시작
             yield* this.fallback.streamReply(input, signal); // 연습용 AI
             return; // 종료

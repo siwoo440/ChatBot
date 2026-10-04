@@ -70,6 +70,14 @@ function describeChatServiceError(code: ChatServiceCode): string // 실제 AI �
     { // 조건 시작
         return t("AI 회사의 사용 한도에 걸렸어요. 잠시 뒤에 다시 시도하거나 다른 등급을 골라 주세요."); // 한도 안내
     } // 조건 종료
+    if (code === "model-offline") // 내 컴퓨터의 AI 프로그램이 꺼짐
+    { // 조건 시작
+        return t("내 컴퓨터의 AI 프로그램(Ollama)이 꺼져 있어요. 프로그램을 켠 뒤 다시 시도해 주세요."); // 프로그램 안내
+    } // 조건 종료
+    if (code === "model-missing") // 설치되지 않은 모델
+    { // 조건 시작
+        return t("설치되지 않은 모델이에요. .env.local의 CHAT_MODEL_OPEN과 설치한 모델 이름이 같은지 확인해 주세요."); // 모델 안내
+    } // 조건 종료
     return t("AI 회사에서 답을 받지 못했어요. 다시 시도하거나 다른 등급을 골라 주세요."); // 그 밖의 실패
 } // 함수 종료
 
@@ -528,7 +536,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
             <PageTitle title={title} /> {/* 탭 제목 */}
             <ChatShortcuts onRegenerate={canRegenerate ? () => void regenerate() : undefined} onShortcuts={() => openDialog("shortcuts")} font={state.settings.chatFont} /> {/* 화면 단축키·글꼴 불러오기 */}
             <section className={styles.story}> {/* 대화 영역(왼쪽 장면 영역 없이 남는 폭을 모두 차지) */}
-                <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? t("스토리 모드 · 등장인물 {0}명", [conversation.storyCast.length]) : t(version.relationshipStage)}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? t("AI 스토리") : t("AI 캐릭터")}>AI</span></h1></div><div className={styles.meta}><TierSelector settings={settings} onSelect={(tier) => updateSettings({ tier })} onSaveOptions={(tierOptions) => updateSettings({ tierOptions })} /><span>{t(version.emotion)}</span><strong>{snapshot.wallet.balance} {t("토큰")}</strong><button type="button" className={styles.panelToggle} aria-expanded={reviewOpen} aria-controls="chat-review-bar" onClick={() => { if (reviewOpen) { setFoundIds([]); } setReviewOpen(!reviewOpen); }}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></svg>{t("다시 보기")}</button><button ref={panelToggleRef} type="button" className={styles.panelToggle} aria-label={t("채팅방 설정 열기와 닫기")} aria-expanded={panelOpen} aria-controls="chat-settings-panel" onClick={() => setPanelOpen(!panelOpen)}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>{t("설정")}</button></div></header> {/* 대화 상태 */}
+                <header className={styles.storyHeader}><div><span className={styles.stage}>{storyMode ? t("스토리 모드 · 등장인물 {0}명", [conversation.storyCast.length]) : t(version.relationshipStage)}</span><h1>{title} <span className={styles.aiBadge} data-ai-badge="" title={storyMode ? t("AI 스토리") : t("AI 캐릭터")}>AI</span></h1></div><div className={styles.meta}><TierSelector settings={settings} mature={workRating === "mature"} onSelect={(tier) => updateSettings({ tier })} onSaveOptions={(tierOptions) => updateSettings({ tierOptions })} /><span>{t(version.emotion)}</span><strong>{snapshot.wallet.balance} {t("토큰")}</strong><button type="button" className={styles.panelToggle} aria-expanded={reviewOpen} aria-controls="chat-review-bar" onClick={() => { if (reviewOpen) { setFoundIds([]); } setReviewOpen(!reviewOpen); }}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><circle cx="11" cy="11" r="6" /><path d="M20 20l-4.5-4.5" /></svg>{t("다시 보기")}</button><button ref={panelToggleRef} type="button" className={styles.panelToggle} aria-label={t("채팅방 설정 열기와 닫기")} aria-expanded={panelOpen} aria-controls="chat-settings-panel" onClick={() => setPanelOpen(!panelOpen)}><svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>{t("설정")}</button></div></header> {/* 대화 상태 */}
                 <p className={styles.aiNotice} role="note" aria-label={t("AI 이용 안내")}>{storyMode ? t("AI가 만든 허구의 대화입니다. 등장인물은 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요.") : t("AI가 만든 허구의 대화입니다. 캐릭터는 실제 사람이 아니며, 건강·법률·금융처럼 중요한 결정은 전문가와 상의하세요.")}</p> {/* AI 이용 안내 */}
                 {work.playGuide.trim().length === 0 ? null : <PlayGuideCard text={work.playGuide} onOpen={() => openDialog("guide")} />} {/* 플레이 가이드 */}
                 {reviewOpen ? <ReviewBar messages={versionMessages} onFound={setFoundIds} onJump={jumpTo} onClose={() => setReviewOpen(false)} /> : null} {/* 대화 다시 보기(검색·책갈피) */}

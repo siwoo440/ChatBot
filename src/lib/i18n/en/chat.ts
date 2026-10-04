@@ -329,4 +329,9 @@ export const chat: Record<string, string> = {
     "너무 빠르게 보냈어요. 1분쯤 뒤에 다시 시도해 주세요.": "You're sending too fast. Try again in about a minute.",
     "AI 회사의 사용 한도에 걸렸어요. 잠시 뒤에 다시 시도하거나 다른 등급을 골라 주세요.": "The AI provider's usage limit was hit. Try again later or pick another tier.",
     "AI 회사에서 답을 받지 못했어요. 다시 시도하거나 다른 등급을 골라 주세요.": "No reply came from the AI provider. Try again or pick another tier.",
+    "오픈챗": "Open chat",
+    "공개 모델": "Open model",
+    "내 컴퓨터 모델 · 19세 작품 가능": "On this computer · OK for 19+ works",
+    "내 컴퓨터의 AI 프로그램(Ollama)이 꺼져 있어요. 프로그램을 켠 뒤 다시 시도해 주세요.": "The AI program on this computer (Ollama) isn't running. Start it and try again.",
+    "설치되지 않은 모델이에요. .env.local의 CHAT_MODEL_OPEN과 설치한 모델 이름이 같은지 확인해 주세요.": "That model isn't installed. Check that CHAT_MODEL_OPEN in .env.local matches the installed model name.",
 };

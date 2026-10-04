@@ -23,7 +23,7 @@ export function createDefaultStatusTemplate(enabled = true): StatusTemplate // �
 
 export function createDefaultTierOptions(): Record<ChatTierId, TierOption> // 등급별 기본 답변 설정
 { // 함수 시작
-    return { basic: { length: 1, thinking: "off" }, smart: { length: 1, thinking: "off" }, balance: { length: 1, thinking: "off" }, plus: { length: 1, thinking: "off" }, premium: { length: 1, thinking: "off" }, master: { length: 1, thinking: "off" } }; // 기본 길이·생각 끄기
+    return { open: { length: 1, thinking: "off" }, basic: { length: 1, thinking: "off" }, smart: { length: 1, thinking: "off" }, balance: { length: 1, thinking: "off" }, plus: { length: 1, thinking: "off" }, premium: { length: 1, thinking: "off" }, master: { length: 1, thinking: "off" } }; // 기본 길이·생각 끄기
 } // 함수 종료
 
 export function createDefaultConversationSettings(): ConversationSettings // 대화방 기본 설정

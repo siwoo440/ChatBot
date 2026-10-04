@@ -24,7 +24,7 @@ const encoder = new TextEncoder(); // 글자 변환
 const options = { tier: "plus" as const, length: 1 as const, thinking: "off" as const, writingStyle: "default" as const, preventImpersonation: true, persona: null, userNote: "", memories: [], playGuide: "", stats: [], lore: [], examples: [] }; // 응답 조건
 const message = (role: "user" | "assistant" | "system", content: string) => ({ id: `m-${content}`, conversationId: mockConversations[0].id, versionId: mockConversationVersions[0].id, sourceMessageId: null, role, content, emotion: null, sceneEvent: null, createdAt: "2026-10-04T00:00:00.000Z" }); // 메시지 생성
 const input: LLMInput = { character: mockCharacters[0], conversation: mockConversations[0], version: mockConversationVersions[0], messages: [message("system", "안내"), message("assistant", "어서 와."), message("user", "안녕")], options, contentRating: "all" }; // 대화 입력
-const live: ModelStatus = { enabled: true, tiers: { plus: true } }; // 플러스챗만 실제 AI
+const live: ModelStatus = { enabled: true, tiers: { plus: true }, models: {} }; // 플러스챗만 실제 AI
 const practice: LLMAdapter = { async *streamReply() { yield "연습용 답"; }, summarizeConversation: async () => "요약", judgeStats: async () => [] }; // 연습용 AI 대역
 
 function streamed(chunks: string[]): Response // 글자 조각으로 흘러나오는 답
@@ -79,6 +79,19 @@ describe("실제 AI 어댑터", () => // 어댑터 묶음
         expect(await adapter.summarizeConversation({ conversation: mockConversations[0], version: mockConversationVersions[0], messages: [] })).toBe("요약"); // 요약은 연습용 규칙
     }); // 검증 종료
 
+    it("19세 작품은 오픈챗(내 컴퓨터 모델)일 때만 서버 통로로 보낸다", async () => // 19세 작품 검증
+    { // 검증 시작
+        const fetcher = vi.fn(async () => streamed(["가까이 와."])); // 서버 통로 대역
+        const adapter = new RemoteLLMAdapter(practice, fetcher as unknown as typeof fetch, async () => ({ enabled: true, tiers: { plus: true, open: true }, models: { open: "qwen3:14b" } })); // 플러스챗과 오픈챗이 실제 AI
+        expect(await collect(adapter.streamReply({ ...input, contentRating: "mature" }))).toBe("연습용 답"); // 플러스챗은 연습용
+        expect(fetcher).not.toHaveBeenCalled(); // 외부 AI로 보내지 않음
+        expect(await collect(adapter.streamReply({ ...input, contentRating: "mature", options: { ...options, tier: "open" } }))).toBe("가까이 와."); // 오픈챗은 실제 답
+        const body = JSON.parse((fetcher.mock.calls[0] as unknown as [string, RequestInit])[1].body as string) as ReturnType<typeof toChatRequest>; // 보낸 내용
+        expect([body.tier, body.character.contentRating]).toEqual(["open", "mature"]); // 19세 작품임을 알림
+        const offline = new RemoteLLMAdapter(practice, (async () => Response.json({ error: "model-offline" }, { status: 502 })) as unknown as typeof fetch, async () => ({ enabled: true, tiers: { open: true }, models: {} })); // 프로그램 꺼짐
+        await expect(collect(offline.streamReply({ ...input, options: { ...options, tier: "open" } }))).rejects.toMatchObject({ code: "model-offline" }); // 이유 전달
+    }); // 검증 종료
+
     it("열쇠가 틀리거나 답이 비면 이유를 담은 오류를 낸다", async () => // 실패 검증
     { // 검증 시작
         const badKey = new RemoteLLMAdapter(practice, (async () => Response.json({ error: "bad-key", detail: "invalid" }, { status: 502 })) as unknown as typeof fetch, async () => live); // 열쇠 거절
@@ -95,19 +108,44 @@ describe("등급 선택 화면", () => // 화면 묶음
     it("등급마다 별명과 모델 이름을 보여 주고, 실제 AI를 쓸 수 있는 등급을 표시한다", async () => // 등급 목록 검증
     { // 테스트 시작
         const user = userEvent.setup(); // 사용자 도구 생성
-        vi.stubGlobal("fetch", vi.fn(async () => Response.json({ enabled: true, tiers: { master: true, premium: true, plus: true, balance: false, smart: false, basic: false } }))); // 상태 대역(Claude 열쇠만 있음)
+        vi.stubGlobal("fetch", vi.fn(async () => Response.json({ enabled: true, tiers: { master: true, premium: true, plus: true, balance: false, smart: false, basic: false, open: true }, models: { open: "qwen3:14b" } }))); // 상태 대역(Claude 열쇠와 내 컴퓨터 모델)
         const onSelect = vi.fn(); // 선택 처리
         render(<TierSelector settings={createDefaultConversationSettings()} onSelect={onSelect} onSaveOptions={() => undefined} />); // 선택기 렌더
         await user.click(screen.getByRole("button", { name: "채팅 모델 베이직챗, 메시지당 1 토큰" })); // 목록 열기
         const items = within(screen.getByRole("menu", { name: "채팅 모델 선택" })).getAllByRole("menuitemradio"); // 등급 항목
-        expect(items.map((item) => item.querySelector("strong")?.textContent)).toEqual(["마스터챗", "프리미엄챗", "플러스챗", "밸런스챗", "스마트챗", "베이직챗"]); // 여섯 등급
+        expect(items.map((item) => item.querySelector("strong")?.textContent)).toEqual(["마스터챗", "프리미엄챗", "플러스챗", "밸런스챗", "스마트챗", "베이직챗", "오픈챗"]); // 일곱 등급
         expect(items[2]).toHaveTextContent("Claude Sonnet"); // 모델 이름
         expect(items[3]).toHaveTextContent("GPT"); // 모델 이름
         expect(items[5]).toHaveTextContent("Gemini Flash"); // 모델 이름
         expect(await within(items[2]).findByText("실제 AI")).toBeInTheDocument(); // 열쇠가 있는 등급
         expect(within(items[5]).getByText("연습용 AI")).toBeInTheDocument(); // 열쇠가 없는 등급
+        expect(items[6]).toHaveTextContent("qwen3:14b · 내 컴퓨터 모델 · 19세 작품 가능"); // 설치한 모델 이름
+        expect(within(items[6]).getByText("실제 AI")).toBeInTheDocument(); // 내 컴퓨터 모델
         await user.click(items[0]); // 마스터챗 고르기
         expect(onSelect).toHaveBeenCalledWith("master"); // 선택 전달
+    }); // 테스트 종료
+
+    it("19세 작품에서는 오픈챗을 맨 위에 올려 혼자만 실제 AI로 표시하고, 모델 이름을 모르면 '공개 모델'로 보여 준다", async () => // 19세 작품 등급 목록 검증
+    { // 테스트 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        vi.stubGlobal("fetch", vi.fn(async () => Response.json({ enabled: true, tiers: { plus: true, open: true }, models: {} }))); // 상태 대역
+        render(<TierSelector settings={createDefaultConversationSettings()} mature onSelect={() => undefined} onSaveOptions={() => undefined} />); // 19세 작품의 선택기
+        await user.click(screen.getByRole("button", { name: "채팅 모델 베이직챗, 메시지당 1 토큰" })); // 목록 열기
+        const items = within(screen.getByRole("menu", { name: "채팅 모델 선택" })).getAllByRole("menuitemradio"); // 등급 항목
+        expect(items.map((item) => item.querySelector("strong")?.textContent)).toEqual(["오픈챗", "마스터챗", "프리미엄챗", "플러스챗", "밸런스챗", "스마트챗", "베이직챗"]); // 19세 작품에 답하는 등급이 맨 위
+        expect(await within(items[0]).findByText("실제 AI")).toBeInTheDocument(); // 오픈챗은 실제 AI
+        expect(within(items[3]).getByText("연습용 AI")).toBeInTheDocument(); // 플러스챗은 열쇠가 있어도 연습용
+        expect(items[0]).toHaveTextContent("공개 모델 · 내 컴퓨터 모델"); // 모델 이름을 모를 때
+    }); // 테스트 종료
+
+    it("내 컴퓨터의 AI 프로그램이 꺼져 있으면 켜라고 알려 준다", async () => // 프로그램 꺼짐 안내 검증
+    { // 테스트 시작
+        const user = userEvent.setup(); // 사용자 도구 생성
+        const failing: LLMAdapter = { streamReply: () => ({ [Symbol.asyncIterator]: () => ({ next: async () => { throw new ChatServiceError("model-offline"); } }) }), summarizeConversation: async () => "" }; // 프로그램이 꺼진 내 컴퓨터 모델
+        renderWithApp(<ChatScreen characterId="rian" llm={failing} images={new MockImageAdapter()} />); // 채팅 화면 렌더
+        await user.type(screen.getByRole("textbox", { name: "메시지" }), "안녕{Enter}"); // 보내기
+        expect(await screen.findByText("내 컴퓨터의 AI 프로그램(Ollama)이 꺼져 있어요. 프로그램을 켠 뒤 다시 시도해 주세요.")).toBeInTheDocument(); // 이유 안내
+        expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument(); // 다시 시도
     }); // 테스트 종료
 
     it("실제 AI가 실패하면 채팅 화면이 이유를 쉬운 말로 알려 주고 다시 시도할 수 있게 한다", async () => // 실패 안내 검증

@@ -3,9 +3,9 @@ import { GET, POST } from "@/app/api/chat/route"; // 서버 통로
 import { chatTiers, fillTierOptions, getMessageCost, getTierCost, getTierOption } from "@/features/chat/chat-tiers"; // 채팅 등급
 import { createDefaultConversationSettings } from "@/features/core/defaults"; // 기본값
 import { CHAT_REQUESTS_PER_MINUTE, isChatAllowedFrom, isLocalHost, resetChatSlots, takeChatSlot } from "@/lib/llm/chat-gate"; // 문지기
-import { getTierAvailability, isRealChatEnabled, resolveModel } from "@/lib/llm/model-catalog"; // 모델 목록
-import { buildChatPrompt, buildSystemPrompt, parseChatRequest, PROMPT_HISTORY_MESSAGES, PROMPT_START_TEXT, trimHistory, type ChatRequest } from "@/lib/llm/prompt-builder"; // 지시문 만들기
-import { ProviderError, readSseData, streamProviderReply, type FetchLike } from "@/lib/llm/providers"; // AI 회사 연결
+import { getLocalModelNames, getTierAvailability, isRealChatEnabled, resolveModel } from "@/lib/llm/model-catalog"; // 모델 목록
+import { buildChatPrompt, buildSystemPrompt, LOCAL_HISTORY_MESSAGES, parseChatRequest, PROMPT_HISTORY_MESSAGES, PROMPT_START_TEXT, trimHistory, type ChatRequest } from "@/lib/llm/prompt-builder"; // 지시문 만들기
+import { ProviderError, readSseData, streamProviderReply, stripThinking, type FetchLike } from "@/lib/llm/providers"; // AI 회사 연결
 import { isConversationSettings } from "@/lib/repositories/state-validation"; // 설정 검사
 
 const encoder = new TextEncoder(); // 글자 변환
@@ -42,10 +42,11 @@ afterEach(() => // 테스트 정리
 
 describe("채팅 등급", () => // 등급 묶음
 { // 묶음 시작
-    it("등급은 여섯 개이고 별명과 모델 이름, 회사를 함께 가진다", () => // 등급 목록 검증
+    it("등급은 일곱 개이고 별명과 모델 이름, 회사를 함께 가진다", () => // 등급 목록 검증
     { // 검증 시작
-        expect(chatTiers.map((tier) => [tier.id, tier.label, tier.model, tier.provider])).toEqual([["master", "마스터챗", "Claude Fable", "anthropic"], ["premium", "프리미엄챗", "Claude Opus", "anthropic"], ["plus", "플러스챗", "Claude Sonnet", "anthropic"], ["balance", "밸런스챗", "GPT", "openai"], ["smart", "스마트챗", "Gemini Pro", "gemini"], ["basic", "베이직챗", "Gemini Flash", "gemini"]]); // 비싼 순서
-        expect(chatTiers.map((tier) => getTierCost(tier.id, { length: 1, thinking: "off" }))).toEqual([12, 8, 3, 2, 2, 1]); // 기본 비용
+        expect(chatTiers.map((tier) => [tier.id, tier.label, tier.model, tier.provider])).toEqual([["master", "마스터챗", "Claude Fable", "anthropic"], ["premium", "프리미엄챗", "Claude Opus", "anthropic"], ["plus", "플러스챗", "Claude Sonnet", "anthropic"], ["balance", "밸런스챗", "GPT", "openai"], ["smart", "스마트챗", "Gemini Pro", "gemini"], ["basic", "베이직챗", "Gemini Flash", "gemini"], ["open", "오픈챗", "공개 모델", "local"]]); // 비싼 순서(끝은 내 컴퓨터 모델)
+        expect(chatTiers.map((tier) => getTierCost(tier.id, { length: 1, thinking: "off" }))).toEqual([12, 8, 3, 2, 2, 1, 1]); // 기본 비용
+        expect(chatTiers.filter((tier) => tier.mature).map((tier) => tier.id)).toEqual(["open"]); // 19세 작품에 답하는 등급은 오픈챗뿐
     }); // 검증 종료
 
     it("세 등급만 있던 예전 설정도 그대로 읽고, 없는 등급은 기본값으로 채운다", () => // 예전 데이터 검증
@@ -54,11 +55,12 @@ describe("채팅 등급", () => // 등급 묶음
         expect(isConversationSettings(old)).toBe(true); // 검사 통과
         expect(getTierOption(old.tierOptions, "master")).toEqual({ length: 1, thinking: "off" }); // 없는 등급은 기본값
         expect(getTierOption(old.tierOptions, "plus")).toEqual({ length: 3, thinking: "deep" }); // 저장된 값
-        expect(Object.keys(fillTierOptions(old.tierOptions)).sort()).toEqual(["balance", "basic", "master", "plus", "premium", "smart"]); // 여섯 등급 모두
+        expect(Object.keys(fillTierOptions(old.tierOptions)).sort()).toEqual(["balance", "basic", "master", "open", "plus", "premium", "smart"]); // 일곱 등급 모두
         expect(getMessageCost({ ...old, tier: "master" })).toBe(12); // 새 등급 비용
         expect(isConversationSettings({ ...old, tier: "ultra" })).toBe(false); // 모르는 등급 거부
         expect(isConversationSettings({ ...old, tierOptions: { ...old.tierOptions, ultra: { length: 1, thinking: "off" } } })).toBe(false); // 모르는 등급의 설정 거부
-        expect(Object.keys(createDefaultConversationSettings().tierOptions)).toHaveLength(6); // 새 대화는 여섯 등급
+        expect(Object.keys(createDefaultConversationSettings().tierOptions)).toHaveLength(7); // 새 대화는 일곱 등급
+        expect(isConversationSettings({ ...old, tier: "open" })).toBe(true); // 오픈챗 등급
     }); // 검증 종료
 }); // 묶음 종료
 
@@ -72,7 +74,21 @@ describe("모델 목록과 문지기", () => // 서버 설정 묶음
         expect(resolveModel("plus", env)).toEqual({ provider: "anthropic", model: "claude-sonnet-5-5", apiKey: "key-a", baseUrl: "https://api.anthropic.com/v1" }); // 기본 모델과 주소
         expect(resolveModel("balance", env)).toEqual({ provider: "openai", model: "custom-model", apiKey: "key-o", baseUrl: "https://example.test/v1" }); // 환경 변수로 바꾼 모델과 주소
         expect(resolveModel("basic", env)).toBeNull(); // 열쇠가 없는 회사
-        expect(getTierAvailability(env)).toEqual({ master: true, premium: true, plus: true, balance: true, smart: false, basic: false }); // 등급별 가능 여부
+        expect(getTierAvailability(env)).toEqual({ master: true, premium: true, plus: true, balance: true, smart: false, basic: false, open: false }); // 등급별 가능 여부
+    }); // 검증 종료
+
+    it("오픈챗은 열쇠 없이 설치한 모델 이름만 적으면 내 컴퓨터 주소로 연결한다", () => // 내 컴퓨터 모델 검증
+    { // 검증 시작
+        expect(resolveModel("open", { ENABLE_REAL_PROVIDERS: "true" })).toBeNull(); // 모델 이름이 없으면 연습용
+        expect(resolveModel("open", { CHAT_MODEL_OPEN: "qwen3:14b" })).toBeNull(); // 스위치가 꺼져 있으면 연습용
+        const env = { ENABLE_REAL_PROVIDERS: "true", CHAT_MODEL_OPEN: " qwen3:14b " }; // 모델 이름만
+        expect(resolveModel("open", env)).toEqual({ provider: "local", model: "qwen3:14b", apiKey: "", baseUrl: "http://127.0.0.1:11434/v1", reasoningEffort: "none" }); // Ollama 기본 주소, 생각 끔
+        expect(getTierAvailability(env)).toEqual({ master: false, premium: false, plus: false, balance: false, smart: false, basic: false, open: true }); // 오픈챗만 실제 AI
+        expect(getLocalModelNames(env)).toEqual({ open: "qwen3:14b" }); // 화면에 보여 줄 모델 이름
+        expect(getLocalModelNames({ ...env, ANTHROPIC_API_KEY: "key-a" })).toEqual({ open: "qwen3:14b" }); // 회사 모델 이름은 내보내지 않음
+        const rented = resolveModel("open", { ...env, LOCAL_BASE_URL: "https://gpu.example.test/v1/", LOCAL_API_KEY: "key-l", LOCAL_REASONING_EFFORT: "skip" }); // 빌린 서버로 옮긴 경우
+        expect(rented).toMatchObject({ baseUrl: "https://gpu.example.test/v1", apiKey: "key-l" }); // 주소와 열쇠만 바꿈
+        expect(rented?.reasoningEffort).toBeUndefined(); // 생각 세기를 보내지 않음
     }); // 검증 종료
 
     it("내 컴퓨터에서 온 요청만 받고 1분에 정해진 횟수까지만 받는다", () => // 문지기 검증
@@ -103,6 +119,28 @@ describe("지시문 만들기", () => // 지시문 묶음
         expect(english).toContain("Write the reply in English."); // 영어로 답하라는 지시
         expect(english).not.toContain("대신 쓰지 않는다"); // 사칭 방지 끔
         expect(english).not.toContain("- 문체:"); // 기본 문체는 지침 없음
+    }); // 검증 종료
+
+    it("19세 작품을 오픈챗으로 답할 때만 수위를 열고, 미성년자·실존 인물 금지는 항상 남긴다", () => // 수위 규칙 검증
+    { // 검증 시작
+        const mature = { ...request.character, contentRating: "mature" as const }; // 19세 캐릭터
+        const opened = buildSystemPrompt({ ...request, tier: "open", character: mature }); // 오픈챗 + 19세 작품
+        expect(opened).toContain("수위 높은 장면도 피하거나 건너뛰지 않고"); // 수위 엶
+        expect(opened).not.toContain("노골적인 묘사는 쓰지 않고"); // 막는 문장 없음
+        expect(opened).toContain("미성년자나 미성년자로 보이는 인물을 성적으로 그리지 않고, 실존 인물을 흉내 내지 않는다."); // 금지 두 가지는 유지
+        for (const closed of [buildSystemPrompt({ ...request, tier: "plus", character: mature }), buildSystemPrompt({ ...request, tier: "open" })]) // 외부 AI 등급의 19세 작품, 오픈챗의 전연령 작품
+        { // 순회 시작
+            expect(closed).toContain("성적으로 노골적인 묘사는 쓰지 않고 장면을 넘긴다."); // 수위 닫음
+            expect(closed).not.toContain("건너뛰지 않고"); // 여는 문장 없음
+        } // 순회 종료
+    }); // 검증 종료
+
+    it("내 컴퓨터 모델에는 최근 대화를 더 짧게 보낸다", () => // 내 컴퓨터 모델 대화 길이 검증
+    { // 검증 시작
+        const long = Array.from({ length: 100 }, (_item, index) => ({ role: index % 2 === 0 ? "user" as const : "assistant" as const, content: `말 ${index}` })); // 긴 대화
+        expect(buildChatPrompt({ ...request, tier: "open", messages: long }).messages).toHaveLength(LOCAL_HISTORY_MESSAGES); // 최근 20개
+        expect(buildChatPrompt({ ...request, messages: long }).messages).toHaveLength(PROMPT_HISTORY_MESSAGES); // 회사 모델은 40개
+        expect(buildChatPrompt({ ...request, tier: "open", messages: long }).messages.at(-1)?.content).toBe("말 99"); // 가장 최근 말 유지
     }); // 검증 종료
 
     it("스토리는 등장인물과 [이름] 대사 형식을 알려 준다", () => // 스토리 지시문 검증
@@ -192,6 +230,32 @@ describe("AI 회사 연결", () => // 회사 연결 묶음
         expect(body.messages).toHaveLength(prompt.messages.length + 1); // 대화가 이어짐
     }); // 검증 종료
 
+    it("내 컴퓨터 모델에는 열쇠 없이 OpenAI 형식으로 보내고 생각 과정을 뺀다", async () => // 내 컴퓨터 모델 검증
+    { // 검증 시작
+        const fetcher = vi.fn<FetchLike>(async () => sse(["data: {\"choices\":[{\"delta\":{\"content\":\"<thi\"}}]}\n\n", "data: {\"choices\":[{\"delta\":{\"content\":\"nk>무슨 말을 할까</th\"}}]}\n\n", "data: {\"choices\":[{\"delta\":{\"content\":\"ink>\\n\\n어서 \"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"reasoning\":\"숨은 생각\"}}]}\n\n", "data: {\"choices\":[{\"delta\":{\"content\":\"와. 3 < 5\"}}]}\n\ndata: [DONE]\n\n"])); // 가짜 Ollama(생각 꼬리표가 조각 사이에서 끊김)
+        expect(await collect(streamProviderReply({ provider: "local", model: "qwen3:14b", apiKey: "", baseUrl: "http://127.0.0.1:11434/v1", reasoningEffort: "none" }, prompt, fetcher))).toBe("어서 와. 3 < 5"); // 답변 글자만
+        const [url, init] = fetcher.mock.calls[0]; // 보낸 요청
+        expect(url).toBe("http://127.0.0.1:11434/v1/chat/completions"); // 주소
+        expect(init.headers).not.toHaveProperty("authorization"); // 열쇠를 보내지 않음
+        const body = JSON.parse(init.body as string) as Record<string, unknown>; // 내용
+        expect(body).toMatchObject({ model: "qwen3:14b", stream: true, max_tokens: 1500, reasoning_effort: "none" }); // 생각 끄고 답변 길이만큼
+        expect(body).not.toHaveProperty("max_completion_tokens"); // Ollama가 모르는 항목은 보내지 않음
+        const rented = vi.fn<FetchLike>(async () => sse(["data: {\"choices\":[{\"delta\":{\"content\":\"응.\"}}]}\n\n"])); // 빌린 서버
+        expect(await collect(streamProviderReply({ provider: "local", model: "m", apiKey: "key-l", baseUrl: "https://gpu.example.test/v1" }, prompt, rented))).toBe("응."); // 답변
+        expect(rented.mock.calls[0][1].headers).toMatchObject({ authorization: "Bearer key-l" }); // 열쇠가 있으면 보냄
+        const rentedBody = JSON.parse(rented.mock.calls[0][1].body as string) as Record<string, unknown>; // 내용
+        expect(rentedBody).not.toHaveProperty("reasoning_effort"); // 생각 세기를 보내지 않음
+        expect(rentedBody.max_tokens).toBeGreaterThan(1500); // 생각 분량 여유
+    }); // 검증 종료
+
+    it("생각 꼬리표가 없거나 닫히지 않아도 답을 잃지 않는다", async () => // 생각 제거 검증
+    { // 검증 시작
+        const from = (chunks: string[]) => (async function* () { yield* chunks; })(); // 조각 흐름
+        expect(await collect(stripThinking(from(["그냥 ", "답이야 <", "b>굵게</b>"])))).toBe("그냥 답이야 <b>굵게</b>"); // 꼬리표 없음(다른 꺾쇠는 그대로)
+        expect(await collect(stripThinking(from(["<think>끝나지 않는 생각"])))).toBe(""); // 닫히지 않은 생각은 버림
+        expect(await collect(stripThinking(from(["앞 <think>가</think>뒤 <think>나</think>끝"])))).toBe("앞 뒤 끝"); // 여러 번
+    }); // 검증 종료
+
     it("회사가 거절하면 상태 코드와 설명을 담은 오류를 낸다", async () => // 오류 검증
     { // 검증 시작
         const fetcher: FetchLike = async () => new Response("{\"error\":\"invalid key\"}", { status: 401 }); // 열쇠 거절
@@ -224,15 +288,17 @@ describe("서버 통로", () => // 서버 통로 묶음
         vi.stubEnv("GEMINI_API_KEY", ""); // Gemini 열쇠 없음
         vi.stubEnv("OPENAI_API_KEY", ""); // GPT 열쇠 없음
         vi.stubEnv("CHAT_ALLOW_PUBLIC", ""); // 공개 꺼짐
+        vi.stubEnv("CHAT_MODEL_OPEN", ""); // 내 컴퓨터 모델 없음
         const status = await GET(new Request("http://localhost:3002/api/chat", { headers: { host: "localhost:3002" } })).json() as { enabled: boolean; tiers: Record<string, boolean> }; // 상태
-        expect(status).toEqual({ enabled: true, tiers: { master: true, premium: true, plus: true, balance: false, smart: false, basic: false } }); // Claude 등급만
+        expect(status).toEqual({ enabled: true, tiers: { master: true, premium: true, plus: true, balance: false, smart: false, basic: false, open: false }, models: {} }); // Claude 등급만
         expect(JSON.stringify(status)).not.toContain("key-a"); // 열쇠 값은 내보내지 않음
         const outside = await GET(new Request("http://mateverse.example/api/chat", { headers: { host: "mateverse.example" } })).json() as { enabled: boolean; tiers: Record<string, boolean> }; // 바깥에서 물음
         expect(outside.enabled).toBe(false); // 바깥에는 꺼진 것으로
         expect([(await post(request, "mateverse.example")).status]).toEqual([403]); // 바깥 요청 거절
         expect(await reason(await post("{broken"))).toBe("bad-request"); // 깨진 글
         expect(await reason(await post({ ...request, messages: [] }))).toBe("bad-request"); // 모양이 다름
-        expect(await reason(await post({ ...request, character: { ...request.character, contentRating: "mature" } }))).toBe("mature-not-supported"); // 19세 작품
+        expect(await reason(await post({ ...request, character: { ...request.character, contentRating: "mature" } }))).toBe("mature-not-supported"); // 외부 AI 등급의 19세 작품
+        expect(await reason(await post({ ...request, tier: "open", character: { ...request.character, contentRating: "mature" } }))).toBe("no-key"); // 오픈챗은 19세 작품을 받지만 모델이 없으면 연습용
         expect(await reason(await post({ ...request, tier: "basic" }))).toBe("no-key"); // 열쇠 없는 등급
     }); // 검증 종료
 
@@ -253,5 +319,35 @@ describe("서버 통로", () => // 서버 통로 묶음
         vi.stubGlobal("fetch", vi.fn(async () => new Response("slow down", { status: 429 }))); // 회사 한도
         const busy = await post(request); // 요청
         expect([busy.status, await reason(busy)]).toEqual([429, "provider-busy"]); // 한도로 알림
+    }); // 검증 종료
+
+    it("오픈챗은 19세 작품을 내 컴퓨터 모델로 답하고, 프로그램이 꺼졌거나 모델이 없으면 이유를 알려 준다", async () => // 내 컴퓨터 모델 흐름 검증
+    { // 검증 시작
+        vi.stubEnv("ENABLE_REAL_PROVIDERS", "true"); // 스위치 켬
+        vi.stubEnv("CHAT_MODEL_OPEN", "qwen3:14b"); // 설치한 모델
+        vi.stubEnv("LOCAL_BASE_URL", ""); // 기본 주소
+        vi.stubEnv("LOCAL_API_KEY", ""); // 열쇠 없음
+        vi.stubEnv("LOCAL_REASONING_EFFORT", ""); // 기본(생각 끔)
+        vi.stubEnv("ANTHROPIC_API_KEY", ""); // 회사 열쇠 없음
+        vi.stubEnv("GEMINI_API_KEY", ""); // 회사 열쇠 없음
+        vi.stubEnv("OPENAI_API_KEY", ""); // 회사 열쇠 없음
+        const status = await GET(new Request("http://localhost:3002/api/chat", { headers: { host: "localhost:3002" } })).json() as { tiers: Record<string, boolean>; models: Record<string, string> }; // 상태
+        expect([status.tiers.open, status.tiers.plus, status.models]).toEqual([true, false, { open: "qwen3:14b" }]); // 오픈챗만 실제 AI, 모델 이름 알림
+        const outside = await GET(new Request("http://mateverse.example/api/chat", { headers: { host: "mateverse.example" } })).json() as { models: Record<string, string> }; // 바깥에서 물음
+        expect(outside.models).toEqual({}); // 바깥에는 모델 이름도 알리지 않음
+        const fetcher = vi.fn<FetchLike>(async () => sse(["data: {\"choices\":[{\"delta\":{\"content\":\"가까이 와.\"}}]}\n\ndata: [DONE]\n\n"])); // 가짜 Ollama
+        vi.stubGlobal("fetch", fetcher); // 요청 함수 바꿈
+        const mature = { ...request, tier: "open", character: { ...request.character, contentRating: "mature" } }; // 19세 작품을 오픈챗으로
+        const response = await post(mature); // 요청
+        expect([response.status, response.headers.get("x-chat-model"), await response.text()]).toEqual([200, "qwen3:14b", "가까이 와."]); // 내 컴퓨터 모델의 답
+        const sent = JSON.parse(fetcher.mock.calls[0][1].body as string) as { messages: Array<{ role: string; content: string }> }; // 보낸 내용
+        expect(fetcher.mock.calls[0][0]).toBe("http://127.0.0.1:11434/v1/chat/completions"); // 내 컴퓨터 주소
+        expect(sent.messages[0].content).toContain("수위 높은 장면도 피하거나 건너뛰지 않고"); // 수위를 연 지시문
+        vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); })); // 프로그램이 꺼져 연결 실패
+        const offline = await post(mature); // 요청
+        expect([offline.status, await reason(offline)]).toEqual([502, "model-offline"]); // 프로그램 꺼짐으로 알림
+        vi.stubGlobal("fetch", vi.fn(async () => new Response("{\"error\":{\"message\":\"model 'qwen3:14b' not found\"}}", { status: 404 }))); // 설치되지 않은 모델
+        const missing = await post(mature); // 요청
+        expect([missing.status, await reason(missing)]).toEqual([502, "model-missing"]); // 모델 없음으로 알림
     }); // 검증 종료
 }); // 묶음 종료
