@@ -106,10 +106,16 @@ Claude·Gemini·GPT는 약관으로 성인 대화를 금지합니다. 그래서 
 
 1. [Ollama](https://ollama.com/download)를 설치합니다(관리자 권한 없이 설치되고 뒤에서 계속 켜져 있습니다).
 2. 모델을 내려받습니다. 그래픽카드 메모리가 16GB면 `ollama pull qwen3:14b`(9.3GB)로 시작합니다.
-3. Ollama 설정에서 `Context length`를 16k로 올립니다. 기본값 4k로는 캐릭터 설정과 대화가 다 들어가지 않아 앞부분이 잘립니다.
-4. `.env.local`에서 `ENABLE_REAL_PROVIDERS=true`, `CHAT_MODEL_OPEN=qwen3:14b`로 적고 개발 서버를 다시 켭니다.
+3. 한 번에 읽는 분량을 16k로 올립니다. 기본값 4k로는 캐릭터 설정과 대화가 다 들어가지 않아 앞부분이 잘립니다. Ollama 설정의 `Context length`를 올리거나, 아래처럼 16k로 맞춘 모델 사본을 만듭니다(새로 내려받지 않습니다).
+4. `.env.local`에서 `ENABLE_REAL_PROVIDERS=true`, `CHAT_MODEL_OPEN=qwen3-14b-16k`(사본을 만들지 않았으면 `qwen3:14b`)로 적고 개발 서버를 다시 켭니다.
 5. 채팅 화면의 등급 목록에서 `오픈챗`을 고릅니다. 19세 작품에서는 오픈챗이 맨 위에 나옵니다.
 
+```powershell
+Set-Content Modelfile "FROM qwen3:14b`nPARAMETER num_ctx 16384"
+ollama create qwen3-14b-16k -f Modelfile
+```
+
+- 모델을 처음 부를 때는 그래픽카드에 올리느라 40~50초쯤 걸리고, 그 뒤로는 답 하나에 1~2초입니다(RTX 5070 Ti 16GB 기준). 5분쯤 쓰지 않으면 다시 내려갑니다.
 - 상업 서비스에 쓸 수 있는 조건(MIT·Apache 2.0)의 모델만 씁니다. Gemma는 성인 챗봇을 금지하고, 커뮤니티 롤플레이 모델은 비상업 조건이 많습니다.
 - 미성년자나 미성년자로 보이는 인물, 실존 인물은 오픈챗에서도 지시문으로 금지합니다.
 - 프로그램이 꺼져 있거나 모델 이름이 다르면 채팅 화면이 이유를 알려 줍니다.
