@@ -9,6 +9,26 @@ import { isStorageQuotaError, LocalStorageGateway, type BackupReason, type LoadR
 import { resolveLocale, setActiveLocale, t } from "@/lib/i18n"; // 화면 글자 번역·화면 언어
 import { useDocumentLanguage } from "@/features/core/use-document-language"; // 문서 언어·탭 제목 맞추기
 
+export const NARROW_FIRST_VISIT_WIDTH = 760; // 처음 방문 때 패널을 닫고 시작하는 화면 너비(전체 틀의 모바일 기준과 같음)
+const STATE_STORAGE_KEY = "mateverse:v1:state"; // 앱 상태 저장 키(저장된 것이 없으면 첫 방문)
+
+export function closePanelsOnNarrowFirstVisit(state: AppState, firstVisit: boolean, width: number): AppState // 좁은 화면으로 처음 들어오면 양쪽 패널을 닫은 상태로 바꾸기(대화 목록이 화면을 덮지 않게)
+{ // 함수 시작
+    return firstVisit && width <= NARROW_FIRST_VISIT_WIDTH ? { ...state, settings: { ...state.settings, leftPanelOpen: false, rightPanelOpen: false } } : state; // 첫 방문·좁은 화면이 아니면 그대로
+} // 함수 종료
+
+function isFirstVisit(): boolean // 저장된 앱 상태가 없는 첫 방문인지
+{ // 함수 시작
+    try // 저장소 읽기 시도
+    { // 시도 시작
+        return window.localStorage.getItem(STATE_STORAGE_KEY) === null; // 저장된 것이 없으면 첫 방문
+    } // 시도 종료
+    catch // 저장소를 읽지 못함
+    { // 실패 시작
+        return false; // 알 수 없으면 바꾸지 않음
+    } // 실패 종료
+} // 함수 종료
+
 export interface StateRepository // 상태 저장 계약
 { // 구조 시작
     load(): AppState; // 상태 읽기
@@ -74,9 +94,11 @@ export function AppProvider({ children, initialState = createInitialState(), rep
         let cancelled = false; // 취소 표시
         hydrated.current = false; // 저장 대기
         let outcome: LoadResult | null = null; // 읽기 결과
+        const firstVisit = repository === undefined && isFirstVisit(); // 저장된 것이 없는 첫 방문(읽기 전에 확인)
         try // 읽기 시도
         { // 시도 시작
             outcome = repository !== undefined ? { state: repository.load(), recovered: false, warning: null } : new LocalStorageGateway(window.localStorage).load(); // 저장 상태 읽기
+            outcome = { ...outcome, state: closePanelsOnNarrowFirstVisit(outcome.state, firstVisit, window.innerWidth) }; // 휴대폰 첫 방문은 패널을 닫고 시작
         } // 시도 종료
         catch // 읽기 실패 처리
         { // 실패 시작
