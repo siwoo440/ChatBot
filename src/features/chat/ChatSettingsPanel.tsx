@@ -3,7 +3,7 @@
 import Image from "next/image"; // 이미지
 import { useState } from "react"; // 리액트 상태
 import { chatFontOptions } from "@/features/chat/chat-fonts"; // 글꼴 이름
-import { getTierOption, lengthOptions, thinkingOptions } from "@/features/chat/chat-tiers"; // 길이·생각 이름
+import { getTierOption, lengthOptions, THINKING_DEPTH_ENABLED, thinkingOptions } from "@/features/chat/chat-tiers"; // 길이·생각 이름
 import { FontDialog, MemoryDialog, PersonaDialog, PlayGuideDialog, ShortcutsDialog, StyleDialog, TierDialog, UpdatesDialog, UserNoteDialog } from "@/features/chat/ChatSettingsDialogs"; // 설정 대화상자
 import { writingStyles } from "@/features/chat/suggestion-model"; // 문체 이름
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
@@ -68,7 +68,7 @@ export function ChatSettingsPanel(props: ChatSettingsPanelProps) // 채팅방 �
             </ul> {/* 메뉴 종료 */}
             <h3>{t("스토리 고급 설정")}</h3> {/* 묶음 제목 */}
             <ul className={styles.menu}> {/* 메뉴 */}
-                {menuItem("tier", t("답변 길이 및 생각 조절"), t("{0} · 생각 {1}", [lengthOptions.find((item) => item.value === tierOption.length)?.label ?? t("기본"), thinkingOptions.find((item) => item.value === tierOption.thinking)?.label ?? t("끄기")]))} {/* 길이·생각 */}
+                {THINKING_DEPTH_ENABLED ? menuItem("tier", t("답변 길이 및 생각 조절"), t("{0} · 생각 {1}", [lengthOptions.find((item) => item.value === tierOption.length)?.label ?? t("기본"), thinkingOptions.find((item) => item.value === tierOption.thinking)?.label ?? t("끄기")])) : menuItem("tier", t("답변 길이 조절"), t(lengthOptions.find((item) => item.value === tierOption.length)?.label ?? "기본"))} {/* 길이(생각 깊이는 답변에 반영될 때까지 숨김) */}
                 {toggleItem(t("유저 사칭 방지"), settings.preventImpersonation, (value) => props.onUpdateSettings({ preventImpersonation: value }))} {/* 사칭 방지 */}
             </ul> {/* 메뉴 종료 */}
             <h3>{t("전체 설정")}</h3> {/* 묶음 제목 */}

@@ -17,7 +17,8 @@ export interface ChatTier // 채팅 모델 등급
 export const BASE_REPLY_TOKENS = 1000; // 기본 답변 최대 길이
 export const USER_NOTE_LIMIT = 500; // 유저 노트 기본 글자 수
 export const USER_NOTE_EXTENDED_LIMIT = 2000; // 유저 노트 확장 글자 수
-export const USER_NOTE_EXTENDED_COST = 1; // 확장 유저 노트 메시지당 추가 비용
+export const USER_NOTE_EXTENDED_COST = 1; // 확장 유저 노트 메시지당 추가 비용(노트가 기본 글자 수를 넘을 때만)
+export const THINKING_DEPTH_ENABLED: boolean = false; // 생각 깊이 사용 여부(아직 답변에 반영되지 않아 화면·비용·요청에서 뺌. 실제로 반영하게 되면 켬)
 
 export const chatTiers: ChatTier[] = // 등급 목록(비싼 순서, 토큰 비용은 개발 기본값이라 실제 요금을 보고 다시 정함)
 [ // 목록 시작
@@ -53,12 +54,12 @@ export function getChatTier(id: ChatTierId): ChatTier // 등급 조회
 
 export function canUseThinking(length: LengthMultiplier): boolean // 생각 깊이 설정 가능 여부
 { // 함수 시작
-    return length >= 1.5; // 1.5배 이상에서만
+    return THINKING_DEPTH_ENABLED && length >= 1.5; // 기능이 켜져 있고 1.5배 이상일 때만
 } // 함수 종료
 
 export function normalizeTierOption(option: TierOption): TierOption // 길이에 맞게 생각 깊이 정리
 { // 함수 시작
-    return canUseThinking(option.length) ? option : { length: option.length, thinking: "off" }; // 기본 길이는 생각 끄기
+    return canUseThinking(option.length) ? option : { length: option.length, thinking: "off" }; // 쓸 수 없으면 생각 끄기(예전에 저장한 값도 여기서 꺼짐)
 } // 함수 종료
 
 export function getReplyTokenLimit(length: LengthMultiplier): number // 답변 최대 길이(토큰)
@@ -74,12 +75,13 @@ export function getTierCost(id: ChatTierId, option: TierOption): number // 등�
     return tier.baseCost + blocks * tier.extraPerBlock + Math.ceil(tier.baseCost * thinkingFactor[normalized.thinking]); // 비용 합계
 } // 함수 종료
 
-export function getTierMaxCost(id: ChatTierId): number // 등급 최대 비용(5배·더 깊게)
+export function getTierMaxCost(id: ChatTierId): number // 등급 최대 비용(5배·더 깊게. 생각 깊이가 꺼져 있으면 5배만)
 { // 함수 시작
     return getTierCost(id, { length: 5, thinking: "deeper" }); // 최대 비용 반환
 } // 함수 종료
 
 export function getMessageCost(settings: ConversationSettings): number // 메시지 1회 비용
 { // 함수 시작
-    return getTierCost(settings.tier, getTierOption(settings.tierOptions, settings.tier)) + (settings.userNoteExtended ? USER_NOTE_EXTENDED_COST : 0); // 등급 비용 + 유저 노트 확장
+    const noteExtra = settings.userNoteExtended && settings.userNote.length > USER_NOTE_LIMIT ? USER_NOTE_EXTENDED_COST : 0; // 유저 노트 확장 비용(확장을 켜고 기본 글자 수를 넘게 적었을 때만)
+    return getTierCost(settings.tier, getTierOption(settings.tierOptions, settings.tier)) + noteExtra; // 등급 비용 + 유저 노트 확장
 } // 함수 종료

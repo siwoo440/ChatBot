@@ -335,4 +335,7 @@ export const chat: Record<string, string> = {
     "내 컴퓨터 모델 · 19세 작품 가능": "On this computer · OK for 19+ works",
     "내 컴퓨터의 AI 프로그램(Ollama)이 꺼져 있어요. 프로그램을 켠 뒤 다시 시도해 주세요.": "The AI program on this computer (Ollama) isn't running. Start it and try again.",
     "설치되지 않은 모델이에요. .env.local의 CHAT_MODEL_OPEN과 설치한 모델 이름이 같은지 확인해 주세요.": "That model isn't installed. Check that CHAT_MODEL_OPEN in .env.local matches the installed model name.",
+    "답변 길이 조절": "Reply length",
+    "이 채팅방의 답변 최대 길이를 모델 등급별로 조절해요. 기본 길이를 넘는 만큼만 토큰이 더 들어요.": "Set this chat's maximum reply length for each model tier. Extra tokens are only used for the length beyond the default.",
+    "{0}자를 넘게 적었을 때만 메시지당 {1}토큰이 더 들어요": "Costs {1} extra token per message only when the note is longer than {0} characters",
 };

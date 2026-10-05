@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"; // 테스트 도구
-import { canUseThinking, getMessageCost, getTierCost, getTierMaxCost, normalizeTierOption } from "@/features/chat/chat-tiers"; // 모델 등급
+import { canUseThinking, getMessageCost, getTierCost, getTierMaxCost, normalizeTierOption, THINKING_DEPTH_ENABLED } from "@/features/chat/chat-tiers"; // 모델 등급
 import { buildAutoMemories, getConversationMemories, selectPromptMemories } from "@/features/chat/memory-model"; // 요약 메모리
 import { buildStatJudgeInput, computeStats, createAffectionStat, createStat, currentStatValues, judgeStatsMock, validateStats } from "@/features/chat/stat-model"; // 스탯
 import { composeStatus, formatStatusText, formatStoryTime, getStatusRows } from "@/features/chat/status-model"; // 상태창
@@ -10,22 +10,26 @@ import { createInitialState } from "@/features/core/initial-state"; // 초기 �
 
 describe("채팅 모델 등급과 비용", () => // 등급 묶음
 { // 묶음 시작
-    it("기본 길이 비용, 길이·생각 깊이 추가 비용, 최대 비용을 계산한다", () => // 비용 검증
+    it("기본 길이 비용, 길이 추가 비용, 최대 비용을 계산하고, 생각 깊이는 답변에 반영될 때까지 비용에 넣지 않는다", () => // 비용 검증
     { // 검증 시작
+        expect(THINKING_DEPTH_ENABLED).toBe(false); // 생각 깊이는 아직 답변에 반영되지 않음(3단계에서 켬)
         expect(getTierCost("basic", { length: 1, thinking: "off" })).toBe(1); // 베이직 기본
         expect(getTierCost("plus", { length: 3, thinking: "off" })).toBe(3 + 4); // 플러스 3배(500토큰 구간 4개)
-        expect(getTierCost("premium", { length: 5, thinking: "deeper" })).toBe(8 + 16 + 16); // 프리미엄 최대
-        expect(getTierMaxCost("premium")).toBe(40); // 최대 비용
-        expect(getTierCost("basic", { length: 1, thinking: "deep" })).toBe(1); // 기본 길이에서는 생각 깊이 무시
+        expect(getTierCost("premium", { length: 5, thinking: "deeper" })).toBe(8 + 16); // 예전에 저장한 생각 깊이가 있어도 길이만큼만
+        expect(getTierMaxCost("premium")).toBe(24); // 최대 비용(5배)
+        expect(getTierCost("basic", { length: 1, thinking: "deep" })).toBe(1); // 기본 길이
         expect(canUseThinking(1)).toBe(false); // 기본 길이 생각 불가
-        expect(normalizeTierOption({ length: 1, thinking: "deeper" })).toEqual({ length: 1, thinking: "off" }); // 정리
+        expect(canUseThinking(5)).toBe(false); // 긴 답변도 아직 불가
+        expect(normalizeTierOption({ length: 5, thinking: "deeper" })).toEqual({ length: 5, thinking: "off" }); // 정리
     }); // 검증 종료
 
-    it("메시지 비용은 고른 등급 설정에 유저 노트 확장 비용을 더한다", () => // 메시지 비용 검증
+    it("메시지 비용은 고른 등급 설정에, 유저 노트를 500자 넘게 적었을 때만 확장 비용을 더한다", () => // 메시지 비용 검증
     { // 검증 시작
         const settings = createDefaultConversationSettings(); // 기본 설정
         expect(getMessageCost(settings)).toBe(1); // 기본 1토큰(기존 대화 비용 유지)
-        expect(getMessageCost({ ...settings, tier: "plus", userNoteExtended: true })).toBe(4); // 플러스 3 + 확장 1
+        expect(getMessageCost({ ...settings, tier: "plus", userNoteExtended: true })).toBe(3); // 확장을 켜도 노트가 비어 있으면 그대로
+        expect(getMessageCost({ ...settings, tier: "plus", userNoteExtended: true, userNote: "가".repeat(500) })).toBe(3); // 500자까지는 기본 범위
+        expect(getMessageCost({ ...settings, tier: "plus", userNoteExtended: true, userNote: "가".repeat(501) })).toBe(4); // 500자를 넘으면 플러스 3 + 확장 1
     }); // 검증 종료
 }); // 묶음 종료
 
