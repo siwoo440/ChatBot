@@ -4,11 +4,12 @@ import { createInitialState } from "../../src/features/core/initial-state"; // �
 const stateKey = "mateverse:v1:state"; // 로컬 저장 키
 const seedKey = "mateverse:e2e:polish-seeded"; // 테스트 준비 키
 
-async function seed(page: Page): Promise<void> // 패널을 닫은 초기 상태 준비
+async function seed(page: Page, mature = false): Promise<void> // 패널을 닫은 초기 상태 준비(19+ 보기를 켤 수 있음)
 { // 함수 시작
     const state = createInitialState(); // 초기 상태
     state.settings.leftPanelOpen = false; // 왼쪽 패널 닫기
     state.settings.rightPanelOpen = false; // 오른쪽 패널 닫기
+    state.settings.matureContentEnabled = mature; // 19+ 보기
     await page.addInitScript(({ key, guard, value }) => // 초기 저장
     { // 스크립트 시작
         if (window.localStorage.getItem(guard) === "true") // 중복 준비 판정
@@ -38,15 +39,16 @@ test("탭 제목은 페이지마다 다르고 작품 화면에서는 작품 이�
     await expect(page).toHaveTitle("새 캐릭터 만들기 | Mate Verse"); // 만들기 제목
 }); // 테스트 종료
 
-test("로그아웃하면 19+ 보기가 꺼지고 안내가 보이며 대화는 그대로 남는다", async ({ page }) => // 로그아웃 검증
+test("사용자 패널에서 19+ 보기를 끄면 안내가 보이고 대화는 그대로 남으며, 로그아웃 버튼은 없다", async ({ page }) => // 19+ 보기 끄기 검증
 { // 테스트 시작
-    await seed(page); // 준비
+    await seed(page, true); // 19+ 보기를 켠 채 준비
     await page.setViewportSize({ width: 1440, height: 900 }); // 데스크톱
     await page.goto("/library"); // 보관함
     await page.getByRole("button", { name: "사용자 패널 열기와 닫기" }).click(); // 사용자 패널
     page.once("dialog", (dialog) => void dialog.accept()); // 확인 창 수락
-    await page.getByRole("button", { name: "로그아웃" }).click(); // 로그아웃
-    await expect(page.getByText("로그아웃했습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.")).toBeVisible(); // 안내
+    await expect(page.getByRole("button", { name: "로그아웃" })).toHaveCount(0); // 로그인이 없으니 로그아웃도 없음
+    await page.getByRole("button", { name: "19+ 보기 끄기" }).click(); // 끄기
+    await expect(page.getByText("19+ 보기를 껐습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.")).toBeVisible(); // 안내
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mateverse:v1:state") ?? "{}").settings.matureContentEnabled)).toBe(false); // 19+ 보기 꺼짐
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mateverse:v1:state") ?? "{}").conversations.length)).toBeGreaterThan(0); // 대화 그대로
 }); // 테스트 종료

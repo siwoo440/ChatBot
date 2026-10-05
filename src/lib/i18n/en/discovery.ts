@@ -139,4 +139,5 @@ export const discovery: Record<string, string> = {
     "이어서 좁힐 태그": "Tags to narrow further",
     "고른 태그를 모두 가진 공개 작품이 없습니다. 태그를 하나 빼 보세요.": "No public works have all the selected tags. Try removing one.",
     "많이 쓰인 태그부터 보여 드려요. 태그를 누르면 해당 작품을 찾고, 여러 개를 고르면 모두 가진 작품으로 좁혀져요.": "Most-used tags come first. Tap a tag to find its works; pick several to narrow down to works that have them all.",
+    "예시 순위": "Sample ranking",
 };

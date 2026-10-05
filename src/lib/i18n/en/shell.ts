@@ -184,4 +184,5 @@ export const shell: Record<string, string> = {
     "오늘 {0} 동안 이용했어요. 잠깐 쉬어 가도 대화는 그대로 남아 있어요.": "You've used Mate Verse for {0} today. Take a short break — your chats will still be here.",
     "오늘 이용 시간": "Time used today",
     "이 브라우저의 모든 탭 합계 · 자정에 다시 셈": "All tabs in this browser · resets at midnight",
+    "19+ 보기 끄기": "Turn off 19+ view",
 };

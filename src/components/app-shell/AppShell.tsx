@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
     const rightButtonRef = useRef<HTMLButtonElement>(null); // 오른쪽 버튼 참조
     const lastButton = useRef<"left" | "right">("left"); // 최근 버튼
     const usageReminder = useUsageReminder(); // 이용 시간 알림
-    const [loggedOut, setLoggedOut] = useState(false); // 로그아웃 안내 표시
+    const [matureHidden, setMatureHidden] = useState(false); // 19+ 보기를 껐다는 안내 표시
     const theme = state.settings.theme; // 사이트 테마
     useEffect(() => // 테마 적용(문서 루트)·다음 방문 첫 화면용 저장
     { // 효과 시작
@@ -78,19 +78,19 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
     { // 함수 시작
         dispatch({ type: "close-panels" }); // 이동 전 전체 닫기
     }; // 함수 종료
-    const logout = () => // 로그아웃(이 기기 정리)
+    const hideMature = () => // 19+ 보기 끄기(사용자 패널의 버튼)
     { // 함수 시작
-        if (!window.confirm(t("이 기기에서 로그아웃할까요? 캐릭터와 대화, 토큰은 그대로 남고 19+ 보기만 꺼집니다."))) // 확인 취소
+        if (!window.confirm(t("19+ 보기를 끌까요? 캐릭터와 대화, 토큰은 그대로 남아요."))) // 확인 취소
         { // 조건 시작
             return; // 그대로 둠
         } // 조건 종료
         dispatch({ type: "end-local-session" }); // 19+ 보기 끄기와 패널 닫기
-        setLoggedOut(true); // 안내 표시
+        setMatureHidden(true); // 안내 표시
     }; // 함수 종료
     return ( // 셸 반환
         <div className={styles.shell} data-left-open={state.settings.leftPanelOpen} data-right-open={state.settings.rightPanelOpen} data-mobile={mobile}> {/* 셸 영역 */}
             <AppHeader leftOpen={state.settings.leftPanelOpen} rightOpen={state.settings.rightPanelOpen} onToggleLeft={toggleLeft} onToggleRight={toggleRight} onNavigate={closePanelsForNavigation} leftButtonRef={leftButtonRef} rightButtonRef={rightButtonRef} rewardCount={getClaimableCount(state.rewards, new Date())} /> {/* 앱 헤더 */}
-            {storageError === null && storageNotice === null && !usageReminder.due && !loggedOut ? null : ( // 상단 메시지 판정
+            {storageError === null && storageNotice === null && !usageReminder.due && !matureHidden ? null : ( // 상단 메시지 판정
                 <div className={styles.storageMessages}> {/* 상단 메시지 묶음 */}
                     {usageReminder.due ? ( // 이용 시간 알림 판정
                         <div className={styles.storageNotice} data-tone="rest" role="status"> {/* 이용 시간 알림 */}
@@ -98,12 +98,12 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
                             <button type="button" onClick={usageReminder.acknowledge}>{t("계속 이용하기")}</button> {/* 알림 확인 */}
                         </div> // 이용 시간 알림 종료
                     ) : null} {/* 이용 시간 알림 판정 종료 */}
-                    {!loggedOut ? null : ( // 로그아웃 안내 판정
-                        <div className={styles.storageNotice} data-tone="info" role="status"> {/* 로그아웃 안내 */}
-                            <p>{t("로그아웃했습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.")}</p> {/* 안내 문구 */}
-                            <button type="button" onClick={() => setLoggedOut(false)}>{t("닫기")}</button> {/* 안내 닫기 */}
-                        </div> // 로그아웃 안내 종료
-                    )} {/* 로그아웃 안내 판정 종료 */}
+                    {!matureHidden ? null : ( // 19+ 보기 끔 안내 판정
+                        <div className={styles.storageNotice} data-tone="info" role="status"> {/* 19+ 보기 끔 안내 */}
+                            <p>{t("19+ 보기를 껐습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.")}</p> {/* 안내 문구 */}
+                            <button type="button" onClick={() => setMatureHidden(false)}>{t("닫기")}</button> {/* 안내 닫기 */}
+                        </div> // 19+ 보기 끔 안내 종료
+                    )} {/* 19+ 보기 끔 안내 판정 종료 */}
                     {storageError === null ? null : <p className={styles.storageError} role="alert">{storageError}</p>} {/* 저장 오류 */}
                     {storageNotice === null ? null : ( // 저장소 안내 판정
                         <div className={styles.storageNotice} data-tone={storageNotice.tone} role="status"> {/* 저장소 안내 */}
@@ -117,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
             <div className={styles.grid}> {/* 패널 그리드 */}
                 <ConversationPanel open={state.settings.leftPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 대화 패널 */}
                 <div className={styles.content}>{children}</div> {/* 중앙 콘텐츠 */}
-                <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} rewards={state.rewards} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} onLogout={logout} /> {/* 사용자 패널 */}
+                <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} rewards={state.rewards} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} onHideMature={hideMature} /> {/* 사용자 패널 */}
             </div> {/* 그리드 종료 */}
             {(state.settings.leftPanelOpen || state.settings.rightPanelOpen) ? <button type="button" className={styles.scrim} aria-label={t("열린 패널 닫기")} onClick={closePanels} /> : null} {/* 패널 배경 */}
             <MobileBottomNavigation onNavigate={closePanelsForNavigation} /> {/* 모바일 하단 메뉴 */}

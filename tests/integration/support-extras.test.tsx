@@ -113,24 +113,25 @@ describe("멤버십 비교표와 토큰 기간", () => // 설정 묶음
     }); // 테스트 종료
 }); // 묶음 종료
 
-describe("로그아웃과 탭 제목", () => // 틀 묶음
+describe("19+ 보기 끄기와 탭 제목", () => // 틀 묶음
 { // 묶음 시작
-    it("로그아웃을 확인하면 19+ 보기를 끄고 안내를 보여 주며, 취소하면 그대로 둔다", async () => // 로그아웃 검증
+    it("19+ 보기 끄기를 확인하면 19+ 보기를 끄고 안내를 보여 주며, 취소하면 그대로 둔다", async () => // 19+ 보기 끄기 검증
     { // 테스트 시작
         const user = userEvent.setup(); // 사용자 도구 생성
         const initial = createInitialState(); // 초기 상태
         const confirm = vi.spyOn(window, "confirm").mockReturnValue(false); // 확인 창(취소)
         renderWithApp(<AppShell><MatureProbe /></AppShell>, { ...initial, settings: { ...initial.settings, matureContentEnabled: true, rightPanelOpen: true } }); // 19+ 보기를 켠 화면
-        await user.click(screen.getByRole("button", { name: "로그아웃" })); // 로그아웃
-        expect(confirm).toHaveBeenCalledWith("이 기기에서 로그아웃할까요? 캐릭터와 대화, 토큰은 그대로 남고 19+ 보기만 꺼집니다."); // 무엇이 바뀌는지 안내
+        await user.click(screen.getByRole("button", { name: "19+ 보기 끄기" })); // 끄기
+        expect(confirm).toHaveBeenCalledWith("19+ 보기를 끌까요? 캐릭터와 대화, 토큰은 그대로 남아요."); // 무엇이 바뀌는지 안내
         expect(screen.getByLabelText("19+ 보기")).toHaveTextContent("true"); // 취소하면 그대로
         confirm.mockReturnValue(true); // 확인
-        await user.click(screen.getByRole("button", { name: "로그아웃" })); // 다시 로그아웃
+        await user.click(screen.getByRole("button", { name: "19+ 보기 끄기" })); // 다시 끄기
         expect(screen.getByLabelText("19+ 보기")).toHaveTextContent("false"); // 19+ 보기 꺼짐
-        expect(screen.getByText("로그아웃했습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.")).toBeInTheDocument(); // 안내
+        expect(screen.getByText("19+ 보기를 껐습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.")).toBeInTheDocument(); // 안내
         expect(document.getElementById("user-panel")).toHaveAttribute("aria-hidden", "true"); // 패널 닫힘
-        await user.click(within(screen.getByText("로그아웃했습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.").closest("div") as HTMLElement).getByRole("button", { name: "닫기" })); // 안내 닫기
-        expect(screen.queryByText(/로그아웃했습니다/)).not.toBeInTheDocument(); // 안내 사라짐
+        expect(screen.queryByRole("button", { name: "19+ 보기 끄기" })).toBeNull(); // 꺼진 뒤에는 버튼 없음
+        await user.click(within(screen.getByText("19+ 보기를 껐습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.").closest("div") as HTMLElement).getByRole("button", { name: "닫기" })); // 안내 닫기
+        expect(screen.queryByText(/19\+ 보기를 껐습니다/)).not.toBeInTheDocument(); // 안내 사라짐
     }); // 테스트 종료
 
     it("작품 화면은 탭 제목에 작품 이름을 넣고, 화면을 떠나면 원래 제목으로 돌린다", () => // 탭 제목 검증

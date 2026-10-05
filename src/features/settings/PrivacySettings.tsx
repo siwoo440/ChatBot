@@ -4,8 +4,10 @@ import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 링크
 import { useState } from "react"; // 리액트 상태
 import { memoryCategoryLabels } from "@/features/chat/memory-model"; // 메모리 분류 이름
+import { useModelStatus } from "@/features/chat/use-model-status"; // 실제 AI 연결 상태
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { DataManagement } from "@/features/settings/DataManagement"; // 데이터 관리
+import { describeExternalTransfer } from "@/features/settings/provider-summary"; // 외부 전송 안내
 import { getMemoryGroups, getReportEntries } from "@/features/settings/settings-insights"; // 메모리·신고 요약
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
@@ -23,6 +25,7 @@ export function PrivacySettings() // 개인정보 및 보안 화면
     const [reportStatus, setReportStatus] = useState(""); // 신고 안내
     const groups = getMemoryGroups(state); // 대화방별 요약 메모리
     const reports = getReportEntries(state); // 내가 한 신고
+    const transfer = describeExternalTransfer(useModelStatus()); // 외부 전송 안내(실제 AI가 켜져 있으면 어디로 보내는지)
     return ( // 화면 반환
         <> {/* 개인정보 화면 */}
             <SettingsPageHeader kicker="SUPPORT · PRIVACY" title={t("개인정보 및 보안")} description={t("내 데이터가 어디에 저장되는지 확인하고, 내보내기·백업·복구·초기화로 직접 관리합니다.")} /> {/* 페이지 머리말 */}
@@ -30,7 +33,7 @@ export function PrivacySettings() // 개인정보 및 보안 화면
                 <h2 id="privacy-storage-title">{t("저장 위치와 전송")}</h2> {/* 저장 제목 */}
                 <dl className={styles.infoGrid}> {/* 저장 정보 */}
                     <div><dt>{t("저장 위치")}</dt><dd>{t("이 브라우저의 로컬 저장공간(localStorage)")}</dd></div> {/* 저장 위치 */}
-                    <div><dt>{t("외부 전송")}</dt><dd>{t("없음 · 로컬 Mock 모드")}</dd></div> {/* 외부 전송 */}
+                    <div><dt>{t("외부 전송")}</dt><dd>{transfer}</dd></div> {/* 외부 전송 */}
                     <div><dt>{t("계정")}</dt><dd>{t("로그인 연동 전 · 로컬 프로필만 사용")}</dd></div> {/* 계정 상태 */}
                 </dl> {/* 저장 정보 종료 */}
                 <p>{t("브라우저 데이터를 지우면 캐릭터와 대화도 함께 지워집니다. 중요한 변경 전에는 아래에서 JSON으로 내보내거나 로컬 백업을 만들어 두세요.")}</p> {/* 주의 안내 */}

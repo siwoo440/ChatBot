@@ -33,6 +33,7 @@ describe("캐릭터 탐색", () => // 탐색 묶음
         expect(within(ranking).getAllByRole("link")).toHaveLength(10); // 상위 열 명 확인
         expect(within(ranking).getByText("1위")).toBeVisible(); // 첫 순위 확인
         expect(within(ranking).getByText("10위")).toBeVisible(); // 마지막 순위 확인
+        expect(within(ranking).getByText("예시 순위")).toBeVisible(); // 실제 집계가 아니라는 표시
     }); // 검증 종료
 
     it("기본 목록을 열두 명씩 추가로 표시한다", async () => // 더 보기 검증

@@ -81,7 +81,8 @@ git reset --hard origin/main
 | `fe66098` | 바로 고칠 문제 4(36절): 캐릭터·스토리 상세의 시작 버튼으로 연 대화가 「새 대화 시작하기」 미션에 세어지지 않던 문제 수정. 그 대화에서 내가 처음 보낸 말을 새 대화 시작으로 셈 |
 | `3df62ac` | 바로 고칠 문제 5(36절): 캐릭터·스토리 편집기의 태그 입력칸에 쉼표 뒤 빈칸이 계속 늘어나던 문제 수정. 입력칸에는 친 글자를 그대로 두고 태그 목록은 따로 계산 |
 | `b1fa293` | 바로 고칠 문제 6(36절): 실제 AI로 긴 대화를 하면 가장 최근 말이 빠지던 문제 수정. 브라우저는 최근 말만 보내고 서버도 뒤에서부터 남김. 1단계 여섯 가지 완료 |
-| (최신) | 이름과 실제 맞추기 1(37절): 토큰만 나가던 설정 정리. 생각 깊이는 답변에 반영될 때까지 화면·비용·요청에서 뺌(`THINKING_DEPTH_ENABLED`). 유저 노트 확장 비용은 노트를 500자 넘게 적었을 때만 받음 |
+| `0029545` | 이름과 실제 맞추기 1(37절): 토큰만 나가던 설정 정리. 생각 깊이는 답변에 반영될 때까지 화면·비용·요청에서 뺌(`THINKING_DEPTH_ENABLED`). 유저 노트 확장 비용은 노트를 500자 넘게 적었을 때만 받음 |
+| (최신) | 이름과 실제 맞추기 2(37절): 실제와 다른 문구 정리. 실제 AI가 켜져 있으면 「외부 전송」·「응답 방식」에 어느 등급이 어디로 보내는지 표시, 「로그아웃」은 「19+ 보기 끄기」로(켜져 있을 때만), 메인 랭킹에 「예시 순위」 표시, 알림 설정에 준비 중 안내 |
 
 ---
 
@@ -829,3 +830,4 @@ Git에는 소스 코드와 기본 Mock 데이터만 포함된다. 현재 컴퓨�
 
 2026-10-05 점검에서 나온 "화면에 적힌 말과 실제 동작이 어긋나는 곳"과 자잘한 불편을 아홉 묶음으로 정리했다. 사용자 결정: "권장대로 2단계를 진행해줘"(생각 깊이는 답변에 반영될 때까지 숨김, 유저 노트 확장 비용은 노트가 500자를 넘을 때만). 앱 상태 버전 변화 없음. 묶음마다 따로 커밋했다.
 - **2-1 토큰만 나가던 설정**: 생각 깊이는 비용만 늘고 답변에 반영되지 않아 `chat-tiers.ts`의 `THINKING_DEPTH_ENABLED`(지금 `false`)로 껐다. 꺼져 있으면 `canUseThinking`이 항상 거짓이라 대화상자(「답변 길이 조절」)에 생각 깊이가 없고, 예전에 저장한 값도 `normalizeTierOption`에서 꺼져 비용(`getTierCost`)과 요청(`chat-controller.ts`의 `createLLMInput`)에 들어가지 않는다. 저장된 값 자체는 지우지 않는다. 3단계에서 실제로 반영하면 이 값을 `true`로 바꾼다. 유저 노트 확장은 확장을 켜고 노트가 500자(`USER_NOTE_LIMIT`)를 넘을 때만 1토큰을 받는다(`getMessageCost`). 테스트: `tests/unit/chat-features-model.test.ts`, `tests/integration/chat-cost-settings.test.tsx`
+- **2-2 실제와 다른 문구**: (1) 실제 AI를 켜도 「외부 전송: 없음 · 로컬 Mock 모드」, 「응답 방식: 로컬 Mock」이 그대로 나왔다. `src/features/settings/provider-summary.ts`가 서버 통로의 상태(`useModelStatus`)를 읽어 글을 만든다: `describeResponseMode`(고객 지원의 앱 정보와 진단 정보), `describeExternalTransfer`(개인정보 화면. AI 회사로 보내는 등급과 직접 연결한 모델로 보내는 등급을 나눠 알림). 진단 정보는 `buildDiagnostics`의 `responseMode`로 받는다. (2) 로그인이 없는데 「로그아웃」 버튼이 있었고 실제로는 19+ 보기만 껐다. 버튼을 「19+ 보기 끄기」로 바꾸고 19+ 보기가 켜져 있을 때만 보인다(`UserPanel.tsx`의 `onHideMature`, 동작은 그대로 `end-local-session`). 실제 로그아웃은 로그인 단계에서 만든다. (3) 메인 「실시간 랭킹」은 고정된 인기 값 순서라 「예시 순위」 표시를 붙였다(`RankingRail.tsx`, `.rankingMeta`). 캐릭터 상세의 이용 지표와 사용자 랭킹에는 이미 「샘플」 표시가 있다. (4) 알림 설정 안내를 "준비 중인 기능"으로 고쳤다(실제 AI를 켜도 맞는 말이 되게). 테스트: `tests/unit/provider-summary.test.ts`, `tests/integration/provider-notice.test.tsx`, `tests/components/app-shell.test.tsx`, `tests/integration/support-extras.test.tsx`, `tests/e2e/polish.spec.ts`

@@ -330,4 +330,12 @@ export const settings: Record<string, string> = {
     "기간 합계": "Period total",
     "이 기간에 받음 +{0} · 사용 −{1} · 기록 {2}건": "This period: earned +{0} · spent −{1} · {2} records",
     "이 기간에는 기록이 없어요. 기간을 넓히거나 종류를 바꿔 보세요.": "No records in this period. Try a wider period or another type.",
+    "실제 AI({0})": "Real AI ({0})",
+    "실제 AI({0}) · 나머지 등급은 연습용 응답": "Real AI ({0}) · other tiers use practice replies",
+    "AI 회사로는 없음 · {0}으로 대화하면 대화 내용과 캐릭터 설정이 직접 연결한 모델(기본은 이 컴퓨터)로 전송돼요.": "None to AI companies · chatting with {0} sends your messages and character settings to the model you connected (this computer by default).",
+    "있음 · {0}으로 대화하면 대화 내용과 캐릭터 설정이 AI 회사로 전송돼요.": "Yes · chatting with {0} sends your messages and character settings to the AI company.",
+    "{0}은 직접 연결한 모델(기본은 이 컴퓨터)로 전송돼요.": "{0} sends them to the model you connected (this computer by default).",
+    "준비 중인 기능이에요. 지금은 설정만 저장하고 메시지와 알림을 실제로 보내지 않아요. 발송 서버가 연결된 뒤 제공됩니다.": "This feature is coming soon. For now it only saves your settings and doesn't send messages or notifications. It will work once a delivery server is connected.",
+    "19+ 보기를 끌까요? 캐릭터와 대화, 토큰은 그대로 남아요.": "Turn off 19+ view? Your characters, chats, and tokens stay as they are.",
+    "19+ 보기를 껐습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.": "19+ view is off. Your characters and chats are still saved in this browser.",
 };

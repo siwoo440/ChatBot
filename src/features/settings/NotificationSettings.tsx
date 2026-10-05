@@ -33,7 +33,7 @@ export function NotificationSettings() // 알림과 선제 메시지 화면
             <section className={styles.section} aria-labelledby="proactive-title"> {/* 선제 메시지 영역 */}
                 <h2 id="proactive-title">{t("선제 메시지")}</h2> {/* 영역 제목 */}
                 <label className={styles.check}><input type="checkbox" checked={state.settings.proactiveMessageEnabled} onChange={(event) => dispatch({ type: "update-settings", settings: { proactiveMessageEnabled: event.target.checked } })} />{t("선제 메시지 허용")}</label> {/* 허용 선택 */}
-                <p className={styles.note}>{t("지금은 로컬 Mock 모드라 실제로 메시지를 보내지 않고 설정만 저장합니다. 브라우저 알림은 발송 서버가 연결된 뒤 제공됩니다.")}</p> {/* 현재 제약 */}
+                <p className={styles.note}>{t("준비 중인 기능이에요. 지금은 설정만 저장하고 메시지와 알림을 실제로 보내지 않아요. 발송 서버가 연결된 뒤 제공됩니다.")}</p> {/* 현재 제약 */}
             </section> {/* 선제 메시지 영역 종료 */}
             <section className={styles.section} aria-labelledby="notification-time-title"> {/* 허용 시간 영역 */}
                 <h2 id="notification-time-title">{t("허용 시간과 횟수")}</h2> {/* 영역 제목 */}

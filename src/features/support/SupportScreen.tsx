@@ -1,7 +1,9 @@
 "use client"; // 클라이언트 컴포넌트
 
 import { useState } from "react"; // 리액트 상태
+import { useModelStatus } from "@/features/chat/use-model-status"; // 실제 AI 연결 상태
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
+import { describeResponseMode } from "@/features/settings/provider-summary"; // 응답 방식 안내
 import { buildDiagnostics } from "@/features/settings/settings-insights"; // 진단 정보
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import { faqTopics, filterFaqs, type FaqTopic } from "@/features/support/faq"; // 자주 묻는 질문
@@ -50,7 +52,8 @@ export function SupportScreen() // 고객 지원 화면
     const [allNotes, setAllNotes] = useState(false); // 지난 소식까지 보기
     const notes = allNotes ? releaseNotes : releaseNotes.slice(0, RELEASE_NOTE_PREVIEW); // 보여 줄 소식
     const results = filterFaqs(query, topic); // 조건에 맞는 질문
-    const diagnostics = buildDiagnostics({ appVersion, state, storageBytes: typeof window === "undefined" ? null : measureStorage(), viewport: typeof window === "undefined" ? null : { width: window.innerWidth, height: window.innerHeight }, userAgent: typeof navigator === "undefined" ? null : navigator.userAgent }); // 진단 정보
+    const responseMode = describeResponseMode(useModelStatus()); // 응답 방식(연습용인지, 어느 등급이 실제 AI인지)
+    const diagnostics = buildDiagnostics({ appVersion, state, responseMode, storageBytes: typeof window === "undefined" ? null : measureStorage(), viewport: typeof window === "undefined" ? null : { width: window.innerWidth, height: window.innerHeight }, userAgent: typeof navigator === "undefined" ? null : navigator.userAgent }); // 진단 정보
     const copyText = async (text: string): Promise<boolean> => // 글 복사(성공 여부)
     { // 함수 시작
         try // 복사 시도
@@ -123,7 +126,7 @@ export function SupportScreen() // 고객 지원 화면
                 <dl className={styles.infoGrid}> {/* 앱 정보 */}
                     <div><dt>{t("앱 버전")}</dt><dd>{appVersion}</dd></div> {/* 앱 버전 */}
                     <div><dt>{t("데이터 버전")}</dt><dd>{state.schemaVersion}</dd></div> {/* 데이터 버전 */}
-                    <div><dt>{t("응답 방식")}</dt><dd>{state.providerMode === "mock" ? t("로컬 Mock(외부 API 없음)") : state.providerMode}</dd></div> {/* 공급자 모드 */}
+                    <div><dt>{t("응답 방식")}</dt><dd>{responseMode}</dd></div> {/* 응답 방식(실제 AI 연결 상태) */}
                 </dl> {/* 앱 정보 종료 */}
                 <label className={styles.field}>{t("진단 정보")}<textarea className={styles.diagnostics} readOnly rows={9} value={diagnostics} /></label> {/* 진단 정보 */}
                 <p>{t("이름이나 대화 내용 같은 개인 정보는 들어 있지 않아요.")}</p> {/* 개인 정보 안내 */}

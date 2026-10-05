@@ -16,7 +16,7 @@ export type AppAction = // 앱 동작
     | { type: "toggle-left-panel"; exclusive?: boolean } // 왼쪽 패널 전환
     | { type: "toggle-right-panel"; exclusive?: boolean } // 오른쪽 패널 전환
     | { type: "close-panels" } // 전체 패널 닫기
-    | { type: "end-local-session" } // 로그아웃(이 기기 정리: 19+ 보기 끄기, 패널 닫기)
+    | { type: "end-local-session" } // 19+ 보기 끄기와 패널 닫기(사용자 패널의 버튼. 로그인이 생기면 로그아웃에서도 씀)
     | { type: "update-settings"; settings: Partial<AppSettings> } // 설정 변경
     | { type: "update-profile"; profile: Pick<UserProfile, "nickname" | "avatar"> } // 프로필 변경
     | { type: "verify-adult"; verification: AdultVerification; enableMatureContent: boolean } // 성인 인증 완료
@@ -100,7 +100,7 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
             return { ...state, settings: { ...state.settings, rightPanelOpen: !state.settings.rightPanelOpen, leftPanelOpen: action.exclusive ? false : state.settings.leftPanelOpen } }; // 오른쪽 상태 반환
         case "close-panels": // 전체 닫기
             return { ...state, settings: { ...state.settings, leftPanelOpen: false, rightPanelOpen: false } }; // 닫힌 상태 반환
-        case "end-local-session": // 로그아웃
+        case "end-local-session": // 19+ 보기 끄기
             return { ...state, settings: { ...state.settings, matureContentEnabled: false, leftPanelOpen: false, rightPanelOpen: false } }; // 19+ 보기를 끄고 패널을 닫음(캐릭터·대화·토큰은 그대로)
         case "update-settings": // 설정 변경
             return { ...state, settings: { ...state.settings, ...action.settings } }; // 병합 상태 반환

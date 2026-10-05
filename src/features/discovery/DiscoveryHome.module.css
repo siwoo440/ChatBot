@@ -319,6 +319,40 @@
     letter-spacing: -.03em; /* 제목 자간 */
 } /* 구역 제목 종료 */
 
+.rankingMeta /* 랭킹 표시 묶음(예시 표시·순위 범위) */
+{ /* 묶음 시작 */
+    display: flex; /* 가로 배치 */
+    flex-wrap: wrap; /* 좁으면 줄바꿈 */
+    align-items: center; /* 세로 가운데 */
+    justify-content: flex-end; /* 오른쪽 정렬 */
+    gap: 8px; /* 표시 간격 */
+    margin: 0; /* 기본 여백 제거 */
+} /* 묶음 종료 */
+
+.rankingMeta em /* 예시 순위 표시(실제 집계 전) */
+{ /* 표시 시작 */
+    padding: 6px 10px; /* 표시 여백 */
+    border: 1px solid color-mix(in srgb, var(--page-ranking) 30%, var(--mv-surface)); /* 표시 경계 */
+    border-radius: 999px; /* 캡슐 모양 */
+    background: color-mix(in srgb, var(--page-ranking) 8%, var(--mv-surface)); /* 표시 배경 */
+    color: light-dark(var(--page-ranking), color-mix(in srgb, var(--page-ranking) 55%, white)); /* 표시 색상 */
+    font-size: .74rem; /* 표시 크기 */
+    font-style: normal; /* 기울임 제거 */
+    font-weight: 850; /* 표시 굵기 */
+    white-space: nowrap; /* 한 줄 유지 */
+} /* 표시 종료 */
+
+@media (max-width: 520px) /* 좁은 화면: 표시를 세로로 쌓아 제목 자리를 넓힘 */
+{ /* 좁은 화면 시작 */
+    .rankingMeta /* 랭킹 표시 묶음 */
+    { /* 묶음 시작 */
+        flex: 0 0 auto; /* 내용만큼만 차지 */
+        flex-direction: column; /* 세로 배치 */
+        align-items: flex-end; /* 오른쪽 정렬 */
+        gap: 6px; /* 표시 간격 */
+    } /* 묶음 종료 */
+} /* 좁은 화면 종료 */
+
 .sectionHeading strong /* 랭킹 범위 */
 { /* 범위 시작 */
     padding: 7px 14px; /* 범위 여백 */

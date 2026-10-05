@@ -111,6 +111,7 @@ export interface DiagnosticsInput // 진단 정보 재료
     storageBytes: number | null; // 저장 용량(알 수 없으면 없음)
     viewport: { width: number; height: number } | null; // 화면 크기
     userAgent: string | null; // 브라우저 정보
+    responseMode?: string; // 응답 방식 안내(실제 AI 연결 상태를 읽은 화면이 넘김. 없으면 연습용으로 적음)
 } // 구조 종료
 
 export function buildDiagnostics(input: DiagnosticsInput): string // 문의할 때 붙일 진단 정보(이름·대화 내용 같은 개인 정보는 넣지 않음)
@@ -120,7 +121,7 @@ export function buildDiagnostics(input: DiagnosticsInput): string // 문의할 �
         t("Mate Verse 진단 정보"), // 제목
         t("앱 버전: {0}", [input.appVersion]), // 앱 버전
         t("데이터 버전: {0}", [state.schemaVersion]), // 데이터 버전
-        t("응답 방식: {0}", [state.providerMode === "mock" ? t("로컬 Mock(외부 API 없음)") : state.providerMode]), // 응답 방식
+        t("응답 방식: {0}", [input.responseMode ?? (state.providerMode === "mock" ? t("로컬 Mock(외부 API 없음)") : state.providerMode)]), // 응답 방식
         t("저장 용량: {0}", [input.storageBytes === null ? t("알 수 없음") : formatBytes(input.storageBytes)]), // 저장 용량
         t("작품: 캐릭터 {0}개 · 스토리 {1}개 · 이미지 {2}장", [state.characters.length, state.stories.length, state.images.length]), // 작품 수
         t("대화: 대화방 {0}개 · 메시지 {1}개", [state.conversations.length, state.messages.length]), // 대화 수
