@@ -7,6 +7,7 @@ import { createSuggestedReplies, getStyleSample } from "@/features/chat/suggesti
 import { normalizeWorkExtras, validateWorkExtras } from "@/features/character/work-extras"; // 작품 추가 필드
 import { createDefaultConversationSettings, createDefaultStatusTemplate } from "@/features/core/defaults"; // 기본값
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
+import { setActiveLocale } from "@/lib/i18n"; // 화면 언어
 
 describe("채팅 모델 등급과 비용", () => // 등급 묶음
 { // 묶음 시작
@@ -121,6 +122,18 @@ describe("요약 메모리", () => // 메모리 묶음
         const fifteenth = buildAutoMemories({ ...input, turn: 15, userMessageId: "u15", existing: fifth }); // 15턴
         expect(fifteenth.map((memory) => memory.category)).toEqual(["short", "relation", "long"]); // 장기 추가
         expect(fifteenth.find((memory) => memory.category === "relation")!.createdAt).toBe(fifth[1].createdAt); // 관계도 같은 항목 갱신
+    }); // 검증 종료
+
+    it("영어 화면에서 만든 단기 기억도 장기 기억으로 묶을 때 머리말을 뺀다", () => // 영어 머리말 검증
+    { // 검증 시작
+        setActiveLocale("en"); // 영어 화면
+        const fifth = buildAutoMemories({ ...input, turn: 5, summary: "They began looking for the missing sentence." }); // 5턴
+        expect(fifth[0].content).toBe("Up to turn 5: They began looking for the missing sentence."); // 영어 머리말이 붙은 단기 기억
+        const tenth = buildAutoMemories({ ...input, turn: 10, userMessageId: "u10", summary: "A hidden shelf opened.", existing: fifth }); // 10턴
+        const fifteenth = buildAutoMemories({ ...input, turn: 15, userMessageId: "u15", summary: "The record was restored.", existing: [...fifth, ...tenth] }); // 15턴
+        const long = fifteenth.find((memory) => memory.category === "long"); // 장기 기억
+        expect(long?.content).toContain("They began looking for the missing sentence. / A hidden shelf opened. / The record was restored."); // 머리말 없이 묶임
+        expect(long?.content).not.toMatch(/Up to turn \d+: /); // 머리말이 남지 않음
     }); // 검증 종료
 
     it("사용자가 고친 관계도는 덮어쓰지 않고, 응답에 넘길 기억은 목표·장기·관계도·단기 순이다", () => // 우선순위 검증

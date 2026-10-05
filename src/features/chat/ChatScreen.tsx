@@ -12,6 +12,7 @@ import { ChatComposer, type ComposerCommand } from "@/features/chat/ChatComposer
 import { buildChatContext } from "@/features/chat/chat-context"; // 대화 맥락
 import { getChatFontFamily, getChatFontSize, loadChatFont } from "@/features/chat/chat-fonts"; // 채팅 글꼴
 import { getMessageCost } from "@/features/chat/chat-tiers"; // 메시지 비용
+import { getVersionDeleteConfirmText } from "@/features/chat/version-delete-text"; // 버전 삭제 확인 문구
 import { ChatSettingsPanel, type ChatDialogId } from "@/features/chat/ChatSettingsPanel"; // 채팅방 설정 패널
 import { buildAutoMemories } from "@/features/chat/memory-model"; // 자동 요약 메모리
 import { StatusPanel } from "@/features/chat/StatusPanel"; // 고정 상태창
@@ -455,7 +456,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
     const deleteVersion = (versionId: string) => // 대화 버전 삭제
     { // 함수 시작
         const preview = removeVersionTree(controller.snapshot(), conversation.id, versionId); // 삭제 범위 계산
-        if (!window.confirm(t("현재 수정 버전과 하위 버전 {0}개, 메시지 {1}개를 삭제할까요?", [preview.versionCount, preview.messageCount]))) // 삭제 확인 판정
+        if (!window.confirm(getVersionDeleteConfirmText(preview.versionCount, preview.messageCount))) // 삭제 확인 판정(하위 버전 수에서 자신은 뺌)
         { // 조건 시작
             return; // 삭제 취소
         } // 조건 종료

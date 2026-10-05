@@ -62,7 +62,7 @@ export function buildAutoMemories(input: AutoMemoryInput): CharacterMemory[] // 
     } // 순회 종료
     if (input.turn % MEMORY_LONG_INTERVAL === 0) // 장기 기억 간격 판정
     { // 조건 시작
-        const shorts = [...input.existing.filter((memory) => memory.category === "short"), result[0]].slice(-3).map((memory) => memory.content.replace(/^\d+턴까지: /, "")); // 최근 단기 기억 3개
+        const shorts = [...input.existing.filter((memory) => memory.category === "short"), result[0]].slice(-3).map((memory) => memory.content.replace(/^(?:\d+턴까지: |Up to turn \d+: )/, "")); // 최근 단기 기억 3개(한국어·영어 화면에서 붙인 머리말을 뺌)
         result.push(createMemory({ ...base, id: `${input.conversationId}-long-${input.turn}`, category: "long", content: t("{0}턴 요약: {1}", [input.turn, shorts.join(" / ")]), sourceMessageIds: [input.userMessageId] })); // 장기 기억
     } // 조건 종료
     return result; // 기억 반환

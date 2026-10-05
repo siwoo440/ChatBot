@@ -50,6 +50,10 @@ export function StatusPanel({ messages, open, onToggle, initialStats = [] }: Sta
             } // 조건 종료
             if (event.key === "ArrowLeft" || event.key === "ArrowRight") // 턴 이동 판정
             { // 조건 시작
+                if (!open || statuses.length < 2) // 상태창이 접혀 있거나 넘겨 볼 턴이 없음
+                { // 조건 시작
+                    return; // 브라우저의 뒤로·앞으로 가기를 막지 않음
+                } // 조건 종료
                 event.preventDefault(); // 기본 동작 차단
                 const step = event.key === "ArrowLeft" ? -1 : 1; // 방향
                 setSelected((current) => // 위치 갱신
@@ -67,7 +71,7 @@ export function StatusPanel({ messages, open, onToggle, initialStats = [] }: Sta
         }; // 처리 종료
         window.addEventListener("keydown", handleKey); // 구독
         return () => window.removeEventListener("keydown", handleKey); // 해제
-    }, [onToggle, statuses.length]); // 의존
+    }, [onToggle, open, statuses.length]); // 의존
     const copy = async () => // 복사
     { // 함수 시작
         if (status === undefined) // 상태창 없음

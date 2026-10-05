@@ -347,4 +347,5 @@ export const chat: Record<string, string> = {
     "상태창 접기·펼치기": "Collapse or expand the status panel",
     "이전·다음 턴 상태창 보기": "View the previous or next turn's status",
     "열린 창 닫기": "Close the open window",
+    "현재 수정 버전과 메시지 {0}개를 삭제할까요?": "Delete this edited version and {0} messages?",
 };
