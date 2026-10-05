@@ -12,7 +12,8 @@ function countMissionEvents(previous: AppState, next: AppState, action: AppActio
     { // 조건 시작
         const known = new Set(previous.messages.filter((message) => message.conversationId === action.conversationId).map((message) => message.id)); // 이미 있던 메시지
         const sent = next.messages.filter((message) => message.conversationId === action.conversationId && message.role === "user" && !known.has(message.id)).length; // 새로 보낸 내 메시지
-        const started = !previous.conversations.some((conversation) => conversation.id === action.conversationId) && next.conversations.some((conversation) => conversation.id === action.conversationId); // 처음 저장한 대화
+        const talkedBefore = previous.messages.some((message) => message.conversationId === action.conversationId && message.role === "user"); // 이 대화에서 내가 말한 적이 있는지
+        const started = sent > 0 && !talkedBefore && next.conversations.some((conversation) => conversation.id === action.conversationId); // 이 대화에서 내가 처음 보낸 말(상세 화면의 시작 버튼처럼 대화를 먼저 저장해 둔 경우도 셈)
         return [["send-messages", sent], ["start-conversation", started ? 1 : 0]]; // 메시지·새 대화
     } // 조건 종료
     if (action.type === "toggle-character-like") // 좋아요
