@@ -90,7 +90,7 @@ export function LibraryScreen() // 보관함 화면
                 <div className={styles.headerActions}><Link href={"/images" as Route} className={styles.secondaryLink}>{t("이미지 스튜디오")}</Link><Link href={"/characters/new" as Route}>{t("＋ 새 캐릭터 만들기")}</Link></div> {/* 이미지·제작 링크 */}
             </header> {/* 상단 종료 */}
             <div className={styles.tabs} role="tablist" aria-label={t("보관함 분류")}> {/* 탭 목록 */}
-                {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-label={tc("tab", tab.label)} aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{tc("tab", tab.label)}<small>{tab.id === "created" ? created.length : tab.id === "drafts" ? drafts.length : tab.id === "stories" ? myStories.length : tab.id === "bookmarks" ? bookmarks.length : tab.id === "replies" ? replies.length : state.conversations.length}</small></button>)} {/* 탭 항목 */}
+                {tabs.map((tab) => <button key={tab.id} type="button" role="tab" aria-label={tc("tab", tab.label)} aria-selected={activeTab === tab.id} onClick={() => setActiveTab(tab.id)}>{tc("tab", tab.label)}<small>{tab.id === "created" ? created.length : tab.id === "drafts" ? drafts.length : tab.id === "stories" ? myStories.length : tab.id === "bookmarks" ? bookmarks.length : tab.id === "replies" ? replies.length : state.conversations.filter((conversation) => conversation.archivedAt === null).length}</small></button>)} {/* 탭 항목 */}
             </div> {/* 탭 종료 */}
             <div className={styles.searchRow}><ListSearch label={t("보관함 검색")} placeholder={t("이름·태그·대화 내용으로 찾기")} value={query} count={foundCount} onChange={setQuery} /></div> {/* 지금 탭 안에서 찾기 */}
             <section className={styles.content} role="tabpanel" aria-label={tc("tab", tabs.find((tab) => tab.id === activeTab)?.label ?? "")}> {/* 탭 내용 */}
@@ -121,7 +121,7 @@ function CharacterGrid({ characters, tab, isLocked, onDelete, onToggleBookmark, 
                     <Image src={character.coverImage} alt={character.name} width={320} height={420} /> {/* 대표 이미지 */}
                     {isLocked(character) ? <span className={styles.lockBadge}>{t("19+ 잠금")}</span> : null} {/* 잠금 표시 */}
                     <div className={styles.cardBody}> {/* 카드 본문 */}
-                        <span>{character.publicationStatus === "draft" ? t("임시 저장") : character.visibility === "public" ? t("전체 공개") : t("비공개")}</span> {/* 공개 상태 */}
+                        <span>{character.publicationStatus === "draft" ? t("임시 저장") : character.visibility === "public" ? t("전체 공개") : character.visibility === "unlisted" ? t("링크 공개") : t("비공개")}</span> {/* 공개 상태(스토리 카드와 같은 세 가지) */}
                         <Link href={`/characters/${character.id}` as Route} aria-label={t("{0} 상세 보기", [character.name])}><h2>{character.name}</h2></Link> {/* 상세 링크 */}
                         <p>{isLocked(character) ? t("19세 이용가 캐릭터입니다. 19+를 켜면 내용을 볼 수 있습니다.") : character.summary}</p> {/* 한 줄 소개 */}
                         <small>{t("최근 수정")} {new Date(character.updatedAt).toLocaleDateString(localeTag())}</small> {/* 수정 시각 */}
@@ -250,9 +250,10 @@ function ConversationGrid({ isLocked, isStoryLocked, visibleIds }: { isLocked(ch
             dispatch({ type: "replace-state", state: nextState }); // 가져오기 상태 저장
             setImportStatus(t("대화 “{0}”을 가져왔습니다.", [nextState.conversations.at(-1)?.title ?? imported.conversation.title])); // 성공 안내
         } // 시도 종료
-        catch // 가져오기 실패 처리
+        catch (error: unknown) // 가져오기 실패 처리
         { // 실패 시작
-            setImportStatus(t("대화 파일을 가져오지 못했습니다. 형식과 버전 관계를 확인해 주세요.")); // 실패 안내
+            const reason = error instanceof SyntaxError ? t("JSON 파일이 아니거나 내용이 깨져 있어요.") : error instanceof Error && error.constructor === Error && error.message.length > 0 ? error.message : t("형식과 버전 관계를 확인해 주세요."); // 실패 이유(파일 검사에서 알려 준 이유만 그대로 보여 주고, 그 밖의 오류는 일반 안내)
+            setImportStatus(t("대화 파일을 가져오지 못했습니다. {0}", [reason])); // 실패 안내
         } // 실패 종료
         input.value = ""; // 파일 선택 초기화
     }; // 함수 종료

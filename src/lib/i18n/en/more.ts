@@ -402,4 +402,7 @@ export const more: Record<string, string> = {
     "이번 주에 새 대화를 세 번 열고 첫 메시지를 보내요.": "Open three new chats this week and send the first message in each.",
     "탐색에서도 태그 여러 개로 좁히고, 보관함·스토리·내 이미지에서 낱말로 찾을 수 있어요.": "Narrow down by several tags in Explore too, and search your library, stories, and images by word.",
     "주간 미션으로 매주 토큰을 더 받을 수 있어요.": "Earn extra tokens every week with weekly missions.",
+    "JSON 파일이 아니거나 내용이 깨져 있어요.": "It isn't a JSON file, or its contents are damaged.",
+    "형식과 버전 관계를 확인해 주세요.": "Please check the format and how the versions are linked.",
+    "대화 파일을 가져오지 못했습니다. {0}": "Couldn't import the chat file. {0}",
 };

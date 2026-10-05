@@ -1,12 +1,9 @@
 // 목록 검색: 보관함·스토리 목록·내 이미지처럼 화면에 이미 있는 목록을 낱말로 좁힌다(초성 포함, 낱말이 여러 개면 모두 맞아야 함).
-import { matchesKoreanText } from "@/features/conversation/conversation-list-model"; // 초성 포함 검색
+import { matchesKoreanText, splitSearchWords } from "@/features/conversation/conversation-list-model"; // 초성 포함 검색·낱말 나누기
 
 export type SearchField = string | null | undefined; // 검색 대상 글(없으면 건너뜀)
 
-export function splitSearchWords(query: string): string[] // 검색어를 낱말로 나누기
-{ // 함수 시작
-    return query.trim().split(/\s+/).filter((word) => word.length > 0); // 빈 낱말 제외
-} // 함수 종료
+export { splitSearchWords }; // 낱말 나누기(대화 목록 검색과 같은 함수를 씀)
 
 export function matchesFields(fields: readonly SearchField[], query: string): boolean // 낱말마다 어느 한 글에라도 맞는지
 { // 함수 시작

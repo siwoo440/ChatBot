@@ -119,11 +119,21 @@ export function matchesKoreanText(text: string, query: string): boolean // 한�
     return false; // 불일치 반환
 } // 함수 종료
 
-export function matchesConversationQuery(item: ConversationListItem, query: string): boolean // 대화방 검색 판정
+export function splitSearchWords(query: string): string[] // 검색어를 낱말로 나누기(보관함·대화 목록 공통 규칙)
+{ // 함수 시작
+    return query.trim().split(/\s+/).filter((word) => word.length > 0); // 빈 낱말 제외
+} // 함수 종료
+
+function conversationSearchFields(item: ConversationListItem): string[] // 대화방 검색 대상(제목·이름·마지막 말)
 { // 함수 시작
     const storyFields = item.story === null ? [] : [item.story.title, ...item.conversation.storyCast.map((member) => member.displayName)]; // 스토리 제목·등장인물 이름
-    const fields = [item.conversation.title, item.character.name, ...storyFields, ...(item.locked ? [] : [item.summary.lastMessage])]; // 검색 대상(잠금 시 메시지 제외)
-    return fields.some((field) => matchesKoreanText(field, query)); // 일치 여부 반환
+    return [item.conversation.title, item.character.name, ...storyFields, ...(item.locked ? [] : [item.summary.lastMessage])]; // 검색 대상(잠금 시 메시지 제외)
+} // 함수 종료
+
+export function matchesConversationQuery(item: ConversationListItem, query: string): boolean // 대화방 검색 판정(낱말마다 어느 한 대상에라도 맞아야 함)
+{ // 함수 시작
+    const fields = conversationSearchFields(item); // 검색 대상
+    return splitSearchWords(query).every((word) => fields.some((field) => matchesKoreanText(field, word))); // 모든 낱말 일치(보관함 검색과 같은 규칙)
 } // 함수 종료
 
 export interface ConversationMatch // 검색으로 찾은 자리
@@ -142,7 +152,14 @@ export function findConversationMatch(item: ConversationListItem, query: string,
     { // 조건 시작
         return null; // 불일치
     } // 조건 종료
-    const found = messages.filter((message) => message.versionId === item.conversation.currentVersionId && message.role !== "system" && matchesKoreanText(message.content, text)).at(-1); // 지금 버전에서 가장 최근에 맞은 말
+    const words = splitSearchWords(text); // 검색 낱말
+    const fields = conversationSearchFields(item); // 제목·이름·마지막 말
+    const current = messages.filter((message) => message.versionId === item.conversation.currentVersionId && message.role !== "system"); // 지금 버전의 대화
+    if (!words.every((word) => fields.some((field) => matchesKoreanText(field, word)) || current.some((message) => matchesKoreanText(message.content, word)))) // 제목·이름·대화 어디에도 없는 낱말이 있음
+    { // 조건 시작
+        return null; // 불일치
+    } // 조건 종료
+    const found = current.filter((message) => words.every((word) => matchesKoreanText(message.content, word))).at(-1) ?? current.filter((message) => words.some((word) => matchesKoreanText(message.content, word))).at(-1); // 낱말이 모두 든 가장 최근 말, 없으면 하나라도 든 가장 최근 말
     return found === undefined ? null : { message: found }; // 찾은 말 반환
 } // 함수 종료
 

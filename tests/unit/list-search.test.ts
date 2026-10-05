@@ -49,6 +49,15 @@ describe("대화방 검색", () => // 대화방 검색 묶음
         expect(findConversationMatch(item, "없는말", state.messages)).toBeNull(); // 없음
     }); // 검증 종료
 
+    it("보관함처럼 낱말을 나눠 모두 맞는 대화방을 찾는다(순서가 달라도, 제목과 지난 말에 흩어져 있어도)", () => // 낱말 검색 검증
+    { // 검증 시작
+        expect(findConversationMatch(item, "리안 도서관", state.messages)).toEqual({ message: null }); // 제목 안에서 순서가 달라도 찾음
+        expect(findConversationMatch(item, "  리안   새벽  ", state.messages)).toEqual({ message: null }); // 빈칸이 많아도 같음
+        expect(findConversationMatch(item, "리안 창가", state.messages)?.message?.id).toBe("message-rian-1"); // 이름은 제목에, 다른 낱말은 지난 말에
+        expect(findConversationMatch(item, "리안 우산", state.messages)).toBeNull(); // 한 낱말이라도 없으면 찾지 않음
+        expect(findConversationMatch({ ...item, locked: true }, "리안 창가", state.messages)).toBeNull(); // 잠긴 대화는 내용으로 찾지 않음
+    }); // 검증 종료
+
     it("같은 말이 여러 번 나오면 가장 최근 것을 고르고, 19+로 잠긴 대화는 내용을 찾지 않는다", () => // 최근·잠금 검증
     { // 검증 시작
         const messages = [...state.messages, { ...state.messages[0], id: "message-rian-extra", content: "창가에 다시 앉았어." }, { ...state.messages[0], id: "message-other-version", versionId: "another-version", content: "창가 이야기" }]; // 같은 낱말이 든 말 추가
