@@ -28,7 +28,7 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
     const router = useRouter(); // 경로 이동기
     const character = state.characters.find((item) => item.id === characterId); // 캐릭터 조회
     const initialProfile = character === undefined ? null : getCharacterDetailProfile(character); // 초기 상세 프로필
-    const [selectedProfileId, setSelectedProfileId] = useState(state.profile.id); // 선택 프로필 상태
+    const [selectedProfileId, setSelectedProfileId] = useState(state.personas[0]?.id ?? ""); // 선택한 대화 프로필(처음은 기본 프로필)
     const [selectedPresetId, setSelectedPresetId] = useState(initialProfile?.startPresets[0]?.id ?? ""); // 선택 프리셋 상태
     const [creating, setCreating] = useState(false); // 대화 생성 상태
     const [shareStatus, setShareStatus] = useState(""); // 공유 상태
@@ -73,7 +73,7 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
         } // 조건 종료
         creatingRef.current = true; // 생성 잠금 설정
         setCreating(true); // 생성 상태 설정
-        const result = createConversationFromPreset(state, character.id, selectedPreset.id); // 새 대화 생성
+        const result = createConversationFromPreset(state, character.id, selectedPreset.id, new Date().toISOString(), selectedProfileId); // 새 대화 생성(고른 대화 프로필로)
         dispatch({ type: "replace-state", state: result.state }); // 생성 상태 저장
         router.push(result.href as Route); // 대화 화면 이동
     }; // 함수 종료
@@ -117,9 +117,9 @@ export function CharacterDetail({ characterId }: { characterId: string }) // 캐
             <PageTitle title={character.name} /> {/* 탭 제목 */}
             <div className={styles.background} aria-hidden="true" /> {/* 흐림 배경 */}
             <div className={styles.content}> {/* 상세 내용 */}
-                <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} latestConversation={latestConversation} creating={creating} shareStatus={shareStatus} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => dispatch({ type: "toggle-character-like", characterId: character.id })} onFollow={() => dispatch({ type: "toggle-creator-follow", creatorId: character.creatorId })} onShare={shareCharacter} onMore={openReport} onContinue={continueConversation} onStart={startConversation} /> {/* 히어로 */}
+                <CharacterHero character={character} profile={profile} bookmarked={bookmarked} liked={liked} followed={followed} own={character.creatorId === state.profile.id} latestConversation={latestConversation} creating={creating} shareStatus={shareStatus} onBookmark={() => dispatch({ type: "toggle-bookmark", characterId: character.id })} onLike={() => dispatch({ type: "toggle-character-like", characterId: character.id })} onFollow={() => dispatch({ type: "toggle-creator-follow", creatorId: character.creatorId })} onShare={shareCharacter} onReport={openReport} onContinue={continueConversation} onStart={startConversation} /> {/* 히어로 */}
                 <CharacterStoryInfo character={character} profile={profile} /> {/* 스토리 정보 */}
-                <ConversationSetup profile={state.profile} presets={profile.startPresets} selectedProfileId={selectedProfileId} selectedPresetId={selectedPreset?.id ?? ""} onProfileChange={setSelectedProfileId} onPresetChange={setSelectedPresetId} /> {/* 시작 설정 */}
+                <ConversationSetup personas={state.personas} presets={profile.startPresets} selectedProfileId={selectedProfileId} selectedPresetId={selectedPreset?.id ?? ""} onProfileChange={setSelectedProfileId} onPresetChange={setSelectedPresetId} /> {/* 시작 설정 */}
                 {selectedPrologue === undefined || selectedPreset === undefined ? null : <ProloguePreview key={selectedPrologue.id} prologue={selectedPrologue} presetName={selectedPreset.name} fallbackImage={character.coverImage} characterName={character.name} />} {/* 프롤로그 미리보기 */}
                 <CharacterDiscoverySections profile={profile} userProfile={state.profile} characters={visibleCharacters} relatedCharacters={relatedCharacters} /> {/* 업데이트와 탐색 */}
                 <CharacterActionBar latestConversation={latestConversation} creating={creating} onContinue={continueConversation} onStart={startConversation} /> {/* 대화 동작 */}

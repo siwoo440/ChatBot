@@ -273,4 +273,8 @@ export const character: Record<string, string> = {
     "아직 업데이트 기록이 없어요. 대화 화면의 업데이트 정보에 표시됩니다.": "No updates yet. They appear under Updates in the chat screen.",
     "업데이트 기록 목록": "Update entries",
     "{0} 기록 삭제": "Delete entry {0}",
+    "내가 만든 캐릭터": "Made by you",
+    "이 프로필의 이름과 설정으로 대화에 참여합니다. 프로필은 채팅방 설정의 대화 프로필에서 만들고 바꿀 수 있어요.": "You'll join the chat with this profile's name and details. You can create and change profiles under Chat profile in the chat room settings.",
+    "{0} 신고": "Report {0}",
+    "신고": "Report",
 };

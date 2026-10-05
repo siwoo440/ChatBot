@@ -17,6 +17,7 @@ interface CharacterHeroProps // 히어로 속성
     bookmarked: boolean; // 보관 상태
     liked: boolean; // 좋아요 상태
     followed: boolean; // 팔로우 상태
+    own: boolean; // 내가 만든 캐릭터인지(팔로우·신고 대신 수정 링크를 보여 줌)
     latestConversation: Conversation | null; // 최근 대화
     creating: boolean; // 대화 생성 상태
     shareStatus: string; // 공유 상태
@@ -24,7 +25,7 @@ interface CharacterHeroProps // 히어로 속성
     onLike: () => void; // 좋아요 동작
     onFollow: () => void; // 팔로우 동작
     onShare: () => void; // 공유 동작
-    onMore: (trigger: HTMLButtonElement) => void; // 더보기 동작
+    onReport: (trigger: HTMLButtonElement) => void; // 신고 창 열기
     onContinue: () => void; // 이어하기 동작
     onStart: () => void; // 새 대화 동작
 } // 구조 종료
@@ -54,12 +55,17 @@ function ShareIcon() // 공유 아이콘
     return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 12 16.5 6M8 12l8.5 6M8 12h9M14 4l3 2-3 2M14 16l3 2-3 2" /></svg>; // 공유 도형
 } // 함수 종료
 
-function MoreIcon() // 더보기 아이콘
+function ReportIcon() // 신고 아이콘(깃발)
 { // 함수 시작
-    return <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg>; // 점 도형
+    return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 21V4M6 5h11l-2.5 4L17 13H6" /></svg>; // 깃발 도형
 } // 함수 종료
 
-export function CharacterHero({ character, profile, bookmarked, liked, followed, latestConversation, creating, shareStatus, onBookmark, onLike, onFollow, onShare, onMore, onContinue, onStart }: CharacterHeroProps) // 캐릭터 히어로
+function EditIcon() // 수정 아이콘(연필)
+{ // 함수 시작
+    return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4" /></svg>; // 연필 도형
+} // 함수 종료
+
+export function CharacterHero({ character, profile, bookmarked, liked, followed, own, latestConversation, creating, shareStatus, onBookmark, onLike, onFollow, onShare, onReport, onContinue, onStart }: CharacterHeroProps) // 캐릭터 히어로
 { // 함수 시작
     const [imageFailed, setImageFailed] = useState(false); // 이미지 오류 상태
     const metrics = profile.sampleMetrics; // 샘플 지표
@@ -83,7 +89,7 @@ export function CharacterHero({ character, profile, bookmarked, liked, followed,
                         <strong>{character.creatorName}</strong> {/* 제작자 이름 */}
                         <small className={styles.localOnly}>{t("로컬 전용 · 서버 동기화 없음")}</small> {/* 로컬 범위 안내 */}
                     </div> {/* 제작자 정보 종료 */}
-                    <button className={styles.followButton} type="button" aria-pressed={followed} aria-label={t("{0} 제작자 {1}", [character.creatorName, followed ? t("팔로우 해제") : t("팔로우")])} onClick={onFollow}>{followed ? t("팔로잉") : t("팔로우")}</button> {/* 팔로우 버튼 */}
+                    {own ? <span className={styles.ownBadge}>{t("내가 만든 캐릭터")}</span> : <button className={styles.followButton} type="button" aria-pressed={followed} aria-label={t("{0} 제작자 {1}", [character.creatorName, followed ? t("팔로우 해제") : t("팔로우")])} onClick={onFollow}>{followed ? t("팔로잉") : t("팔로우")}</button>} {/* 팔로우 버튼(내 캐릭터면 표시만) */}
                 </div> {/* 제작자 행 종료 */}
                 <div className={styles.titleBlock}> {/* 제목 묶음 */}
                     <p className={styles.kicker}>MATE:VERSE ORIGINAL</p> {/* 서비스 라벨 */}
@@ -108,7 +114,7 @@ export function CharacterHero({ character, profile, bookmarked, liked, followed,
                     <button type="button" aria-pressed={liked} aria-label={t("{0} 좋아요", [character.name])} onClick={onLike}><HeartIcon /><span>{liked ? t("좋아요 취소") : t("좋아요")}</span></button> {/* 좋아요 버튼 */}
                     <button type="button" aria-pressed={bookmarked} aria-label={`${character.name} ${bookmarked ? t("보관함에서 제거") : t("보관함에 추가")}`} onClick={onBookmark}><BookmarkIcon /><span>{bookmarked ? t("보관됨") : t("보관")}</span></button> {/* 보관 버튼 */}
                     <button type="button" aria-label={t("{0} 공유", [character.name])} onClick={onShare}><ShareIcon /><span>{t("공유")}</span></button> {/* 공유 버튼 */}
-                    <button type="button" aria-label={t("{0} 더보기", [character.name])} onClick={(event) => onMore(event.currentTarget)}><MoreIcon /><span>{t("더보기")}</span></button> {/* 더보기 버튼 */}
+                    {own ? <Link href={`/characters/${character.id}/edit` as Route} aria-label={t("{0} 수정", [character.name])}><EditIcon /><span>{t("수정")}</span></Link> : <button type="button" aria-label={t("{0} 신고", [character.name])} onClick={(event) => onReport(event.currentTarget)}><ReportIcon /><span>{t("신고")}</span></button>} {/* 내 캐릭터는 수정, 남의 캐릭터는 신고(메뉴 없이 신고 창을 열던 「더보기」를 하는 일 그대로의 이름으로) */}
                 </div> {/* 빠른 동작 종료 */}
                 {shareStatus.length === 0 ? null : <p className={styles.shareStatus} role="status">{shareStatus}</p>} {/* 공유 상태 안내 */}
                 <div className={styles.heroConversationActions} aria-label={t("히어로 대화 시작 동작")}> {/* 히어로 대화 동작 */}

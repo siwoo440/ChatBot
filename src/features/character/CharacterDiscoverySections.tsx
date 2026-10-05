@@ -55,7 +55,7 @@ export function CharacterDiscoverySections({ profile, userProfile, characters, r
                         {profile.releaseNotes.map((note) => ( // 업데이트 순회
                             <li key={`${note.version}-${note.date}`}> {/* 업데이트 항목 */}
                                 <div><strong>v{note.version}</strong><time dateTime={note.date}>{formatReleaseDate(note.date)}</time></div> {/* 버전 날짜 */}
-                                <div><h3>{t(note.title)}</h3><ul>{note.changes.map((change) => <li key={change}>{change}</li>)}</ul></div> {/* 변경 내용 */}
+                                <div>{note.title.length === 0 ? null : <h3>{t(note.title)}</h3>}<ul>{note.changes.map((change) => <li key={change}>{change}</li>)}</ul></div> {/* 변경 내용 */}
                             </li> // 업데이트 항목 종료
                         ))} {/* 순회 종료 */}
                     </ol> // 업데이트 목록 종료

@@ -1,10 +1,10 @@
-import type { CharacterStartPreset, UserProfile } from "@/features/core/types"; // 도메인 타입
+import type { CharacterStartPreset, Persona } from "@/features/core/types"; // 도메인 타입
 import styles from "@/features/character/CharacterDetail.module.css"; // 상세 화면 스타일
 import { t } from "@/lib/i18n"; // 화면 글자 번역
 
 interface ConversationSetupProps // 시작 설정 속성
 { // 구조 시작
-    profile: UserProfile; // 사용자 프로필
+    personas: Persona[]; // 대화 프로필 목록(채팅방 설정의 대화 프로필과 같은 목록)
     presets: CharacterStartPreset[]; // 시작 프리셋 목록
     selectedProfileId: string; // 선택 프로필 식별자
     selectedPresetId: string; // 선택 프리셋 식별자
@@ -12,7 +12,7 @@ interface ConversationSetupProps // 시작 설정 속성
     onPresetChange(presetId: string): void; // 프리셋 변경 처리
 } // 구조 종료
 
-export function ConversationSetup({ profile, presets, selectedProfileId, selectedPresetId, onProfileChange, onPresetChange }: ConversationSetupProps) // 대화 시작 설정
+export function ConversationSetup({ personas, presets, selectedProfileId, selectedPresetId, onProfileChange, onPresetChange }: ConversationSetupProps) // 대화 시작 설정
 { // 함수 시작
     return ( // 설정 반환
         <section className={styles.setupSection} aria-labelledby="conversation-setup-title"> {/* 설정 영역 */}
@@ -25,9 +25,9 @@ export function ConversationSetup({ profile, presets, selectedProfileId, selecte
                 <label className={styles.profileField}> {/* 프로필 입력 */}
                     <span>{t("대화 프로필")}</span> {/* 입력 표제 */}
                     <select value={selectedProfileId} onChange={(event) => onProfileChange(event.target.value)}> {/* 프로필 선택 */}
-                        <option value={profile.id}>{profile.nickname}</option> {/* 현재 프로필 */}
+                        {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.name}</option>)} {/* 만들어 둔 대화 프로필 */}
                     </select> {/* 선택 종료 */}
-                    <small>{t("이 프로필의 이름과 설정으로 대화에 참여합니다.")}</small> {/* 프로필 안내 */}
+                    <small>{t("이 프로필의 이름과 설정으로 대화에 참여합니다. 프로필은 채팅방 설정의 대화 프로필에서 만들고 바꿀 수 있어요.")}</small> {/* 프로필 안내 */}
                 </label> {/* 프로필 입력 종료 */}
                 <div className={styles.presetField}> {/* 프리셋 입력 */}
                     <span>{t("시작 설정")}</span> {/* 입력 표제 */}

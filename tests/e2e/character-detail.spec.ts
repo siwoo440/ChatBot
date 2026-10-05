@@ -134,7 +134,7 @@ test("키보드만으로 확장·프리셋·보관·공유·신고·대화 시�
     const share = page.getByRole("button", { name: "퇴근길 카페의 하린 공유" }); // 공유 버튼 조회
     await useKeyboard(page, share, "Enter"); // 공유 실행
     await expect(page.getByRole("status")).toHaveText("공유 링크를 복사했습니다."); // 공유 결과 확인
-    const more = page.getByRole("button", { name: "퇴근길 카페의 하린 더보기" }); // 더보기 버튼 조회
+    const more = page.getByRole("button", { name: "퇴근길 카페의 하린 신고" }); // 신고 버튼 조회
     await useKeyboard(page, more, "Enter"); // 신고 창 열기
     const reportDialog = page.getByRole("dialog", { name: "캐릭터 신고" }); // 신고 창 조회
     await expect(reportDialog).toBeVisible(); // 신고 창 표시 확인

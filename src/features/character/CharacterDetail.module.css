@@ -157,6 +157,18 @@
     font-weight: 650; /* 안내 굵기 */
 } /* 규칙 종료 */
 
+.ownBadge /* 내가 만든 캐릭터 표시(팔로우 버튼 자리) */
+{ /* 규칙 시작 */
+    flex: 0 0 auto; /* 크기 고정 */
+    padding: 8px 14px; /* 표시 여백 */
+    border: 1px solid color-mix(in srgb, var(--genre) 35%, var(--mv-surface)); /* 표시 경계 */
+    border-radius: 999px; /* 캡슐 모양 */
+    color: var(--genre-strong); /* 표시 글자 */
+    font-size: 0.8rem; /* 표시 크기 */
+    font-weight: 800; /* 표시 굵기 */
+    background: color-mix(in srgb, var(--genre) 8%, var(--mv-surface)); /* 표시 배경 */
+} /* 규칙 종료 */
+
 .followButton /* 팔로우 버튼 */
 { /* 규칙 시작 */
     min-width: 88px; /* 버튼 너비 */
@@ -345,8 +357,10 @@
     gap: 10px; /* 버튼 간격 */
 } /* 규칙 종료 */
 
-.quickActions button /* 빠른 버튼 */
+.quickActions button, /* 빠른 버튼 */
+.quickActions a /* 빠른 링크(내 캐릭터의 수정) */
 { /* 규칙 시작 */
+    text-decoration: none; /* 링크 밑줄 제거 */
     --action: #475569; /* 동작 강조색 */
     --action-soft: light-dark(#f1f5f9, #1d262e); /* 동작 연한 배경 */
     display: inline-flex; /* 내용 배치 */
@@ -383,12 +397,14 @@
     --action-soft: light-dark(#e0f2fe, #142d3d); /* 하늘 배경 */
 } /* 규칙 종료 */
 
-.quickActions button svg /* 동작 아이콘 */
+.quickActions button svg, /* 동작 아이콘 */
+.quickActions a svg /* 링크 아이콘 */
 { /* 규칙 시작 */
     color: light-dark(var(--action), color-mix(in srgb, var(--action) 55%, white)); /* 아이콘 색상 */
 } /* 규칙 종료 */
 
-.quickActions button:hover /* 빠른 동작 올림 */
+.quickActions button:hover, /* 빠른 동작 올림 */
+.quickActions a:hover /* 빠른 링크 올림 */
 { /* 규칙 시작 */
     border-color: var(--action); /* 강조 경계 */
     background: var(--action-soft); /* 강조 배경 */
