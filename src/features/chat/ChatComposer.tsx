@@ -18,7 +18,7 @@ export interface ComposerCommand // 명령어
 interface ChatComposerProps // 채팅 입력 속성
 { // 구조 시작
     busy: boolean; // 응답 상태
-    onSend(text: string): Promise<void>; // 전송 처리
+    onSend(text: string): Promise<boolean | void>; // 전송 처리(거절되면 false를 돌려줌)
     onCancel(): void; // 중단 처리
     storyCast?: StoryCastMember[]; // 스토리 모드 등장인물(있으면 말 걸 상대·이야기 진행 표시)
     onContinue?(): Promise<void>; // 입력 없이 이야기 진행
@@ -93,7 +93,11 @@ export function ChatComposer({ busy, onSend, onCancel, storyCast, onContinue, ge
         const member = storyCast?.find((item) => item.characterId === target); // 고른 상대
         setText(""); // 입력 초기화
         setSuggestions(null); // 추천 닫기
-        await onSend(member === undefined || content.startsWith("@") ? content : addressText(member, content)); // 메시지 전송(상대가 있으면 @이름 붙임)
+        const accepted = await onSend(member === undefined || content.startsWith("@") ? content : addressText(member, content)); // 메시지 전송(상대가 있으면 @이름 붙임)
+        if (accepted === false) // 토큰 부족 등으로 보내지 못함
+        { // 조건 시작
+            setText((current) => current.length === 0 ? text : current); // 쓴 글을 되돌림(그 사이 새로 쓴 글이 있으면 그대로 둠)
+        } // 조건 종료
     }; // 함수 종료
     const handleInputKey = (event: KeyboardEvent<HTMLTextAreaElement>) => // 입력창 키 처리
     { // 함수 시작

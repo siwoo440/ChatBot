@@ -320,8 +320,9 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
             } // 조건 종료
         } // 순회 종료
     }; // 함수 종료
-    const runRequest = async (request: (onProgress: (progress: ChatProgress) => void) => Promise<SendResult>) => // 응답 요청 실행
+    const runRequest = async (request: (onProgress: (progress: ChatProgress) => void) => Promise<SendResult>): Promise<boolean> => // 응답 요청 실행(보내기가 받아들여졌는지 돌려줌)
     { // 함수 시작
+        let accepted = true; // 받아들여짐(토큰 부족처럼 보내기 전에 거절되면 거짓)
         syncContext(); // 최신 설정 반영
         setBusy(true); // 응답 상태 시작
         setNotice(""); // 기존 안내 해제
@@ -334,6 +335,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
         try // 메시지 전송 시도
         { // 시도 시작
             const result = await request(updateProgress); // 제어기 요청
+            accepted = result.ok || result.reason === "cancelled"; // 중단은 이미 보낸 뒤라 받아들여진 것으로 봄
             sync(); // 상태 동기화
             setNotice(result.ok ? "" : result.reason === "cancelled" ? t("응답을 중단했습니다.") : result.reason === "insufficient-token" ? t("토큰이 부족합니다.") : t("메시지를 전송하지 못했습니다.")); // 안내 갱신
             if (result.ok) // 성공 판정
@@ -353,10 +355,11 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
             setStreamingMessageId(null); // 스트리밍 상태 해제
             setBusy(false); // 응답 상태 종료
         } // 정리 종료
+        return accepted; // 받아들여졌는지 반환
     }; // 함수 종료
-    const send = async (text: string) => // 메시지 전송
+    const send = async (text: string): Promise<boolean> => // 메시지 전송(거절되면 거짓: 입력창이 쓴 글을 되돌림)
     { // 함수 시작
-        await runRequest((onProgress) => controller.sendMessage(text, onProgress)); // 새 메시지 요청
+        return runRequest((onProgress) => controller.sendMessage(text, onProgress)); // 새 메시지 요청
     }; // 함수 종료
     const continueStory = async () => // 입력 없이 이야기 진행
     { // 함수 시작

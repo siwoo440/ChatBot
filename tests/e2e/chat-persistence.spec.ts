@@ -56,3 +56,16 @@ test("말을 보내고 새로 고친 뒤 같은 대화에 또 보내도 저장�
     }, stateKey); // 확인 종료
     expect(saved).toEqual({ count: 7, unique: 7, balance: 1238 }); // 기본 3개 + 내 말 2개 + 답 2개, 베이직챗 두 번 차감
 }); // 테스트 종료
+
+test("토큰이 모자라 보내지 못하면 쓴 글이 입력칸에 남고, 메시지는 추가되지 않는다", async ({ page }) => // 토큰 부족 검증
+{ // 테스트 시작
+    await seed(page, 0); // 잔액 없이 준비
+    await page.setViewportSize({ width: 390, height: 844 }); // 휴대폰
+    await page.goto(chatUrl); // 리안 대화
+    const input = page.getByRole("textbox", { name: "메시지", exact: true }); // 입력창
+    await input.fill("길게 쓴 글이 사라지면 곤란해요"); // 입력
+    await input.press("Enter"); // 전송 시도
+    await expect(page.getByText("토큰이 부족합니다.")).toBeVisible(); // 부족 안내
+    await expect(input).toHaveValue("길게 쓴 글이 사라지면 곤란해요"); // 쓴 글 유지
+    await expect(page.getByRole("list", { name: "대화 메시지" }).getByRole("listitem")).toHaveCount(3); // 메시지는 그대로
+}); // 테스트 종료
