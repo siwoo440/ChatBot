@@ -24,6 +24,7 @@ import type { Character, CharacterDraft, PublicationStatus } from "@/features/co
 import { canUseImageForRating, findImageBySource, isGeneratedImageSource } from "@/features/images/image-model"; // 내 이미지 도구
 import styles from "@/features/character/CharacterEditor.module.css"; // 편집기 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
+import { TagInput } from "@/features/character/TagInput"; // 태그 입력칸
 
 const imageOptions = ["rian", "harin", "sera", "kyle", "noah", "miel", "yuna"].map((id) => `/images/characters/${id}.webp`); // 이미지 목록
 
@@ -227,7 +228,7 @@ export function CharacterEditor({ characterId, initialImageId, llm }: { characte
                         {error("summary")} {/* 소개 오류 */}
                         <label>{t("상세 설명")}<textarea value={draft.description} onChange={(event) => update("description", event.target.value)} rows={4} /></label> {/* 설명 입력 */}
                         {error("description")} {/* 설명 오류 */}
-                        <label>{t("태그")}<input value={draft.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(","))} placeholder={t("힐링, 판타지, 여행")} /></label> {/* 태그 입력 */}
+                        <TagInput label={t("태그")} tags={draft.tags} placeholder={t("힐링, 판타지, 여행")} onChange={(tags) => update("tags", tags)} /> {/* 태그 입력(친 글자를 그대로 보여 줌) */}
                         {error("tags")} {/* 태그 오류 */}
                         <fieldset className={styles.images}> {/* 이미지 선택 */}
                             <legend>{t("대표 이미지")}</legend> {/* 이미지 제목 */}

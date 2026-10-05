@@ -25,6 +25,7 @@ import { createEmptyStoryDraft, createStoryCastMember, getCastRequiredRating, ge
 import editorStyles from "@/features/character/CharacterEditor.module.css"; // 공통 편집기 스타일
 import styles from "@/features/story/StoryEditor.module.css"; // 스토리 편집기 스타일
 import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { TagInput } from "@/features/character/TagInput"; // 태그 입력칸
 
 const ratingOptions: ContentRating[] = ["all", "teen", "mature"]; // 등급 선택지
 
@@ -234,7 +235,7 @@ export function StoryEditor({ storyId, initialImageId, llm }: { storyId?: string
                         {error("title")} {/* 제목 오류 */}
                         <label>{t("한 줄 소개")}<input value={draft.summary} onChange={(event) => update("summary", event.target.value)} maxLength={81} /></label> {/* 소개 */}
                         {error("summary")} {/* 소개 오류 */}
-                        <label>{t("태그")}<input value={draft.tags.join(", ")} onChange={(event) => update("tags", event.target.value.split(","))} placeholder={t("미스터리, 학원, 판타지")} /></label> {/* 태그 */}
+                        <TagInput label={t("태그")} tags={draft.tags} placeholder={t("미스터리, 학원, 판타지")} onChange={(tags) => update("tags", tags)} /> {/* 태그(친 글자를 그대로 보여 줌) */}
                         {error("tags")} {/* 태그 오류 */}
                         <fieldset className={`${editorStyles.images} ${styles.covers}`}> {/* 표지 고르기 */}
                             <legend>{t("표지 이미지")}</legend> {/* 표지 제목 */}
