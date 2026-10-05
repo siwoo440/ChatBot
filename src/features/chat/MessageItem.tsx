@@ -3,6 +3,7 @@
 import Image from "next/image"; // 최적화 이미지
 import { useState, type FormEvent, type ReactNode } from "react"; // 리액트 상태
 import type { EditMessageResult } from "@/features/chat/chat-controller"; // 수정 결과 타입
+import { MessageIcon } from "@/features/chat/MessageIcon"; // 동작 버튼 그림
 import { messageAnchor } from "@/features/chat/review-model"; // 메시지 표식
 import { CHAT_MESSAGE_MAX_LENGTH, type MessageVersionGroup } from "@/features/conversation/conversation-versioning"; // 버전 도메인 타입
 import type { Message } from "@/features/core/types"; // 메시지 타입
@@ -161,15 +162,15 @@ export function MessageItem({ message, streaming, busy, allowRegenerate, version
                     {item.title.length === 0 && !item.ending ? null : <span className={styles.eventBadges}>{item.title.length === 0 ? null : <span>{t("🏅 칭호 ‘")}{t(item.title)}’</span>}{item.ending ? <span data-ending="true">{t("🎬 엔딩")}</span> : null}</span>} {/* 칭호·엔딩 */}
                 </div> // 이벤트 카드 종료
             ))} {/* 이벤트 종료 */}
-            <div className={styles.actions}> {/* 메시지 동작 */}
-                <button type="button" disabled={busy} onClick={() => void copy()}>{t("복사")}</button> {/* 복사 버튼 */}
-                {message.role === "user" && onEdit !== undefined ? <button type="button" disabled={busy} onClick={() => { setDraft(message.content); setEditing(true); setStatus(""); }}>{t("수정")}</button> : null} {/* 수정 버튼 */}
-                {onDelete !== undefined ? <button type="button" disabled={busy} onClick={() => onDelete(message)}>{t("삭제")}</button> : null} {/* 삭제 버튼 */}
-                {allowRegenerate && onRegenerate !== undefined ? <button type="button" disabled={busy} onClick={onRegenerate}>{t("다시 생성")}</button> : null} {/* 다시 생성 버튼 */}
-                {message.role === "assistant" && !streaming && onToggleBookmark !== undefined ? <button type="button" aria-pressed={message.bookmarked === true} disabled={busy} onClick={() => onToggleBookmark(message)}>{t("책갈피")}</button> : null} {/* 책갈피 버튼 */}
-                {message.role === "assistant" && !streaming && onSceneCard !== undefined && message.content.trim().length > 0 ? <button type="button" disabled={busy} onClick={() => onSceneCard(message)}>{t("명장면 카드")}</button> : null} {/* 명장면 카드 버튼 */}
+            <div className={styles.actions} role="group" aria-label={t("메시지 동작")}> {/* 메시지 동작(글자 대신 작은 그림 버튼, 이름은 aria-label과 풍선 도움말로 알림) */}
+                <button type="button" aria-label={t("복사")} title={t("복사")} disabled={busy} onClick={() => void copy()}><MessageIcon name="copy" /></button> {/* 복사 버튼 */}
+                {message.role === "user" && onEdit !== undefined ? <button type="button" aria-label={t("수정")} title={t("수정")} disabled={busy} onClick={() => { setDraft(message.content); setEditing(true); setStatus(""); }}><MessageIcon name="edit" /></button> : null} {/* 수정 버튼 */}
+                {onDelete !== undefined ? <button type="button" aria-label={t("삭제")} title={t("삭제")} disabled={busy} onClick={() => onDelete(message)}><MessageIcon name="delete" /></button> : null} {/* 삭제 버튼 */}
+                {allowRegenerate && onRegenerate !== undefined ? <button type="button" aria-label={t("다시 생성")} title={t("다시 생성")} disabled={busy} onClick={onRegenerate}><MessageIcon name="regenerate" /></button> : null} {/* 다시 생성 버튼 */}
+                {message.role === "assistant" && !streaming && onToggleBookmark !== undefined ? <button type="button" aria-label={t("책갈피")} title={t("책갈피")} aria-pressed={message.bookmarked === true} disabled={busy} onClick={() => onToggleBookmark(message)}><MessageIcon name="bookmark" /></button> : null} {/* 책갈피 버튼 */}
+                {message.role === "assistant" && !streaming && onSceneCard !== undefined && message.content.trim().length > 0 ? <button type="button" aria-label={t("명장면 카드")} title={t("명장면 카드")} disabled={busy} onClick={() => onSceneCard(message)}><MessageIcon name="scene-card" /></button> : null} {/* 명장면 카드 버튼 */}
             </div> {/* 동작 종료 */}
-            {showSwitcher ? <div className={styles.switcher}><button type="button" aria-label={t("이전 대화 버전")} disabled={busy || versionGroup.currentIndex <= 0} onClick={() => move("previous")}>‹</button><span aria-label={t("대화 버전 {0}/{1}", [versionGroup.currentIndex + 1, versionGroup.versionIds.length])}>{versionGroup.currentIndex + 1} / {versionGroup.versionIds.length}</span><button type="button" aria-label={t("다음 대화 버전")} disabled={busy || versionGroup.currentIndex >= versionGroup.versionIds.length - 1} onClick={() => move("next")}>›</button>{canDeleteVersion && onDeleteVersion !== undefined ? <button type="button" className={styles.versionDelete} disabled={busy} onClick={() => onDeleteVersion(currentVersionId)}>{t("현재 버전 삭제")}</button> : null}</div> : null} {/* 버전 전환기 */}
+            {showSwitcher ? <div className={styles.switcher}><button type="button" aria-label={t("이전 대화 버전")} disabled={busy || versionGroup.currentIndex <= 0} onClick={() => move("previous")}>‹</button><span aria-label={t("대화 버전 {0}/{1}", [versionGroup.currentIndex + 1, versionGroup.versionIds.length])}>{versionGroup.currentIndex + 1} / {versionGroup.versionIds.length}</span><button type="button" aria-label={t("다음 대화 버전")} disabled={busy || versionGroup.currentIndex >= versionGroup.versionIds.length - 1} onClick={() => move("next")}>›</button>{canDeleteVersion && onDeleteVersion !== undefined ? <button type="button" className={styles.versionDelete} aria-label={t("현재 버전 삭제")} title={t("현재 버전 삭제")} disabled={busy} onClick={() => onDeleteVersion(currentVersionId)}><MessageIcon name="delete" /></button> : null}</div> : null} {/* 버전 전환기 */}
             {status.length > 0 ? <p className={styles.status} role={statusAlert ? "alert" : "status"}>{status}</p> : null} {/* 동작 안내 */}
         </li> // 항목 종료
     ); // 반환 종료

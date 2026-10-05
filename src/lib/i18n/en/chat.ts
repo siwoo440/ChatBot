@@ -240,6 +240,7 @@ export const chat: Record<string, string> = {
     "🏅 칭호 ‘": "🏅 Title ‘",
     "🎬 엔딩": "🎬 Ending",
     "복사": "Copy",
+    "메시지 동작": "Message actions",
     "다시 생성": "Regenerate",
     "책갈피": "Bookmark",
     "명장면 카드": "Scene card",

@@ -127,13 +127,42 @@
 { /* 동작 시작 */
     display: flex; /* 가로 배치 */
     flex-wrap: wrap; /* 좁은 화면 줄바꿈 */
-    gap: 6px; /* 버튼 간격 */
-    margin-top: 8px; /* 상단 간격 */
+    gap: 4px; /* 버튼 간격 */
+    margin-top: 6px; /* 상단 간격 */
 } /* 동작 종료 */
 
-.actions button, /* 동작 버튼 */
-.editForm button, /* 편집 버튼 */
-.versionDelete /* 버전 삭제 버튼 */
+.actions button, /* 동작 버튼(작은 그림 버튼) */
+.versionDelete /* 버전 삭제 버튼(작은 그림 버튼) */
+{ /* 버튼 시작 */
+    display: inline-grid; /* 그림 가운데 배치 */
+    width: 28px; /* 버튼 너비 */
+    height: 28px; /* 버튼 높이 */
+    padding: 0; /* 내부 여백 제거 */
+    place-items: center; /* 가운데 정렬 */
+    border: 1px solid var(--mv-line); /* 버튼 테두리 */
+    border-radius: 8px; /* 버튼 모서리 */
+    background: light-dark(#ffffff, var(--mv-surface)); /* 버튼 배경 */
+    color: var(--mv-muted); /* 그림 색 */
+    cursor: pointer; /* 클릭 커서 */
+    transition: background 150ms ease, color 150ms ease; /* 전환 */
+} /* 버튼 종료 */
+
+.actions button svg, /* 동작 버튼 그림 */
+.versionDelete svg /* 버전 삭제 그림 */
+{ /* 그림 시작 */
+    display: block; /* 아래 틈 제거 */
+    width: 15px; /* 그림 너비 */
+    height: 15px; /* 그림 높이 */
+} /* 그림 종료 */
+
+.actions button:disabled, /* 잠긴 동작 버튼 */
+.versionDelete:disabled /* 잠긴 버전 삭제 */
+{ /* 잠김 시작 */
+    opacity: .45; /* 흐리게 */
+    cursor: default; /* 기본 커서 */
+} /* 잠김 종료 */
+
+.editForm button /* 편집 버튼(글자 버튼) */
 { /* 버튼 시작 */
     min-height: 34px; /* 클릭 높이 */
     padding: 5px 10px; /* 내부 여백 */
@@ -357,5 +386,19 @@
     border-color: color-mix(in srgb, var(--genre) 55%, var(--mv-line)); /* 장르 테두리 */
     background: var(--genre-soft); /* 장르 배경 */
     color: var(--genre-strong); /* 장르 글자 */
-    font-weight: 800; /* 굵기 */
 } /* 켜짐 종료 */
+
+.actions button[aria-pressed="true"] svg /* 켜진 책갈피 그림 */
+{ /* 그림 시작 */
+    fill: currentColor; /* 속을 채워 켜짐을 알림 */
+} /* 그림 종료 */
+
+@media (pointer: coarse) /* 손가락으로 누르는 화면 */
+{ /* 미디어 시작 */
+    .actions button, /* 동작 버튼 */
+    .versionDelete /* 버전 삭제 버튼 */
+    { /* 버튼 시작 */
+        width: 32px; /* 누르기 쉬운 너비 */
+        height: 32px; /* 누르기 쉬운 높이 */
+    } /* 버튼 종료 */
+} /* 미디어 종료 */
