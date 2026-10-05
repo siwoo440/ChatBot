@@ -2,6 +2,7 @@
 
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
+import { chatTiers, USER_NOTE_EXTENDED_COST, USER_NOTE_LIMIT } from "@/features/chat/chat-tiers"; // 채팅 등급 비용
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import { TokenHistory } from "@/features/settings/TokenHistory"; // 이용 기록
@@ -9,7 +10,7 @@ import { getDailyUsage, tokenActionLabels, tokenCosts, type TokenAction } from "
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
-const costOrder: TokenAction[] = ["chat", "advanced-chat", "manual-image", "regenerate-image", "studio-image"]; // 비용 표시 순서
+const costOrder: TokenAction[] = ["manual-image", "studio-image"]; // 이미지 비용 표시 순서(대화는 채팅 등급 비용을 보여 줌. 쓰이지 않는 「고급 대화」·「이미지 다시 생성」은 표에서 뺌)
 
 function formatDateTime(value: string): string // 시각 표시
 { // 함수 시작
@@ -32,7 +33,8 @@ export function TokenSettings() // 토큰 이용 내역 화면
             <section className={styles.card} aria-labelledby="token-cost-title"> {/* 비용표 */}
                 <h2 id="token-cost-title">{t("항목별 비용")}</h2> {/* 비용표 제목 */}
                 {/* 비용 표: 표 안 공백 텍스트는 하이드레이션 오류를 만들어 줄 끝 주석을 두지 않음 */}
-                <table className={styles.table} aria-label={t("항목별 비용")}><thead><tr><th scope="col">{t("항목")}</th><th scope="col">{t("비용")}</th></tr></thead><tbody>{costOrder.map((action) => <tr key={action}><td><strong>{t(tokenActionLabels[action].label)}</strong><small>{t(tokenActionLabels[action].description)}</small></td><td><span className={styles.cost}>{tokenCosts[action]} {t("토큰")}</span></td></tr>)}</tbody></table>
+                <table className={styles.table} aria-label={t("항목별 비용")}><thead><tr><th scope="col">{t("항목")}</th><th scope="col">{t("비용")}</th></tr></thead><tbody>{chatTiers.map((tier) => <tr key={tier.id}><td><strong>{t(tier.label)}</strong><small>{t("메시지 보내기, 다시 생성, 메시지 수정 후 응답")} {t("· 기본 길이 기준")}</small></td><td><span className={styles.cost}>{tier.baseCost} {t("토큰")}</span></td></tr>)}{costOrder.map((action) => <tr key={action}><td><strong>{t(tokenActionLabels[action].label)}</strong><small>{t(tokenActionLabels[action].description)}</small></td><td><span className={styles.cost}>{tokenCosts[action]} {t("토큰")}</span></td></tr>)}</tbody></table>
+                <p>{t("답변 길이를 늘리면 등급마다 정해진 만큼 더 들고, 유저 노트를 {0}자 넘게 적으면 메시지당 {1}토큰이 더 들어요. 지금 대화의 비용은 입력창 옆 등급 버튼에서 볼 수 있어요.", [USER_NOTE_LIMIT, USER_NOTE_EXTENDED_COST])}</p> {/* 추가 비용 안내 */}
                 <p>{t("응답을 중간에 멈춰도 요청 1회로 계산되고, 재시도와 다시 생성은 각각 새 요청으로 계산됩니다.")}</p> {/* 계산 규칙 */}
             </section> {/* 비용표 종료 */}
             <TokenHistory records={state.tokenRecords} /> {/* 최근 7일 그래프와 이용 기록 */}

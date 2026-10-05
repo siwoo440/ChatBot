@@ -48,7 +48,7 @@ describe("토큰 이용 내역", () => // 화면 묶음
         expect(screen.getByRole("img", { name: /^최근 7일 토큰: .*받음 5 사용 3$/ })).toBeInTheDocument(); // 그래프(오늘 값으로 끝남)
         expect(within(screen.getByRole("list", { name: "범례" })).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["받음", "사용"]); // 범례
         expect(within(screen.getByRole("table", { name: "최근 7일 토큰" })).getAllByRole("row")).toHaveLength(8); // 표로 보기(머리 + 7일)
-        expect(within(screen.getByRole("table", { name: "항목별 비용" })).getAllByRole("row")).toHaveLength(6); // 비용표
+        expect(within(screen.getByRole("table", { name: "항목별 비용" })).getAllByRole("row")).toHaveLength(10); // 비용표(머리 + 채팅 등급 일곱 + 이미지 둘)
         const filter = screen.getByRole("group", { name: "기록 종류" }); // 필터
         expect(within(filter).getByRole("button", { name: "전체 3" })).toHaveAttribute("aria-pressed", "true"); // 전체
         const list = () => screen.getAllByRole("list").filter((item) => item.tagName === "OL").flatMap((item) => within(item).getAllByRole("listitem")); // 기록 줄

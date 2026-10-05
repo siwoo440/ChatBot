@@ -346,4 +346,6 @@ export const settings: Record<string, string> = {
     "초대 코드는 영문과 숫자 여덟 글자예요. 다시 확인해 주세요.": "An invite code is eight letters and numbers. Please check it again.",
     "내 초대 코드는 넣을 수 없어요.": "You can't enter your own invite code.",
     "초대 보너스는 한 번만 받을 수 있어요.": "The invite bonus can only be claimed once.",
+    "· 기본 길이 기준": "· at the default length",
+    "답변 길이를 늘리면 등급마다 정해진 만큼 더 들고, 유저 노트를 {0}자 넘게 적으면 메시지당 {1}토큰이 더 들어요. 지금 대화의 비용은 입력창 옆 등급 버튼에서 볼 수 있어요.": "Longer replies cost a set extra amount for each tier, and a user note longer than {0} characters costs {1} extra token per message. You can see the cost of the current chat on the tier button next to the input.",
 };

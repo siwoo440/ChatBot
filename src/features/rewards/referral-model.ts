@@ -72,11 +72,11 @@ export function checkInviteRedeem(referral: ReferralState, input: string): Invit
     { // 조건 시작
         return "invalid"; // 잘못된 코드
     } // 조건 종료
-    if (referral.redeemedCode !== null) // 이미 받음
+    if (referral.code === code) // 내 코드(보너스를 이미 받았어도 내 초대 링크로 알아봄)
     { // 조건 시작
-        return "used"; // 한 번만
+        return "own"; // 내 코드는 불가
     } // 조건 종료
-    return referral.code === code ? "own" : "ok"; // 내 코드는 불가
+    return referral.redeemedCode !== null ? "used" : "ok"; // 환영 보너스는 한 번만
 } // 함수 종료
 
 export function createInviteCode(state: AppState, code: string, now: string): AppState // 내 초대 코드 만들기(한 번만)

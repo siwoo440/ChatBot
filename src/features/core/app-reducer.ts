@@ -232,12 +232,12 @@ export function appReducer(state: AppState, action: AppAction): AppState // 앱 
         } // 전환 범위 종료
         case "toggle-creator-follow": // 제작자 팔로우 전환
         { // 전환 범위 시작
-            const exists = state.characters.some((character) => character.creatorId === action.creatorId); // 제작자 존재 확인
-            if (!exists) // 제작자 부재 판정
-            { // 조건 시작
-                return state; // 기존 상태 반환
-            } // 조건 종료
             const followed = state.followedCreatorIds.includes(action.creatorId); // 기존 팔로우 확인
+            const exists = state.characters.some((character) => character.creatorId === action.creatorId) || state.stories.some((story) => story.creatorId === action.creatorId); // 제작자 존재 확인(캐릭터나 스토리가 있음)
+            if (!followed && !exists) // 작품이 없는 제작자를 새로 팔로우하려 함
+            { // 조건 시작
+                return state; // 기존 상태 반환(해제는 작품이 지워진 뒤에도 할 수 있어야 하므로 막지 않음)
+            } // 조건 종료
             const followedCreatorIds = followed ? state.followedCreatorIds.filter((id) => id !== action.creatorId) : [...state.followedCreatorIds, action.creatorId]; // 다음 팔로우 목록
             return { ...state, followedCreatorIds }; // 팔로우 상태 반환
         } // 전환 범위 종료

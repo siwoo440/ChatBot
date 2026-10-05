@@ -183,8 +183,13 @@ describe("설정 페이지", () => // 페이지 묶음
         renderWithApp(<TokenSettings />); // 토큰 화면 렌더링
         expect(within(screen.getByRole("region", { name: "토큰 요약" })).getByText("1,240")).toBeInTheDocument(); // 잔액 확인
         const table = screen.getByRole("table", { name: "항목별 비용" }); // 비용 표 조회
-        expect(within(table).getAllByRole("row")).toHaveLength(6); // 머리와 비용 다섯 줄 확인(자동 장면 이미지는 없앰)
-        expect(within(table).getByText("1 토큰")).toBeInTheDocument(); // 일반 대화 비용 확인
+        expect(within(table).getAllByRole("row")).toHaveLength(10); // 머리 + 채팅 등급 일곱 줄 + 이미지 두 줄(실제로 차감되는 값만)
+        expect(within(within(table).getByRole("row", { name: /마스터챗/ })).getByText("12 토큰")).toBeInTheDocument(); // 등급별 기본 비용(실제 차감과 같은 값)
+        expect(within(within(table).getByRole("row", { name: /베이직챗/ })).getByText("1 토큰")).toBeInTheDocument(); // 가장 싼 등급
+        expect(within(within(table).getByRole("row", { name: /이미지 스튜디오/ })).getByText("20 토큰")).toBeInTheDocument(); // 이미지 비용
+        expect(within(table).queryByText("고급 대화")).toBeNull(); // 쓰이지 않는 항목은 없음
+        expect(within(table).queryByText(/준비 중/)).toBeNull(); // 준비 중인 항목은 표에 없음
+        expect(screen.getByText("답변 길이를 늘리면 등급마다 정해진 만큼 더 들고, 유저 노트를 500자 넘게 적으면 메시지당 1토큰이 더 들어요. 지금 대화의 비용은 입력창 옆 등급 버튼에서 볼 수 있어요.")).toBeInTheDocument(); // 추가 비용 안내
         expect(screen.getByRole("button", { name: "충전 준비 중" })).toBeDisabled(); // 충전 비활성 확인
     }); // 테스트 종료
 
