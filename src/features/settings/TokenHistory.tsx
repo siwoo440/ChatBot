@@ -112,7 +112,7 @@ export function TokenHistory({ records }: { records: TokenRecord[] }) // 토큰 
                     <section key={group.dateKey} className={styles.recordGroup} aria-label={t(group.label)}> {/* 날짜 묶음 */}
                         <h3>{t(group.label)}<small>{t("받음 +")}{group.earned} {t("· 사용 −")}{group.spent}</small></h3> {/* 날짜와 합계 */}
                         <ol className={styles.recordList}> {/* 기록 목록 */}
-                            {group.records.map((record) => <li key={record.id} data-direction={record.direction}><div><strong>{t(record.label)}</strong><small>{record.work ?? tokenSourceLabels[record.source]} · {formatTime(record.createdAt)} {t("· 잔액")} {record.balance.toLocaleString()}</small></div><b>{record.direction === "earn" ? "+" : "−"}{record.amount}</b></li>)} {/* 기록 */}
+                            {group.records.map((record) => <li key={record.id} data-direction={record.direction}><div><strong>{t(record.label)}</strong><small>{record.work ?? t(tokenSourceLabels[record.source])} · {formatTime(record.createdAt)} {t("· 잔액")} {record.balance.toLocaleString()}</small></div><b>{record.direction === "earn" ? "+" : "−"}{record.amount}</b></li>)} {/* 기록 */}
                         </ol> {/* 목록 종료 */}
                     </section> // 묶음 종료
                 ))} {/* 순회 종료 */}

@@ -327,14 +327,14 @@
     color: var(--tone-strong); /* 진한 글자 */
 } /* 올림 종료 */
 
-.cardActions button[aria-label$=" 삭제"], /* 카드 삭제 */
-.conversationActions button[aria-label$=" 삭제"] /* 대화 삭제 */
+.cardActions button[data-danger="true"], /* 카드 삭제(이름표 글자가 아니라 표시 값으로 고름: 영어 화면에서도 적용) */
+.conversationActions button[data-danger="true"] /* 대화 삭제 */
 { /* 삭제 시작 */
     color: light-dark(#be123c, #f27997); /* 위험 글자 */
 } /* 삭제 종료 */
 
-.cardActions button[aria-label$=" 삭제"]:hover, /* 카드 삭제 올림 */
-.conversationActions button[aria-label$=" 삭제"]:hover /* 대화 삭제 올림 */
+.cardActions button[data-danger="true"]:hover, /* 카드 삭제 올림 */
+.conversationActions button[data-danger="true"]:hover /* 대화 삭제 올림 */
 { /* 삭제 올림 시작 */
     border-color: #be123c; /* 위험 테두리 */
     background: light-dark(#fff1f2, #361215); /* 위험 연한 배경 */

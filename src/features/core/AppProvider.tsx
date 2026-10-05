@@ -66,7 +66,7 @@ const blockedMessage = "저장된 데이터를 읽지 못해 기본 상태로 �
 
 function describeStorageFailure(error: unknown, quotaMessage: string, fallback: string): string // 저장 실패 문구
 { // 함수 시작
-    return isStorageQuotaError(error) ? `${quotaMessage} ${quotaGuide}` : fallback; // 원인별 문구 반환
+    return isStorageQuotaError(error) ? `${quotaMessage} ${t(quotaGuide)}` : fallback; // 원인별 문구 반환(정리 안내도 화면 언어로)
 } // 함수 종료
 
 interface TimedAction // 시각을 붙인 동작
@@ -113,7 +113,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             if (outcome === null) // 읽기 실패 판정
             { // 조건 시작
                 persistenceBlocked.current = true; // 기존 데이터 덮어쓰기 차단
-                setStorageError(blockedMessage); // 차단 안내
+                setStorageError(t(blockedMessage)); // 차단 안내(화면 언어로)
             } // 조건 종료
             else // 읽기 성공 처리
             { // 성공 시작
@@ -157,7 +157,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
     { // 함수 시작
         if (persistenceBlocked.current) // 저장 차단 판정
         { // 차단 시작
-            setStorageError(blockedMessage); // 차단 안내
+            setStorageError(t(blockedMessage)); // 차단 안내(화면 언어로)
             return false; // 백업 실패 반환
         } // 차단 종료
         try // 백업 시도
@@ -183,7 +183,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
     { // 함수 시작
         if (persistenceBlocked.current) // 저장 차단 판정
         { // 차단 시작
-            setStorageError(blockedMessage); // 차단 안내
+            setStorageError(t(blockedMessage)); // 차단 안내(화면 언어로)
             return false; // 저장 실패 반환
         } // 차단 종료
         try // 저장 시도

@@ -109,7 +109,7 @@ export function ImageStudio() // 이미지 스튜디오
                     </fieldset> {/* 비율 종료 */}
                     <div className={styles.row}> {/* 선택 줄 */}
                         <label className={styles.field}>{t("참고 캐릭터")}<select value={referenceId} onChange={(event) => setReferenceId(event.target.value)}><option value="">{t("선택 안 함")}</option>{candidates.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select></label> {/* 참고 캐릭터 */}
-                        <label className={styles.field}>{t("이용 등급")}<select value={rating} onChange={(event) => setRating(event.target.value as ContentRating)}><option value="all">{contentRatingLabels.all}</option><option value="teen">{contentRatingLabels.teen}</option><option value="mature" disabled={!showMature}>{contentRatingLabels.mature}</option></select></label> {/* 이용 등급 */}
+                        <label className={styles.field}>{t("이용 등급")}<select value={rating} onChange={(event) => setRating(event.target.value as ContentRating)}><option value="all">{t(contentRatingLabels.all)}</option><option value="teen">{t(contentRatingLabels.teen)}</option><option value="mature" disabled={!showMature}>{t(contentRatingLabels.mature)}</option></select></label> {/* 이용 등급 */}
                     </div> {/* 선택 줄 종료 */}
                     <div className={styles.rules} role="note" aria-label={t("이미지 생성 규칙")}> {/* 생성 규칙 */}
                         <strong>{t(policy.label)}</strong> {/* 지역 */}
@@ -159,7 +159,7 @@ function ImageCard({ image, locked, large = false, onFavorite, onDelete }: { ima
         <article className={styles.card} data-locked={locked ? "true" : undefined} data-large={large ? "true" : undefined}> {/* 카드 */}
             <div className={styles.media}> {/* 그림 */}
                 <Image src={image.src} alt={locked ? t("19세 이미지(잠김)") : image.prompt} width={size.width} height={size.height} unoptimized /> {/* 이미지 */}
-                <span className={styles.rating} data-rating={image.contentRating}>{t(ratingShortLabels[image.contentRating])}{exposure.length === 0 ? "" : ` · ${exposure}`}</span> {/* 등급·가림 처리 */}
+                <span className={styles.rating} data-rating={image.contentRating}>{t(ratingShortLabels[image.contentRating])}{exposure.length === 0 ? "" : ` · ${t(exposure)}`}</span> {/* 등급·가림 처리 */}
                 {locked ? <span className={styles.lockText}>{t("19+를 켜면 볼 수 있어요")}</span> : null} {/* 잠금 안내 */}
             </div> {/* 그림 종료 */}
             <div className={styles.cardBody}> {/* 본문 */}

@@ -338,4 +338,12 @@ export const settings: Record<string, string> = {
     "준비 중인 기능이에요. 지금은 설정만 저장하고 메시지와 알림을 실제로 보내지 않아요. 발송 서버가 연결된 뒤 제공됩니다.": "This feature is coming soon. For now it only saves your settings and doesn't send messages or notifications. It will work once a delivery server is connected.",
     "19+ 보기를 끌까요? 캐릭터와 대화, 토큰은 그대로 남아요.": "Turn off 19+ view? Your characters, chats, and tokens stay as they are.",
     "19+ 보기를 껐습니다. 캐릭터와 대화는 이 브라우저에 그대로 남아 있어요.": "19+ view is off. Your characters and chats are still saved in this browser.",
+    "생년월일을 올바르게 입력해 주세요.": "Please enter a valid date of birth.",
+    "오늘 이후 날짜는 생년월일로 입력할 수 없습니다.": "A date of birth can't be later than today.",
+    "청소년 보호법에 따라 19세 미만은 성인 인증을 받을 수 없습니다.": "Under the Youth Protection Act, people under 19 can't complete adult verification.",
+    "개인정보 및 보안의 데이터 관리에서 JSON으로 내보낸 뒤 오래된 대화를 정리해 주세요.": "Export to JSON from Data management in Privacy & security, then clear out old chats.",
+    "저장된 데이터를 읽지 못해 기본 상태로 시작했습니다. 기존 데이터를 보호하기 위해 이번 방문의 변경 내용은 저장하지 않습니다.": "We couldn't read your saved data, so the app started from its default state. To protect your existing data, changes from this visit won't be saved.",
+    "초대 코드는 영문과 숫자 여덟 글자예요. 다시 확인해 주세요.": "An invite code is eight letters and numbers. Please check it again.",
+    "내 초대 코드는 넣을 수 없어요.": "You can't enter your own invite code.",
+    "초대 보너스는 한 번만 받을 수 있어요.": "The invite bonus can only be claimed once.",
 };

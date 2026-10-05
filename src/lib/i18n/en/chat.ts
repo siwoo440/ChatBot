@@ -338,4 +338,13 @@ export const chat: Record<string, string> = {
     "답변 길이 조절": "Reply length",
     "이 채팅방의 답변 최대 길이를 모델 등급별로 조절해요. 기본 길이를 넘는 만큼만 토큰이 더 들어요.": "Set this chat's maximum reply length for each model tier. Extra tokens are only used for the length beyond the default.",
     "{0}자를 넘게 적었을 때만 메시지당 {1}토큰이 더 들어요": "Costs {1} extra token per message only when the note is longer than {0} characters",
+    "메시지 보내기": "Send message",
+    "줄 바꾸기": "New line",
+    "명령어 열기(빈 입력창에서)": "Open commands (in an empty input)",
+    "추천 답변 열기·닫기": "Open or close suggested replies",
+    "지문(*행동*) 넣기": "Insert an action (*action*)",
+    "마지막 응답 다시 생성": "Regenerate the last reply",
+    "상태창 접기·펼치기": "Collapse or expand the status panel",
+    "이전·다음 턴 상태창 보기": "View the previous or next turn's status",
+    "열린 창 닫기": "Close the open window",
 };

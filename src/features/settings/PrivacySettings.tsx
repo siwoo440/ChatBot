@@ -71,7 +71,7 @@ export function PrivacySettings() // 개인정보 및 보안 화면
                     <ul className={styles.rowList} aria-label={t("신고 기록")}> {/* 신고 목록 */}
                         {reports.map((report) => ( // 신고 순회
                             <li key={report.id}> {/* 신고 */}
-                                <div><strong>{report.characterName}</strong><span>{report.reason} · {formatDate(report.createdAt)}</span></div> {/* 캐릭터와 사유 */}
+                                <div><strong>{report.characterName}</strong><span>{t(report.reason)} · {formatDate(report.createdAt)}</span></div> {/* 캐릭터와 사유 */}
                                 <button type="button" className={styles.secondary} aria-label={t("{0} 신고 취소", [report.characterName])} onClick={() => { dispatch({ type: "remove-character-report", reportId: report.id }); setReportStatus(t("{0} 신고를 취소했습니다.", [report.characterName])); }}>{t("신고 취소")}</button> {/* 취소 */}
                             </li> // 신고 종료
                         ))} {/* 순회 종료 */}

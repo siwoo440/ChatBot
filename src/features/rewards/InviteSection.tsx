@@ -58,7 +58,7 @@ export function InviteSection() // 친구 초대 칸(출석과 미션 화면 안
         const check = checkInviteRedeem(referral, input); // 입력 판정
         if (check !== "ok") // 받을 수 없음
         { // 조건 시작
-            setError(redeemErrors[check]); // 오류 안내
+            setError(t(redeemErrors[check])); // 오류 안내(화면 언어로)
             return; // 중단
         } // 조건 종료
         dispatch({ type: "redeem-invite-code", code: input, now: new Date().toISOString() }); // 환영 보너스

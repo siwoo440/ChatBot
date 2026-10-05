@@ -198,6 +198,7 @@ export const shortcutList: Array<{ keys: string; action: string }> = // 키보�
     { keys: "Alt + R", action: "마지막 응답 다시 생성" }, // 다시 생성
     { keys: "Alt + I", action: "상태창 접기·펼치기" }, // 상태창
     { keys: "Alt + ← / →", action: "이전·다음 턴 상태창 보기" }, // 상태창 이동
+    { keys: "Ctrl + /", action: "키보드 단축키 보기" }, // 단축키 창
     { keys: "Esc", action: "열린 창 닫기" }, // 닫기
 ]; // 목록 종료
 
@@ -205,7 +206,7 @@ export function ShortcutsDialog({ onClose }: { onClose(): void }) // 키보드 �
 { // 함수 시작
     return ( // 대화상자 반환
         <ChatDialog title={t("키보드 단축키")} onClose={onClose} footer={<button type="button" className={styles.primaryButton} onClick={onClose}>{t("확인")}</button>}> {/* 대화상자 */}
-            <dl className={styles.shortcutList}>{shortcutList.map((item) => <div key={item.keys}><dt><kbd>{item.keys}</kbd></dt><dd>{item.action}</dd></div>)}</dl> {/* 단축키 */}
+            <dl className={styles.shortcutList}>{shortcutList.map((item) => <div key={item.keys}><dt><kbd>{item.keys}</kbd></dt><dd>{t(item.action)}</dd></div>)}</dl> {/* 단축키 */}
         </ChatDialog> // 대화상자 종료
     ); // 반환 종료
 } // 함수 종료

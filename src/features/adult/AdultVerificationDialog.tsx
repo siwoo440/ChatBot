@@ -32,6 +32,7 @@ export function AdultVerificationDialog({ onCancel, onVerified }: AdultVerificat
     const [birthDate, setBirthDate] = useState(""); // 생년월일 입력
     const [consent, setConsent] = useState(false); // 이용 동의
     const [error, setError] = useState(""); // 오류 문구
+    const [errorField, setErrorField] = useState<"birth" | "consent">("birth"); // 오류가 난 칸(문구의 글자로 가리면 영어 화면에서 틀림)
     const [today] = useState(() => toDateInputValue(new Date())); // 오늘 날짜
     useEffect(() => // 첫 입력 초점
     { // 효과 시작
@@ -75,12 +76,14 @@ export function AdultVerificationDialog({ onCancel, onVerified }: AdultVerificat
         const check = checkAdultAge(birthDate, now); // 나이 확인
         if (!check.ok) // 확인 실패 판정
         { // 조건 시작
-            setError(ageErrors[check.reason]); // 오류 표시
+            setError(t(ageErrors[check.reason])); // 오류 표시(화면 언어로)
+            setErrorField("birth"); // 생년월일 칸의 오류
             return; // 인증 중단
         } // 조건 종료
         if (!consent) // 동의 누락 판정
         { // 조건 시작
             setError(t("19세 이상 이용 동의에 체크해 주세요.")); // 동의 오류
+            setErrorField("consent"); // 동의 칸의 오류
             return; // 인증 중단
         } // 조건 종료
         setBirthDate(""); // 생년월일 즉시 비우기
@@ -100,7 +103,7 @@ export function AdultVerificationDialog({ onCancel, onVerified }: AdultVerificat
                 <p id="adult-verification-description" className={styles.lead}>{t("19세 이용가 캐릭터와 대화를 보려면 성인 인증이 필요합니다.")}</p> {/* 창 설명 */}
                 <div className={styles.mockNotice} role="note"><strong>{t("모의 인증")}</strong><span>{t("지금은 Mock 단계라 실제 본인확인을 하지 않습니다. 정식 서비스에서는 휴대폰 본인인증으로 바뀝니다.")}</span></div> {/* Mock 안내 */}
                 <form className={styles.form} onSubmit={submit} noValidate> {/* 인증 폼 */}
-                    <label className={styles.field}><span>{t("생년월일")}</span><input type="date" value={birthDate} min="1900-01-01" max={today} aria-invalid={error.length > 0 && !error.includes("동의")} onChange={(event) => { setBirthDate(event.target.value); setError(""); }} /></label> {/* 생년월일 입력 */}
+                    <label className={styles.field}><span>{t("생년월일")}</span><input type="date" value={birthDate} min="1900-01-01" max={today} aria-invalid={error.length > 0 && errorField === "birth"} onChange={(event) => { setBirthDate(event.target.value); setError(""); }} /></label> {/* 생년월일 입력 */}
                     <label className={styles.consent}><input type="checkbox" checked={consent} onChange={(event) => { setConsent(event.target.checked); setError(""); }} /><span>{t("19세 이상이며, 19세 이용가 콘텐츠를 보는 데 동의합니다.")}</span></label> {/* 이용 동의 */}
                     <ul className={styles.facts}> {/* 인증 안내 */}
                         <li>{t("생년월일은 나이 확인에만 쓰고 저장하지 않습니다.")}</li> {/* 저장 안내 */}
