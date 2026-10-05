@@ -540,7 +540,7 @@ describe("채팅 흐름", () => // 채팅 묶음
         } // 조건 종료
         await user.click(within(targetItem).getByRole("button", { name: "삭제" })); // 메시지 삭제 실행
         expect(confirm).toHaveBeenCalled(); // 삭제 확인 호출
-        expect(localStorage.getItem("mateverse:v1:backup")).not.toBeNull(); // 선행 백업 확인
+        expect(localStorage.getItem("mateverse:v1:backup-history")).toContain("message-delete"); // 선행 백업 확인(백업 이력)
         expect(screen.queryByText("오늘 기록할 이야기가 많아.")).toBeNull(); // 현재 버전 삭제 확인
         confirm.mockRestore(); // 확인 함수 복원
     }); // 검증 종료

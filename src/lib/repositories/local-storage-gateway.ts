@@ -8,7 +8,9 @@ export { addMissingBuiltInStories, migrateVersionEight, migrateVersionEleven, mi
 export { isAppState } from "@/lib/repositories/state-validation"; // 기존 이름 유지(데이터 검사)
 
 const stateKey = "mateverse:v1:state"; // 상태 저장 키
-const backupKey = "mateverse:v1:backup"; // 백업 저장 키
+const backupKey = "mateverse:v1:backup"; // 예전 대표 백업 키(더 쓰지 않음. 남아 있으면 이력으로 옮기고 지움)
+const BACKUP_LIMIT = 3; // 보통 백업 보관 개수(최근 순)
+const RECOVERY_LIMIT = 2; // 손상 원본 보관 개수(보통 백업에 밀려 지워지지 않게 따로 셈)
 const backupHistoryKey = "mateverse:v1:backup-history"; // 백업 이력 키
 const backupReasons = ["manual", "import", "reset", "restore", "recovery", "message-delete", "version-delete", "conversation-delete", "character-delete", "story-delete", "image-delete"] as const; // 백업 사유 목록
 
@@ -167,21 +169,37 @@ function readStoredBackups(storage: Storage): StoredBackup[] // 백업 이력 �
             backups = []; // 빈 이력 적용
         } // 실패 종료
     } // 이력 존재 종료
-    const primary = storage.getItem(backupKey); // 대표 백업 조회
-    if (primary !== null && !backups.some((backup) => backup.raw === primary)) // 대표 백업 누락 판정
-    { // 대표 백업 누락 시작
-        backups.push({ id: "legacy-primary", createdAt: null, reason: "recovery", summary: null, raw: primary }); // 대표 백업 추가
-    } // 대표 백업 누락 종료
+    const primary = storage.getItem(backupKey); // 예전 대표 백업 조회
+    if (primary !== null && !backups.some((backup) => backup.raw === primary)) // 이력에 없는 예전 대표 백업
+    { // 예전 대표 백업 시작
+        backups.push({ id: "legacy-primary", createdAt: null, reason: isReadableState(primary) ? "manual" : "recovery", summary: null, raw: primary }); // 읽을 수 있으면 보통 백업, 아니면 손상 원본으로 목록 끝에 추가
+    } // 예전 대표 백업 종료
     return backups; // 백업 목록 반환
+} // 함수 종료
+
+function isReadableState(raw: string): boolean // 지금 앱이 읽을 수 있는 저장 원본인지
+{ // 함수 시작
+    try // 분석 시도
+    { // 시도 시작
+        return migrateParsedState(JSON.parse(raw)) !== null; // 변환되면 읽을 수 있음
+    } // 시도 종료
+    catch // 분석 실패
+    { // 실패 시작
+        return false; // 읽을 수 없음
+    } // 실패 종료
+} // 함수 종료
+
+function trimBackups(backups: StoredBackup[]): StoredBackup[] // 보관 한도 적용(보통 백업과 손상 원본을 따로 세고 순서는 유지)
+{ // 함수 시작
+    let normal = 0; // 남긴 보통 백업 수
+    let recovery = 0; // 남긴 손상 원본 수
+    return backups.filter((backup) => backup.reason === "recovery" ? recovery++ < RECOVERY_LIMIT : normal++ < BACKUP_LIMIT); // 종류별로 최근 것만
 } // 함수 종료
 
 function writeStoredBackups(storage: Storage, backups: StoredBackup[]): void // 백업 이력 쓰기 함수
 { // 함수 시작
-    writeItem(storage, backupHistoryKey, JSON.stringify(backups.slice(0, 3))); // 최근 이력 저장
-    if (backups[0] !== undefined && storage.getItem(backupKey) === null) // 대표 백업 부재 판정
-    { // 최신 백업 시작
-        writeItem(storage, backupKey, backups[0].raw); // 대표 백업 저장
-    } // 최신 백업 종료
+    writeItem(storage, backupHistoryKey, JSON.stringify(trimBackups(backups))); // 한도 안의 이력 저장
+    storage.removeItem(backupKey); // 예전 대표 백업은 이력으로 옮겼으니 지움(처음 한 번만 쓰이고 고쳐지지 않아 오래된 백업이 계속 남던 문제)
 } // 함수 종료
 
 function preserveCorruptedData(raw: string, storage: Storage): void // 손상 원본 보존 함수
@@ -191,14 +209,15 @@ function preserveCorruptedData(raw: string, storage: Storage): void // 손상 �
     { // 중복 원본 시작
         return; // 중복 저장 생략
     } // 중복 원본 종료
-    const entry: StoredBackup = { id: `recovery-${backups.length + 1}`, createdAt: null, reason: "recovery", summary: null, raw }; // 복구 백업 생성
-    writeStoredBackups(storage, [...backups.slice(0, 2), entry]); // 복구 백업 저장
+    const now = new Date().toISOString(); // 보관 시각
+    const entry: StoredBackup = { id: `recovery-${now}-${backups.length}`, createdAt: now, reason: "recovery", summary: null, raw }; // 복구 백업 생성
+    writeStoredBackups(storage, [entry, ...backups]); // 복구 백업 저장(최근 순. 보통 백업과 따로 세어 밀려나지 않음)
 } // 함수 종료
 
 function rejectStoredState(raw: string, storage: Storage): LoadResult // 저장 상태 거부 함수
 { // 함수 시작
     preserveCorruptedData(raw, storage); // 원본 백업
-    return { state: createInitialState(), recovered: true, warning: t("저장 데이터가 올바르지 않아 원본을 유지했습니다. 백업 내보내기로 확인해 주세요.") }; // 비파괴 결과 반환
+    return { state: createInitialState(), recovered: true, warning: t("저장 데이터가 올바르지 않아 처음 상태로 시작합니다. 원본은 백업으로 보관했으니 개인정보 및 보안의 데이터 관리에서 복구 백업 내보내기로 확인해 주세요.") }; // 처음 상태 반환(이 함수는 원본을 건드리지 않지만, 앱이 곧 처음 상태를 저장하므로 그렇게 안내함)
 } // 함수 종료
 
 function recoverState(raw: string, storage: Storage): LoadResult // 손상 복구 함수

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest"; // 테스트 도구
 import { AppProvider, closePanelsOnNarrowFirstVisit, useAppStore, type StateRepository } from "@/features/core/AppProvider"; // 앱 공급자
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import type { AppState } from "@/features/core/types"; // 상태 타입
-import { StorageWriteError } from "@/lib/repositories/local-storage-gateway"; // 저장 오류
+import { LocalStorageGateway, StorageWriteError } from "@/lib/repositories/local-storage-gateway"; // 저장소·저장 오류
 
 function WalletProbe() // 지갑 표시
 { // 함수 시작
@@ -15,6 +15,12 @@ function StorageErrorProbe() // 저장 오류 표시
 { // 함수 시작
     const { storageError } = useAppStore(); // 저장 오류 조회
     return storageError === null ? <span>정상</span> : <p role="alert">{storageError}</p>; // 오류 상태 반환
+} // 함수 종료
+
+function NoticeProbe() // 저장소 안내 표시
+{ // 함수 시작
+    const { storageNotice } = useAppStore(); // 저장소 안내 조회
+    return storageNotice === null ? <span>안내 없음</span> : <p>{storageNotice.message}</p>; // 안내 반환
 } // 함수 종료
 
 function BackupProbe() // 백업 동작 표시
@@ -79,6 +85,18 @@ describe("처음 방문했을 때의 패널", () => // 첫 방문 묶음
         setWidth(originalWidth); // 너비 복원
         window.localStorage.removeItem("mateverse:v1:state"); // 저장 상태 지움
     }); // 정리 종료
+
+    it("저장 데이터가 올바르지 않으면 처음 상태로 시작한다고 알리고, 원본은 백업 이력에 남긴다", async () => // 잘못된 저장 데이터 검증
+    { // 검증 시작
+        const invalid = createInitialState() as unknown as Record<string, unknown>; // 잘못된 상태 준비
+        invalid.wallet = { balance: "많음" }; // 잘못된 지갑
+        const raw = JSON.stringify(invalid); // 잘못된 원본
+        localStorage.setItem("mateverse:v1:state", raw); // 잘못된 원본 저장
+        render(<AppProvider><NoticeProbe /></AppProvider>); // 공급자 렌더
+        expect(await screen.findByText("저장 데이터가 올바르지 않아 처음 상태로 시작합니다. 원본은 백업으로 보관했으니 개인정보 및 보안의 데이터 관리에서 복구 백업 내보내기로 확인해 주세요.")).toBeInTheDocument(); // 실제 동작과 같은 안내
+        await waitFor(() => expect(JSON.parse(localStorage.getItem("mateverse:v1:state") ?? "{}").wallet.balance).toBe(1240)); // 앱은 처음 상태를 저장함
+        expect(new LocalStorageGateway(localStorage).exportBackupJson()).toContain("많음"); // 원본은 백업에 남음
+    }); // 검증 종료
 
     it("좁은 화면으로 처음 들어오면 양쪽 패널을 닫고, 넓은 화면이거나 첫 방문이 아니면 그대로 둔다", () => // 규칙 검증
     { // 검증 시작

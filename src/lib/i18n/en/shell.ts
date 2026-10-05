@@ -185,4 +185,5 @@ export const shell: Record<string, string> = {
     "오늘 이용 시간": "Time used today",
     "이 브라우저의 모든 탭 합계 · 자정에 다시 셈": "All tabs in this browser · resets at midnight",
     "19+ 보기 끄기": "Turn off 19+ view",
+    "저장 데이터가 올바르지 않아 처음 상태로 시작합니다. 원본은 백업으로 보관했으니 개인정보 및 보안의 데이터 관리에서 복구 백업 내보내기로 확인해 주세요.": "The saved data was invalid, so the app is starting from its default state. The original was kept as a backup — check it with Export recovery backup under Data management in Privacy & security.",
 };

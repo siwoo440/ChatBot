@@ -10,6 +10,11 @@ import { createGeneratedImage } from "@/features/images/image-model"; // 생성 
 const stateKey = "mateverse:v1:state"; // 상태 저장 키
 const backupKey = "mateverse:v1:backup"; // 백업 저장 키
 
+function exportedBackups(gateway: LocalStorageGateway): string[] // 백업 내보내기에 들어 있는 원본 목록
+{ // 함수 시작
+    return (JSON.parse(gateway.exportBackupJson() ?? "{\"backups\":[]}") as { backups: string[] }).backups; // 원본 목록 반환
+} // 함수 종료
+
 function restoreLegacyConversationFields(value: Record<string, unknown>): void // 이전 대화 필드 복원
 { // 함수 시작
     const conversations = value.conversations as Array<Record<string, unknown>>; // 대화 목록 접근
@@ -135,7 +140,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         expect(result.recovered).toBe(true); // 복구 상태 확인
         expect(result.warning).toContain("복구"); // 복구 경고 확인
         expect(result.state.schemaVersion).toBe(18); // 초기 상태 확인
-        expect(localStorage.getItem(backupKey)).toBe("{broken"); // 원본 백업 확인
+        expect(exportedBackups(gateway)).toEqual(["{broken"]); // 원본 백업 확인
     }); // 검증 종료
 
     it("필수 내부 필드가 잘못된 상태도 손상 데이터로 복구한다", () => // 내부 검증 확인
@@ -147,7 +152,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const result = new LocalStorageGateway(localStorage).load(); // 데이터 읽기
         expect(result.recovered).toBe(true); // 복구 상태 확인
         expect(result.state.wallet.balance).toBe(1240); // 초기 잔액 확인
-        expect(localStorage.getItem(backupKey)).toBe(raw); // 잘못된 원본 확인
+        expect(exportedBackups(new LocalStorageGateway(localStorage))).toEqual([raw]); // 잘못된 원본 확인
     }); // 검증 종료
 
     it("버전 0 데이터를 버전 1로 변환하고 사용자 데이터를 유지한다", () => // 마이그레이션 검증
@@ -309,7 +314,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, raw); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(true); // 복구 상태 확인
-        expect(localStorage.getItem(backupKey)).toBe(raw); // 원본 백업 확인
+        expect(exportedBackups(new LocalStorageGateway(localStorage))).toEqual([raw]); // 원본 백업 확인
         expect(localStorage.getItem(stateKey)).toBe(raw); // 원본 상태 유지 확인
     }); // 테스트 종료
 
@@ -327,7 +332,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, raw); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(true); // 복구 상태 확인
-        expect(localStorage.getItem(backupKey)).toBe(raw); // 원본 백업 확인
+        expect(exportedBackups(new LocalStorageGateway(localStorage))).toEqual([raw]); // 원본 백업 확인
     }); // 테스트 종료
 
     it("손상된 스키마 5 원본을 백업하고 안전한 최신 상태로 복구한다", () => // 손상 이전 검증
@@ -347,7 +352,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const result = new LocalStorageGateway(localStorage).load(); // 상태 복원
         expect(result.recovered).toBe(true); // 복구 상태 확인
         expect(result.state.schemaVersion).toBe(18); // 안전 버전 확인
-        expect(localStorage.getItem(backupKey)).toBe(raw); // 원본 백업 확인
+        expect(exportedBackups(new LocalStorageGateway(localStorage))).toEqual([raw]); // 원본 백업 확인
     }); // 테스트 종료
 
     it("버전 0 설정이 잘못된 구조면 원본을 백업하고 복구한다", () => // 잘못된 마이그레이션 검증
@@ -360,7 +365,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, raw); // 이전 상태 저장
         const result = new LocalStorageGateway(localStorage).load(); // 이전 상태 읽기
         expect(result.recovered).toBe(true); // 손상 복구 확인
-        expect(localStorage.getItem(backupKey)).toBe(raw); // 손상 원본 확인
+        expect(exportedBackups(new LocalStorageGateway(localStorage))).toEqual([raw]); // 손상 원본 확인
         expect(result.state.settings.platformMode).toBe("auto"); // 안전 설정 확인
     }); // 검증 종료
 
@@ -372,8 +377,8 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         localStorage.setItem(stateKey, "{second-broken"); // 둘째 손상 저장
         gateway.load(); // 둘째 복구 실행
         const exported = JSON.parse(gateway.exportBackupJson() ?? "null") as { backups: string[] }; // 백업 내보내기
-        expect(localStorage.getItem(backupKey)).toBe("{first-broken"); // 첫 백업 유지 확인
-        expect(exported.backups).toEqual(["{first-broken", "{second-broken"]); // 전체 백업 확인
+        expect(localStorage.getItem(backupKey)).toBeNull(); // 대표 백업 키는 더 쓰지 않음
+        expect(exported.backups).toEqual(["{second-broken", "{first-broken"]); // 두 원본 모두 보존(최근 순)
     }); // 검증 종료
 
     it("백업 내보내기는 현재 손상 상태를 변경하지 않는다", () => // 읽기 전용 내보내기 검증
@@ -407,6 +412,63 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         expect(gateway.load().state.profile.nickname).toBe("현재 사용자"); // 현재 상태 유지
     }); // 테스트 종료
 
+    it("보통 백업이 여러 번 쌓여도 손상 원본 백업은 밀려나지 않는다", () => // 손상 원본 보존 검증
+    { // 검증 시작
+        const gateway = new LocalStorageGateway(localStorage); // 게이트웨이 생성
+        gateway.createBackupFromState(createInitialState(), "manual", "2026-10-01T01:00:00.000Z"); // 보통 백업 1
+        gateway.createBackupFromState(createInitialState(), "manual", "2026-10-01T02:00:00.000Z"); // 보통 백업 2
+        gateway.createBackupFromState(createInitialState(), "manual", "2026-10-01T03:00:00.000Z"); // 보통 백업 3
+        const invalid = createInitialState() as unknown as Record<string, unknown>; // 잘못된 상태 준비
+        invalid.wallet = { balance: "많음" }; // 잘못된 지갑
+        const raw = JSON.stringify(invalid); // 잘못된 원본
+        localStorage.setItem(stateKey, raw); // 잘못된 원본 저장
+        const result = gateway.load(); // 읽기(원본을 백업으로 보관)
+        expect(result.warning).toBe("저장 데이터가 올바르지 않아 처음 상태로 시작합니다. 원본은 백업으로 보관했으니 개인정보 및 보안의 데이터 관리에서 복구 백업 내보내기로 확인해 주세요."); // 실제 동작과 같은 안내
+        gateway.save(createInitialState()); // 앱이 처음 상태를 저장
+        gateway.createBackup("message-delete", "2026-10-02T01:00:00.000Z"); // 그 뒤의 보통 백업 1
+        gateway.createBackup("message-delete", "2026-10-02T02:00:00.000Z"); // 그 뒤의 보통 백업 2
+        gateway.createBackup("message-delete", "2026-10-02T03:00:00.000Z"); // 그 뒤의 보통 백업 3
+        gateway.createBackup("message-delete", "2026-10-02T04:00:00.000Z"); // 그 뒤의 보통 백업 4
+        expect(exportedBackups(gateway)).toContain(raw); // 손상 원본은 그대로 남음
+        const backups = gateway.listBackups(); // 백업 목록
+        expect(backups.filter((backup) => backup.reason !== "recovery")).toHaveLength(3); // 보통 백업은 최근 세 개
+        expect(backups.filter((backup) => backup.reason === "recovery")).toHaveLength(1); // 손상 원본 하나
+        expect(backups.find((backup) => backup.reason === "recovery")?.createdAt).not.toBeNull(); // 보관한 시각 기록
+    }); // 검증 종료
+
+    it("손상 원본 백업은 최근 두 개까지 따로 보관한다", () => // 손상 원본 한도 검증
+    { // 검증 시작
+        const gateway = new LocalStorageGateway(localStorage); // 게이트웨이 생성
+        for (const raw of ["{broken-1", "{broken-2", "{broken-3"]) // 손상 세 번
+        { // 순회 시작
+            localStorage.setItem(stateKey, raw); // 손상 저장
+            gateway.load(); // 복구
+        } // 순회 종료
+        expect(exportedBackups(gateway)).toEqual(["{broken-3", "{broken-2"]); // 최근 두 개
+    }); // 검증 종료
+
+    it("대표 백업 키는 더 쓰지 않고, 예전에 남은 값은 이력으로 옮겨 다른 백업처럼 순환시킨다", () => // 대표 백업 정리 검증
+    { // 검증 시작
+        const gateway = new LocalStorageGateway(localStorage); // 게이트웨이 생성
+        const old = createInitialState(); // 예전 첫 백업
+        old.wallet.balance = 77; // 식별 잔액
+        localStorage.setItem(backupKey, JSON.stringify(old)); // 예전 방식의 대표 백업(읽을 수 있는 상태)
+        expect(gateway.listBackups().map((backup) => backup.reason)).toEqual(["manual"]); // 읽을 수 있으면 보통 백업으로 봄
+        gateway.save(createInitialState()); // 현재 상태 저장
+        gateway.createBackup("manual", "2026-10-03T01:00:00.000Z"); // 새 백업 1
+        expect(localStorage.getItem(backupKey)).toBeNull(); // 대표 키는 지움
+        expect(exportedBackups(gateway)).toContain(JSON.stringify(old)); // 예전 백업은 이력으로 옮김
+        gateway.createBackup("manual", "2026-10-03T02:00:00.000Z"); // 새 백업 2
+        gateway.createBackup("manual", "2026-10-03T03:00:00.000Z"); // 새 백업 3
+        expect(gateway.listBackups()).toHaveLength(3); // 최근 세 개만
+        expect(exportedBackups(gateway)).not.toContain(JSON.stringify(old)); // 오래된 첫 백업은 순환으로 빠짐
+        localStorage.setItem(backupKey, "{old-broken"); // 예전 방식으로 남은 손상 원본
+        expect(gateway.listBackups().at(-1)?.reason).toBe("recovery"); // 읽을 수 없으면 손상 원본으로 봄
+        gateway.createBackup("manual", "2026-10-03T04:00:00.000Z"); // 새 백업 4
+        expect(localStorage.getItem(backupKey)).toBeNull(); // 대표 키는 지움
+        expect(exportedBackups(gateway)).toContain("{old-broken"); // 손상 원본은 보존
+    }); // 검증 종료
+
     it("백업은 최근 세 개만 유지한다", () => // 백업 순환 검증
     { // 테스트 시작
         const gateway = new LocalStorageGateway(localStorage); // 저장소 생성
@@ -426,7 +488,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         state.wallet.balance = 913; // 식별 잔액 적용
         const snapshot = gateway.createBackupFromState(state, "message-delete", "2026-09-29T14:00:00.000Z"); // 상태 백업 생성
         expect(snapshot.reason).toBe("message-delete"); // 백업 사유 확인
-        expect(localStorage.getItem(backupKey)).toBe(JSON.stringify(state)); // 백업 원본 확인
+        expect(exportedBackups(gateway)).toEqual([JSON.stringify(state)]); // 백업 원본 확인
     }); // 검증 종료
 
     it("백업이 세 개여도 마이그레이션 실패 원본을 보존한다", () => // 실패 원본 보존 검증
@@ -495,7 +557,7 @@ describe("로컬 저장소 게이트웨이", () => // 게이트웨이 묶음
         const storage = new ResetFailingStorage(); // 실패 저장소 생성
         const gateway = new LocalStorageGateway(storage); // 게이트웨이 생성
         expect(() => gateway.reset()).toThrowError(StorageWriteError); // 초기화 실패 확인
-        expect(storage.getItem(backupKey)).toBe("보존할 백업"); // 기존 백업 유지 확인
+        expect(exportedBackups(gateway)).toContain("보존할 백업"); // 기존 백업 유지 확인(이력으로 옮겨 보존)
     }); // 검증 종료
 }); // 묶음 종료
 
