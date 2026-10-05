@@ -194,10 +194,17 @@ export class ChatController // 채팅 제어기
         return this.busy; // 응답 상태 반환
     } // 함수 종료
 
-    private nextId(role: "user" | "assistant"): string // 메시지 식별자 생성
+    private nextId(role: "user" | "assistant"): string // 메시지 식별자 생성(화면을 새로 열면 순서가 1부터 다시 시작하므로, 이미 저장된 메시지와 겹치는 번호는 건너뜀)
     { // 함수 시작
-        this.sequence += 1; // 순서 증가
-        return `${this.options.conversationId}-${role}-${this.sequence}`; // 식별자 반환
+        const used = new Set(this.state.messages.map((message) => message.id)); // 이미 쓰고 있는 식별자
+        let id = ""; // 새 식별자
+        do // 겹치지 않을 때까지 다음 번호로
+        { // 반복 시작
+            this.sequence += 1; // 순서 증가
+            id = `${this.options.conversationId}-${role}-${this.sequence}`; // 후보 식별자
+        } // 반복 종료
+        while (used.has(id)); // 겹침 확인
+        return id; // 식별자 반환
     } // 함수 종료
 
     private createLLMInput(character: Character, conversation: Conversation, version: ConversationVersion, messages: Message[]): LLMInput // 응답 입력 생성
