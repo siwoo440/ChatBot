@@ -7,7 +7,7 @@ import { createDefaultConversationSettings } from "@/features/core/defaults"; //
 import type { LLMAdapter, LLMInput } from "@/lib/adapters/llm-adapter"; // 어댑터 계약
 import { MockImageAdapter } from "@/lib/adapters/mock-image-adapter"; // 이미지 어댑터
 import { resetModelStatus, type ModelStatus } from "@/lib/adapters/model-status"; // 실제 AI 상태
-import { ChatServiceError, RemoteLLMAdapter, toChatRequest } from "@/lib/adapters/remote-llm-adapter"; // 실제 AI 어댑터
+import { ChatServiceError, RemoteLLMAdapter, REQUEST_HISTORY_MESSAGES, toChatRequest } from "@/lib/adapters/remote-llm-adapter"; // 실제 AI 어댑터
 import { mockCharacters, mockConversations, mockConversationVersions } from "@/mocks/fixtures"; // Mock 데이터
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더 도구
 
@@ -90,6 +90,15 @@ describe("실제 AI 어댑터", () => // 어댑터 묶음
         expect([body.tier, body.character.contentRating]).toEqual(["open", "mature"]); // 19세 작품임을 알림
         const offline = new RemoteLLMAdapter(practice, (async () => Response.json({ error: "model-offline" }, { status: 502 })) as unknown as typeof fetch, async () => ({ enabled: true, tiers: { open: true }, models: {} })); // 프로그램 꺼짐
         await expect(collect(offline.streamReply({ ...input, options: { ...options, tier: "open" } }))).rejects.toMatchObject({ code: "model-offline" }); // 이유 전달
+    }); // 검증 종료
+
+    it("긴 대화는 최근 말만 서버 통로로 보낸다", () => // 긴 대화 검증
+    { // 검증 시작
+        const long = Array.from({ length: 300 }, (_item, index) => message(index % 2 === 0 ? "user" : "assistant", `말 ${index}`)); // 300개짜리 대화
+        const body = toChatRequest({ ...input, messages: long }, options); // 보낼 요청
+        expect(body.messages).toHaveLength(REQUEST_HISTORY_MESSAGES); // 최근 것만
+        expect(body.messages.at(-1)?.content).toBe("말 299"); // 가장 최근 말 포함
+        expect(toChatRequest(input, options).messages).toHaveLength(2); // 짧은 대화는 그대로(안내 메시지 제외)
     }); // 검증 종료
 
     it("열쇠가 틀리거나 답이 비면 이유를 담은 오류를 낸다", async () => // 실패 검증

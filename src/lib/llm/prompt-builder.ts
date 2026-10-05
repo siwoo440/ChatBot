@@ -48,6 +48,7 @@ export interface BuiltPrompt // 조립한 지시문
 
 export const PROMPT_FIELD_LIMIT = 4000; // 설정 글 하나의 최대 글자 수
 export const PROMPT_MESSAGE_LIMIT = 4000; // 메시지 하나의 최대 글자 수
+export const PROMPT_REQUEST_MESSAGES = 400; // 요청에서 받는 메시지 수(넘으면 오래된 것부터 버림)
 export const PROMPT_HISTORY_MESSAGES = 40; // 보내는 최근 메시지 수
 export const PROMPT_HISTORY_CHARS = 24_000; // 보내는 최근 대화 전체 글자 수
 export const LOCAL_HISTORY_MESSAGES = 20; // 내 컴퓨터 모델에 보내는 최근 메시지 수(한 번에 읽을 수 있는 분량이 작음)
@@ -97,7 +98,7 @@ export function parseChatRequest(value: unknown): ChatRequest | null // 요청 �
     const character = value.character; // 캐릭터
     const options = value.options; // 응답 조건
     const name = text(character.name, 80); // 캐릭터 이름
-    const messages = list<ChatRequestMessage>(value.messages, 400, (item) => isRecord(item) && (item.role === "user" || item.role === "assistant") && text(item.content, PROMPT_MESSAGE_LIMIT).length > 0 ? { role: item.role, content: text(item.content, PROMPT_MESSAGE_LIMIT) } : null); // 대화
+    const messages = list<ChatRequestMessage>(value.messages.slice(-PROMPT_REQUEST_MESSAGES), PROMPT_REQUEST_MESSAGES, (item) => isRecord(item) && (item.role === "user" || item.role === "assistant") && text(item.content, PROMPT_MESSAGE_LIMIT).length > 0 ? { role: item.role, content: text(item.content, PROMPT_MESSAGE_LIMIT) } : null); // 대화(뒤에서부터 남겨 가장 최근 말을 잃지 않음)
     if (name.length === 0 || messages.length === 0) // 이름·대화 없음
     { // 조건 시작
         return null; // 거부

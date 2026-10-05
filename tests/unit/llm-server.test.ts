@@ -4,7 +4,7 @@ import { chatTiers, fillTierOptions, getMessageCost, getTierCost, getTierOption 
 import { createDefaultConversationSettings } from "@/features/core/defaults"; // 기본값
 import { CHAT_REQUESTS_PER_MINUTE, isChatAllowedFrom, isLocalHost, resetChatSlots, takeChatSlot } from "@/lib/llm/chat-gate"; // 문지기
 import { getLocalModelNames, getTierAvailability, isRealChatEnabled, resolveModel } from "@/lib/llm/model-catalog"; // 모델 목록
-import { buildChatPrompt, buildSystemPrompt, LOCAL_HISTORY_MESSAGES, parseChatRequest, PROMPT_HISTORY_MESSAGES, PROMPT_START_TEXT, trimHistory, type ChatRequest } from "@/lib/llm/prompt-builder"; // 지시문 만들기
+import { buildChatPrompt, buildSystemPrompt, LOCAL_HISTORY_MESSAGES, parseChatRequest, PROMPT_HISTORY_MESSAGES, PROMPT_REQUEST_MESSAGES, PROMPT_START_TEXT, trimHistory, type ChatRequest } from "@/lib/llm/prompt-builder"; // 지시문 만들기
 import { ProviderError, readSseData, streamProviderReply, stripThinking, type FetchLike } from "@/lib/llm/providers"; // AI 회사 연결
 import { isConversationSettings } from "@/lib/repositories/state-validation"; // 설정 검사
 
@@ -176,6 +176,17 @@ describe("지시문 만들기", () => // 지시문 묶음
         expect(parsed?.messages).toEqual([{ role: "user", content: "안녕" }]); // 안내 메시지 제외
         expect(parsed?.options).toMatchObject({ length: 1, writingStyle: "default", language: "ko" }); // 모르는 값은 기본값
         expect(parsed?.options.memories).toHaveLength(30); // 개수 자름
+    }); // 검증 종료
+
+    it("메시지가 아주 많은 요청은 뒤에서부터 남겨 가장 최근 말을 잃지 않는다", () => // 긴 대화 검증
+    { // 검증 시작
+        const long = Array.from({ length: 500 }, (_item, index) => ({ role: index % 2 === 0 ? "user" as const : "assistant" as const, content: `말 ${index}` })); // 500개짜리 대화
+        const parsed = parseChatRequest({ ...request, messages: long }); // 요청 정리
+        expect(parsed?.messages).toHaveLength(PROMPT_REQUEST_MESSAGES); // 받는 개수 한도
+        expect(parsed?.messages.at(-1)?.content).toBe("말 499"); // 가장 최근 말이 남음
+        expect(parsed?.messages[0].content).toBe(`말 ${500 - PROMPT_REQUEST_MESSAGES}`); // 오래된 말부터 버림
+        const prompt = buildChatPrompt({ ...request, messages: parsed?.messages ?? [] }); // 지시문
+        expect(prompt.messages.at(-1)?.content).toBe("말 499"); // 지시문에도 최근 말이 들어감
     }); // 검증 종료
 }); // 묶음 종료
 

@@ -18,6 +18,20 @@ export class ChatServiceError extends Error // 실제 AI 실패(이유 코드 �
 } // 클래스 종료
 
 const fallbackCodes = new Set(["disabled", "no-key", "mature-not-supported"]); // 연습용으로 넘기는 이유
+export const REQUEST_HISTORY_MESSAGES = 80; // 서버 통로로 보내는 최근 메시지 수(서버는 이 가운데 최근 40개까지만 지시문에 씀)
+export const REQUEST_HISTORY_CHARS = 100_000; // 서버 통로로 보내는 대화 전체 글자 수(요청 크기 한도 400,000자를 넘지 않게)
+
+function recentMessages(messages: ChatRequest["messages"]): ChatRequest["messages"] // 최근 대화만 남기기(대화 전체를 보내면 긴 대화에서 요청이 너무 커지고 서버가 최근 말을 버림)
+{ // 함수 시작
+    const recent = messages.slice(-REQUEST_HISTORY_MESSAGES); // 최근 개수만
+    let total = recent.reduce((sum, message) => sum + message.content.length, 0); // 글자 수 합계
+    while (recent.length > 1 && total > REQUEST_HISTORY_CHARS) // 글자 수가 넘으면 오래된 것부터 뺌(가장 최근 말은 남김)
+    { // 반복 시작
+        total -= recent[0].content.length; // 뺄 글자 수
+        recent.shift(); // 가장 오래된 말 제거
+    } // 반복 종료
+    return recent; // 최근 대화 반환
+} // 함수 종료
 const knownCodes = new Set<ChatServiceCode>(["bad-key", "rate-limited", "provider-busy", "provider-error", "model-offline", "model-missing", "local-only", "bad-request", "too-large"]); // 화면에 알리는 이유
 
 export function isMatureInput(input: Pick<LLMInput, "character" | "contentRating">): boolean // 19세 작품 여부(외부 AI 등급은 약관 때문에 연습용으로 답하고, 직접 돌리는 공개 모델 등급만 실제로 답함)
@@ -32,7 +46,7 @@ export function toChatRequest(input: LLMInput, options: ChatReplyOptions): ChatR
         tier: options.tier, // 등급
         character: { name: character.name, summary: character.summary, description: character.description, personality: character.personality, greeting: character.greeting, worldSetting: character.worldSetting, prompt: character.prompt, tags: character.tags, contentRating: isMatureInput(input) ? "mature" : character.contentRating }, // 캐릭터
         story: story === undefined ? null : { title: story.title, synopsis: story.synopsis, userRole: story.userRole, cast: story.cast.map((member) => ({ displayName: member.displayName, role: member.role })) }, // 스토리
-        messages: input.messages.flatMap((message) => message.role === "user" || message.role === "assistant" ? [{ role: message.role, content: message.content }] : []), // 대화(안내 메시지 제외)
+        messages: recentMessages(input.messages.flatMap((message) => message.role === "user" || message.role === "assistant" ? [{ role: message.role, content: message.content }] : [])), // 대화(안내 메시지 제외, 최근 것만)
         options, // 응답 조건
     }; // 요청 반환
 } // 함수 종료
