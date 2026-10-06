@@ -198,3 +198,39 @@
 { /* 올림 시작 */
     border-color: var(--tone); /* 강조 경계 */
 } /* 올림 종료 */
+
+.tabs /* 로그인·회원가입 전환 */
+{ /* 전환 시작 */
+    display: grid; /* 두 칸 배치 */
+    grid-template-columns: 1fr 1fr; /* 같은 너비 */
+    gap: 6px; /* 칸 간격 */
+    padding: 4px; /* 안쪽 여백 */
+    border: 1px solid var(--mv-line); /* 경계 */
+    border-radius: 14px; /* 모서리 */
+    background: light-dark(#f6f3fc, #14111c); /* 배경 */
+} /* 전환 종료 */
+
+.tabs button /* 전환 버튼 */
+{ /* 버튼 시작 */
+    min-height: 42px; /* 조작 높이 */
+    border: 0; /* 경계 제거 */
+    border-radius: 10px; /* 모서리 */
+    color: var(--mv-muted); /* 글자 색 */
+    font: inherit; /* 글꼴 상속 */
+    font-weight: 800; /* 굵기 */
+    background: transparent; /* 배경 없음 */
+    cursor: pointer; /* 선택 커서 */
+} /* 버튼 종료 */
+
+.tabs button[aria-selected="true"] /* 고른 전환 버튼 */
+{ /* 고른 버튼 시작 */
+    color: var(--tone-strong); /* 강조 글자 */
+    background: light-dark(#ffffff, var(--mv-surface)); /* 밝은 배경 */
+    box-shadow: 0 2px 8px light-dark(rgb(31 26 46 / 8%), rgb(0 0 0 / 30%)); /* 그림자 */
+} /* 고른 버튼 종료 */
+
+.social /* 간편 로그인 버튼 묶음 */
+{ /* 묶음 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 8px; /* 버튼 간격 */
+} /* 묶음 종료 */

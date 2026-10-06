@@ -7,8 +7,10 @@ import { useAccountSession } from "@/features/account/use-account-session"; // �
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import styles from "@/features/account/AccountSync.module.css"; // 맞추기 화면 스타일
 import { AccountSyncRunner } from "@/lib/account/account-sync"; // 맞추기 도구
+import { getAccountServiceConfig } from "@/lib/account/account-config"; // 계정 서비스 설정
 import { getAppStorage } from "@/lib/account/scoped-storage"; // 로그인한 계정의 저장 칸
 import { createPracticeSnapshotStore, type SnapshotStore } from "@/lib/account/snapshot-store"; // 서버 저장 계약
+import { createSupabaseSnapshotStore } from "@/lib/account/supabase-account"; // 실제 서버 저장(Supabase)
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜 형식
 import { LocalStorageGateway } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소(가져온 데이터 검사)
 
@@ -16,9 +18,10 @@ export const SYNC_DELAY_MS = 2500; // 바뀐 뒤 서버에 올리기까지 기�
 const GUEST_STATE_KEY = "mateverse:v1:state"; // 손님 데이터 저장 키
 const GUEST_OFFER_KEY = "mateverse:v1:guest-offer"; // 손님 데이터를 가져올지 물어볼 상태(계정 칸에 저장: pending·done)
 
-export function getSnapshotStore(): SnapshotStore // 지금 쓰는 서버 저장 구현(실제 서비스를 연결하기 전이라 연습용)
+export function getSnapshotStore(): SnapshotStore // 지금 쓰는 서버 저장 구현(계정 서비스를 켰으면 Supabase, 아니면 연습용)
 { // 함수 시작
-    return createPracticeSnapshotStore(window.localStorage); // 연습용 서버
+    const config = getAccountServiceConfig(); // 계정 서비스 설정
+    return config.mode === "supabase" ? createSupabaseSnapshotStore(config, { storage: window.localStorage }) : createPracticeSnapshotStore(window.localStorage); // 서버 저장 구현
 } // 함수 종료
 
 function hasGuestData(): boolean // 이 브라우저에 손님으로 쓰던 데이터가 있는지

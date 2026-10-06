@@ -46,7 +46,9 @@ export function createPracticeAuthAdapter(storage: Storage, now: () => string = 
     }; // 함수 종료
     return { // 로그인 계약 구현
         mode: "practice", // 연습용
-        socialProviders: () => [], // 간편 로그인 없음
+        socialProviders: async () => [], // 간편 로그인 없음
+        startSocialSignIn: async () => undefined, // 간편 로그인 없음
+        completeSocialSignIn: async () => ({ ok: false, reason: "unavailable" }), // 간편 로그인 없음
         signIn, // 로그인
         signUp: signIn, // 연습용은 가입과 로그인이 같음
         signOut: async () => undefined, // 서비스 쪽에 정리할 것이 없음

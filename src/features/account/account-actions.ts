@@ -1,15 +1,29 @@
 // 계정 동작: 로그인·로그아웃을 하고 화면을 새로 연다. 계정마다 저장 칸이 달라, 세션을 바꾼 뒤에는 앱 데이터를 그 계정의 칸에서 처음부터 다시 읽어야 한다.
+import { getAccountServiceConfig } from "@/lib/account/account-config"; // 계정 서비스 설정
 import { readAccountSession, writeAccountSession } from "@/lib/account/account-session"; // 계정 세션
 import type { AuthAdapter, AuthResult, SignInInput } from "@/lib/account/auth-adapter"; // 로그인 계약
 import { createPracticeAuthAdapter } from "@/lib/account/practice-auth-adapter"; // 연습용 로그인
+import { createSupabaseAuthAdapter } from "@/lib/account/supabase-account"; // 실제 로그인(Supabase)
 
 export type Navigate = (href: string) => void; // 화면 이동(테스트에서 바꿔 끼움)
 
 const reloadTo: Navigate = (href) => window.location.assign(href); // 새로 열기(앱 데이터를 계정 칸에서 다시 읽게 함)
 
-export function getAuthAdapter(): AuthAdapter // 지금 쓰는 로그인 구현(실제 서비스를 연결하기 전이라 연습용)
+export function getAuthAdapter(): AuthAdapter // 지금 쓰는 로그인 구현(계정 서비스를 켜고 주소와 공개 키를 넣었으면 Supabase, 아니면 연습용)
 { // 함수 시작
-    return createPracticeAuthAdapter(window.localStorage); // 연습용 로그인
+    const config = getAccountServiceConfig(); // 계정 서비스 설정
+    return config.mode === "supabase" ? createSupabaseAuthAdapter(config, { storage: window.localStorage, session: window.sessionStorage }) : createPracticeAuthAdapter(window.localStorage); // 로그인 구현
+} // 함수 종료
+
+export async function completeSocialAndEnter(adapter: AuthAdapter, params: URLSearchParams, navigate: Navigate = reloadTo): Promise<AuthResult> // 간편 로그인에서 돌아온 뒤 로그인을 마치고 메인으로 들어가기
+{ // 함수 시작
+    const result = await adapter.completeSocialSignIn(params); // 로그인 마무리
+    if (result.ok) // 성공
+    { // 조건 시작
+        writeAccountSession(window.localStorage, result.session); // 세션 저장
+        navigate("/"); // 그 계정의 데이터로 새로 열기
+    } // 조건 종료
+    return result; // 결과 반환
 } // 함수 종료
 
 export async function signInAndEnter(adapter: AuthAdapter, input: SignInInput, navigate: Navigate = reloadTo, mode: "sign-in" | "sign-up" = "sign-in"): Promise<AuthResult> // 로그인(또는 가입)하고 메인으로 들어가기

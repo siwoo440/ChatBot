@@ -48,6 +48,12 @@ export function readAccountSession(storage: Storage | undefined): AccountSession
     } // 실패 종료
 } // 함수 종료
 
+export function readActiveSession(storage: Storage | undefined, live: boolean): AccountSession | null // 지금 방식에 맞는 세션만 읽기(연습용 계정은 연습용일 때만, 실제 계정은 실제 서비스일 때만)
+{ // 함수 시작
+    const session = readAccountSession(storage); // 저장된 세션
+    return session !== null && (session.provider === "practice") !== live ? session : null; // 방식이 바뀌었으면 로그인하지 않은 것으로 봄(다른 방식의 계정 칸을 열지 않게)
+} // 함수 종료
+
 export function writeAccountSession(storage: Storage, session: AccountSession | null): void // 세션 저장(null이면 로그아웃)
 { // 함수 시작
     if (session === null) // 로그아웃

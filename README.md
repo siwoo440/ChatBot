@@ -129,4 +129,5 @@ ollama create qwen3-14b-16k -f Modelfile
 - `NEXT-SESSION.md`: 다른 컴퓨터나 새 대화에서 이어갈 때 그대로 붙여 넣을 말과 지금 상태, 다음에 할 일. 커밋할 때마다 고칩니다.
 - `HANDOFF.md`: 지금까지 한 일의 전체 기록, 작업 규칙, 단계별 로드맵(13절).
 - `docs/text-play-download-development.md`: 기능별 설계와 검증 기록.
+- `docs/ACCOUNT-SETUP.md`: 실제 로그인과 서버 저장(Supabase, Google 로그인)을 연결하는 순서.
 - `docs/image-requests.md`: 그림 요청 기록.

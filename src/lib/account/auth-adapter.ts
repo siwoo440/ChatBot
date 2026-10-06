@@ -22,7 +22,9 @@ export interface PracticeAccount // 연습용 계정
 export interface AuthAdapter // 로그인 계약
 { // 구조 시작
     readonly mode: "practice" | "live"; // 연습용인지 실제 서비스인지
-    socialProviders(): SocialProvider[]; // 쓸 수 있는 간편 로그인(연습용은 없음)
+    socialProviders(): Promise<SocialProvider[]>; // 쓸 수 있는 간편 로그인(서비스에서 켜 둔 것. 연습용은 없음)
+    startSocialSignIn(provider: SocialProvider, redirectTo: string): Promise<void>; // 간편 로그인 시작(서비스 화면으로 보냄)
+    completeSocialSignIn(params: URLSearchParams): Promise<AuthResult>; // 간편 로그인 마무리(돌아온 주소의 값으로 로그인)
     signIn(input: SignInInput): Promise<AuthResult>; // 로그인
     signUp(input: SignInInput): Promise<AuthResult>; // 회원가입
     signOut(session: AccountSession): Promise<void>; // 로그아웃(서비스 쪽 정리)

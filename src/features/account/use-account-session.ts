@@ -1,7 +1,8 @@
 "use client"; // 클라이언트 훅
 
 import { useSyncExternalStore } from "react"; // 바깥 저장소 구독
-import { ACCOUNT_SESSION_EVENT, ACCOUNT_SESSION_KEY, readAccountSession, type AccountSession } from "@/lib/account/account-session"; // 계정 세션
+import { getAccountServiceConfig } from "@/lib/account/account-config"; // 계정 서비스 설정
+import { ACCOUNT_SESSION_EVENT, ACCOUNT_SESSION_KEY, readActiveSession, type AccountSession } from "@/lib/account/account-session"; // 계정 세션
 
 let cachedRaw: string | null | undefined; // 마지막으로 읽은 글(같으면 같은 객체를 돌려줘 다시 그리지 않게 함)
 let cachedSession: AccountSession | null = null; // 마지막으로 읽은 세션
@@ -24,7 +25,7 @@ function getSnapshot(): AccountSession | null // 지금 세션(글이 바뀌었�
     if (raw !== cachedRaw) // 바뀜
     { // 조건 시작
         cachedRaw = raw; // 글 기억
-        cachedSession = readAccountSession(window.localStorage); // 세션 해석
+        cachedSession = readActiveSession(window.localStorage, getAccountServiceConfig().mode === "supabase"); // 세션 해석(지금 방식에 맞는 것만)
     } // 조건 종료
     return cachedSession; // 세션 반환
 } // 함수 종료
