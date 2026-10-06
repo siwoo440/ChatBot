@@ -101,6 +101,13 @@ describe("실제 AI 어댑터", () => // 어댑터 묶음
         expect(toChatRequest(input, options).messages).toHaveLength(2); // 짧은 대화는 그대로(안내 메시지 제외)
     }); // 검증 종료
 
+    it("서버 통로에 캐릭터의 짧은 이름과 스토리 등장인물의 성격을 함께 보낸다", () => // 지시문 재료 검증
+    { // 검증 시작
+        expect(toChatRequest({ ...input, character: { ...input.character, name: "새벽 도서관의 리안" } }, options).character.displayName).toBe("리안"); // 짧은 이름
+        const story = { title: "기록관", synopsis: "", userRole: "", cast: [{ characterId: "rian", displayName: "리안", role: "사서", firstLine: "" }, { characterId: "noah", displayName: "노아", role: "안내자", firstLine: "" }], castNotes: [{ displayName: "리안", personality: "차분하고 다정하다.", sample: "왔구나." }] }; // 스토리 문맥(성격과 말투 예 포함)
+        expect(toChatRequest({ ...input, story }, options).story?.cast).toEqual([{ displayName: "리안", role: "사서", personality: "차분하고 다정하다.", sample: "왔구나." }, { displayName: "노아", role: "안내자", personality: "", sample: "" }]); // 성격과 말투 예를 붙여 보냄
+    }); // 검증 종료
+
     it("열쇠가 틀리거나 답이 비면 이유를 담은 오류를 낸다", async () => // 실패 검증
     { // 검증 시작
         const badKey = new RemoteLLMAdapter(practice, (async () => Response.json({ error: "bad-key", detail: "invalid" }, { status: 502 })) as unknown as typeof fetch, async () => live); // 열쇠 거절

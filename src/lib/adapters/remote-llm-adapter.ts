@@ -3,6 +3,7 @@ import type { ChatReplyOptions, LLMAdapter, LLMInput, SummaryInput } from "@/lib
 import { loadModelStatus, type ModelStatus } from "@/lib/adapters/model-status"; // 실제 AI 상태
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // 연습용 AI
 import { getChatTier } from "@/features/chat/chat-tiers"; // 채팅 등급
+import { deriveDisplayName } from "@/features/story/story-model"; // 짧은 이름
 import type { StatChange, StatJudgeInput } from "@/features/chat/stat-model"; // 스탯 판단 형식
 import type { ChatRequest } from "@/lib/llm/prompt-builder"; // 서버 통로 요청
 
@@ -44,8 +45,8 @@ export function toChatRequest(input: LLMInput, options: ChatReplyOptions): ChatR
     const { character, story } = input; // 캐릭터와 스토리
     return { // 요청
         tier: options.tier, // 등급
-        character: { name: character.name, summary: character.summary, description: character.description, personality: character.personality, greeting: character.greeting, worldSetting: character.worldSetting, prompt: character.prompt, tags: character.tags, contentRating: isMatureInput(input) ? "mature" : character.contentRating }, // 캐릭터
-        story: story === undefined ? null : { title: story.title, synopsis: story.synopsis, userRole: story.userRole, cast: story.cast.map((member) => ({ displayName: member.displayName, role: member.role })) }, // 스토리
+        character: { name: character.name, displayName: deriveDisplayName(character.name), summary: character.summary, description: character.description, personality: character.personality, greeting: character.greeting, worldSetting: character.worldSetting, prompt: character.prompt, tags: character.tags, contentRating: isMatureInput(input) ? "mature" : character.contentRating }, // 캐릭터
+        story: story === undefined ? null : { title: story.title, synopsis: story.synopsis, userRole: story.userRole, cast: story.cast.map((member) => ({ displayName: member.displayName, role: member.role, personality: story.castNotes?.find((note) => note.displayName === member.displayName)?.personality ?? "", sample: story.castNotes?.find((note) => note.displayName === member.displayName)?.sample ?? "" })) }, // 스토리(등장인물의 성격과 말투 예 포함)
         messages: recentMessages(input.messages.flatMap((message) => message.role === "user" || message.role === "assistant" ? [{ role: message.role, content: message.content }] : [])), // 대화(안내 메시지 제외, 최근 것만)
         options, // 응답 조건
     }; // 요청 반환

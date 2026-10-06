@@ -8,6 +8,7 @@ export interface StoryPromptContext // 스토리 응답 문맥(실제 LLM 연결
     synopsis: string; // 줄거리·세계관
     userRole: string; // 사용자 역할
     cast: StoryCastMember[]; // 등장인물
+    castNotes?: Array<{ displayName: string; personality: string; sample?: string }>; // 등장인물의 성격과 말투, 말투를 보여 주는 대사 한 줄(연결된 캐릭터에서 가져옴. 실제 AI 지시문에 씀)
 } // 구조 종료
 
 export interface StoryReplyInput // Mock 스토리 응답 입력

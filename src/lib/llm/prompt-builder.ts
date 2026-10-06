@@ -5,7 +5,8 @@ import type { ChatReplyOptions } from "@/lib/adapters/llm-adapter"; // 응답 �
 
 export interface ChatRequestCharacter // 지시문에 쓰는 캐릭터 정보
 { // 구조 시작
-    name: string; // 이름
+    name: string; // 이름(작품 이름처럼 길 수 있음: 「새벽 도서관의 리안」)
+    displayName?: string; // 대화에서 부르는 짧은 이름(「리안」. 없으면 이름 그대로)
     summary: string; // 한 줄 소개
     description: string; // 상세 설명
     personality: string; // 성격
@@ -21,7 +22,7 @@ export interface ChatRequestStory // 지시문에 쓰는 스토리 정보
     title: string; // 제목
     synopsis: string; // 줄거리·세계관
     userRole: string; // 사용자 역할
-    cast: Array<{ displayName: string; role: string }>; // 등장인물
+    cast: Array<{ displayName: string; role: string; personality?: string; sample?: string }>; // 등장인물(성격과 말투, 말투를 보여 주는 대사 한 줄은 연결된 캐릭터에서 가져옴)
 } // 구조 종료
 
 export interface ChatRequestMessage // 대화 한 줄
@@ -103,11 +104,11 @@ export function parseChatRequest(value: unknown): ChatRequest | null // 요청 �
     { // 조건 시작
         return null; // 거부
     } // 조건 종료
-    const story = isRecord(value.story) ? { title: text(value.story.title, 120), synopsis: text(value.story.synopsis), userRole: text(value.story.userRole, 500), cast: list(value.story.cast, 8, (item) => isRecord(item) && text(item.displayName, 40).length > 0 ? { displayName: text(item.displayName, 40), role: text(item.role, 300) } : null) } : null; // 스토리
+    const story = isRecord(value.story) ? { title: text(value.story.title, 120), synopsis: text(value.story.synopsis), userRole: text(value.story.userRole, 500), cast: list(value.story.cast, 8, (item) => isRecord(item) && text(item.displayName, 40).length > 0 ? { displayName: text(item.displayName, 40), role: text(item.role, 300), personality: text(item.personality, 400), sample: text(item.sample, 200) } : null) } : null; // 스토리
     const persona = isRecord(options.persona) && text(options.persona.name, 40).length > 0 ? { name: text(options.persona.name, 40), description: text(options.persona.description, 1000) } : null; // 대화 프로필
     return { // 정리한 요청
         tier: value.tier as ChatTierId, // 등급
-        character: { name, summary: text(character.summary, 300), description: text(character.description), personality: text(character.personality), greeting: text(character.greeting, 1000), worldSetting: text(character.worldSetting), prompt: text(character.prompt), tags: list(character.tags, 12, (item) => text(item, 30) || null), contentRating: oneOf(character.contentRating, ratings, "all") }, // 캐릭터
+        character: { name, displayName: text(character.displayName, 40) || name, summary: text(character.summary, 300), description: text(character.description), personality: text(character.personality), greeting: text(character.greeting, 1000), worldSetting: text(character.worldSetting), prompt: text(character.prompt), tags: list(character.tags, 12, (item) => text(item, 30) || null), contentRating: oneOf(character.contentRating, ratings, "all") }, // 캐릭터
         story, // 스토리
         messages, // 대화
         options: { // 응답 조건
@@ -176,17 +177,25 @@ export function buildSystemPrompt(request: ChatRequest): string // 역할과 규
 { // 함수 시작
     const { character, story, options } = request; // 재료
     const userName = options.persona?.name ?? "사용자"; // 사용자 이름
+    const shortName = character.displayName === undefined || character.displayName.length === 0 ? character.name : character.displayName; // 대화에서 부르는 짧은 이름
+    const fullName = shortName === character.name ? "" : ` 작품 이름은 '${character.name}'이고 대화에서는 '${shortName}'이라고 한다.`; // 작품 이름이 따로 있을 때만 덧붙임
     const role = story === null // 역할 안내
-        ? `너는 롤플레이 캐릭터 '${character.name}'이다. 아래 설정을 지키며 ${character.name}의 말과 행동만 쓴다. 대화 상대는 '${userName}'이다.` // 캐릭터 대화
+        ? `너는 롤플레이 캐릭터 '${shortName}'이다.${fullName} 아래 설정을 지키며 ${shortName}의 말과 행동만 쓴다. 대화 상대는 '${userName}'이다.` // 캐릭터 대화
         : `너는 스토리 '${story.title}'의 진행자다. 아래 등장인물과 줄거리를 지키며 내레이션과 등장인물의 대사를 쓴다. 대화 상대는 '${userName}'이다.`; // 스토리 대화
-    const castLines = story === null ? "" : story.cast.map((member) => `- ${member.displayName}${member.role.length === 0 ? "" : `: ${member.role}`}`).join("\n"); // 등장인물 줄
+    const castLines = story === null ? "" : story.cast.map((member) => `- ${[`${member.displayName}${member.role.length === 0 ? "" : `: ${member.role}`}`, member.personality === undefined || member.personality.length === 0 ? "" : `성격과 말투: ${member.personality}`, member.sample === undefined || member.sample.length === 0 ? "" : `말투 예: “${member.sample}”`].filter((part) => part.length > 0).join(" / ")}`).join("\n"); // 등장인물 줄(역할, 성격, 말투를 보여 주는 대사)
+    const replyLength = Math.round(350 * options.length); // 답변 길이(글자 수)
+    const minLength = Math.round(replyLength * 0.7 / 10) * 10; // 이보다 짧게 끝내지 않을 길이
     const format = story === null // 형식 규칙
-        ? "- 행동과 묘사는 *별표* 안에, 대사는 그대로 쓴다.\n- 해설이나 머리말 없이 캐릭터의 답만 쓴다." // 캐릭터 대화 형식
-        : `- 줄마다 '[이름] 내용' 형식으로 쓴다. 장면 묘사는 '[내레이션] 내용'으로 쓴다.\n- 이름은 등장인물 목록의 이름만 쓴다: ${story.cast.map((member) => member.displayName).join(", ")}.\n- 한 번에 내레이션 한두 줄과 대사 한두 줄을 쓴다.\n- 사용자가 '(다음 장면으로)'라고 하면 사용자의 말 없이 이야기를 한 걸음 진행한다.`; // 스토리 형식
+        ? "- 행동과 묘사는 *별표* 안에, 대사는 그대로 쓴다. 묘사 문단과 대사 문단을 번갈아 쓰고, 한 문단에 두세 문장씩 쓴다.\n- 해설이나 머리말 없이 캐릭터의 답만 쓴다." // 캐릭터 대화 형식
+        : `- 줄마다 '[이름] 내용' 형식으로 쓴다. 장면 묘사는 '[내레이션] 내용'으로 쓴다.\n- 이름은 등장인물 목록의 이름만 쓴다: ${story.cast.map((member) => member.displayName).join(", ")}.\n- 한 번에 내레이션과 대사를 합쳐 ${Math.round(5 * options.length)}줄 안팎으로 쓴다.\n- 인물의 말투는 등장인물 목록의 '성격과 말투'를 그대로 따른다(반말이라고 적힌 인물은 상대가 누구든 반말, 존댓말이라고 적힌 인물은 존댓말). 인물마다 말투를 다르게 하고, 한 인물의 말투는 끝까지 유지한다.\n- 사용자가 '(다음 장면으로)'라고 하면 사용자의 말 없이 이야기를 한 걸음 진행한다.`; // 스토리 형식
     const rules = [ // 지킬 규칙
         format, // 형식
-        options.preventImpersonation ? `- ${userName}의 말과 행동, 생각은 대신 쓰지 않는다.` : "", // 사칭 방지
-        `- 답변은 ${Math.round(350 * options.length)}자 안팎으로 쓴다.`, // 길이
+        options.preventImpersonation ? `- ${userName}의 말과 행동, 생각은 대신 쓰지 않는다.${story === null ? "" : ` 내레이션에서도 '${userName}'의 행동을 지어내지 않고, 주변 상황과 등장인물만 묘사한다.`}` : "", // 사칭 방지(스토리는 내레이션까지)
+        options.persona === null ? "- 대화 상대의 이름은 모른다. '사용자'라고 부르지 말고 '너'나 '당신'처럼 2인칭으로 부른다." : `- 대화 상대의 이름은 '${userName}'이다. '사용자'라고 부르지 않는다.`, // 호칭
+        story === null ? "- 말투(반말·존댓말, 말버릇)는 '성격과 말투'와 첫 인사, 말투 예시를 따르고 대화 내내 바꾸지 않는다." : "", // 말투 유지(스토리는 형식 규칙에 있음)
+        `- 답변은 ${replyLength}자 안팎(문장 ${Math.round(replyLength / 45)}개쯤)으로 쓴다. ${minLength}자보다 짧게 끝내지 않는다.`, // 길이(글자 수를 잘 못 세는 모델이 있어 문장 수도 함께 알림)
+        "- 직전 대화의 장소·시간·날씨와 이어지게 쓰고, 이미 나온 사실과 어긋나는 묘사를 하지 않는다.", // 장면 이어 가기
+        "- 직전 답변의 문장이나 표현을 되풀이하지 않고, 새 행동이나 질문, 사건으로 대화를 한 걸음 앞으로 이끈다.", // 진행
         options.language === "en" ? "- Write the reply in English. Keep character names as they are." : "- 답변은 한국어로 쓴다.", // 언어
         styleGuides[options.writingStyle].length === 0 ? "" : `- 문체: ${styleGuides[options.writingStyle]}`, // 문체
         allowsMatureScenes(request) // 안전(19세 작품을 직접 돌리는 모델로 답할 때만 수위를 엶)
@@ -202,7 +211,8 @@ export function buildSystemPrompt(request: ChatRequest): string // 역할과 규
         section("캐릭터", story !== null ? "" : [character.summary, character.description].filter((line) => line.length > 0).join("\n")), // 캐릭터 소개
         section("성격과 말투", story !== null ? "" : [character.personality, character.greeting.length === 0 ? "" : `첫 인사 예: ${character.greeting}`].filter((line) => line.length > 0).join("\n")), // 성격
         section("세계관", story === null ? character.worldSetting : story.synopsis), // 세계관·줄거리
-        section("등장인물", castLines), // 등장인물
+        section("장르와 분위기", story !== null ? "" : character.tags.join(", ")), // 태그(분위기를 맞추는 데 씀. 플레이 가이드는 사용자용 안내라 넣지 않음)
+        section("등장인물(말투 예는 말투만 참고하고 그 문장을 그대로 쓰지 않는다)", castLines), // 등장인물
         section("사용자의 역할", story === null ? "" : story.userRole), // 사용자 역할
         section("제작자 지시", story !== null ? "" : character.prompt), // 제작자 프롬프트
         section(`대화 상대(${userName})`, options.persona?.description ?? ""), // 대화 프로필
@@ -215,8 +225,22 @@ export function buildSystemPrompt(request: ChatRequest): string // 역할과 규
     ].filter((part) => part.length > 0).join("\n\n"); // 지시문 반환
 } // 함수 종료
 
+export function buildReplyReminder(request: ChatRequest): string // 끝머리 지시(작은 모델은 앞의 규칙보다 직전 답의 길이와 말투를 따라가므로 마지막 말 뒤에 다시 알림)
+{ // 함수 시작
+    const replyLength = Math.round(350 * request.options.length); // 답변 길이(글자 수)
+    const userName = request.options.persona?.name ?? "사용자"; // 사용자 이름
+    const speech = request.story === null ? "말투는 '성격과 말투'에 적힌 대로 쓴다." : `인물의 말투는 등장인물 목록에 적힌 대로 쓰되 말투 예의 문장을 그대로 쓰지 않는다.${request.options.preventImpersonation ? ` 내레이션에 '${userName}'의 행동을 쓰지 않는다.` : ""}`; // 말투(스토리는 사칭 방지도) 다시 알림
+    return `[진행 지시: 위 말에 이어지는 답을 ${replyLength}자 안팎(문장 ${Math.round(replyLength / 45)}개쯤)으로 쓴다. ${Math.round(replyLength * 0.7 / 10) * 10}자보다 짧게 끝내지 않는다. ${speech} 이 지시는 답에 드러내지 않는다.]`; // 지시 반환
+} // 함수 종료
+
+function withReplyReminder(messages: ChatRequestMessage[], reminder: string): ChatRequestMessage[] // 마지막 사용자 말 뒤에 끝머리 지시 붙이기(마지막이 사용자 말일 때만)
+{ // 함수 시작
+    const last = messages.at(-1); // 마지막 말
+    return last === undefined || last.role !== "user" ? messages : [...messages.slice(0, -1), { role: "user", content: `${last.content}\n\n${reminder}` }]; // 붙인 대화 반환
+} // 함수 종료
+
 export function buildChatPrompt(request: ChatRequest): BuiltPrompt // 지시문 조립
 { // 함수 시작
     const local = getChatTier(request.tier).provider === "local"; // 내 컴퓨터 모델 여부
-    return { system: buildSystemPrompt(request), messages: local ? trimHistory(request.messages, LOCAL_HISTORY_MESSAGES, LOCAL_HISTORY_CHARS) : trimHistory(request.messages), maxTokens: getReplyTokenLimit(request.options.length) }; // 지시문 반환(내 컴퓨터 모델에는 대화를 더 짧게 보냄)
+    return { system: buildSystemPrompt(request), messages: local ? withReplyReminder(trimHistory(request.messages, LOCAL_HISTORY_MESSAGES, LOCAL_HISTORY_CHARS), buildReplyReminder(request)) : trimHistory(request.messages), maxTokens: getReplyTokenLimit(request.options.length) }; // 지시문 반환(내 컴퓨터 모델에는 대화를 더 짧게 보내고 끝머리 지시를 붙임)
 } // 함수 종료

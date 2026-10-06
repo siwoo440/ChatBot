@@ -218,7 +218,7 @@ export class ChatController // 채팅 제어기
             return { character, conversation, version, messages, options, contentRating: character.contentRating }; // 캐릭터 입력 반환
         } // 조건 종료
         const story = this.state.stories.find((item) => item.id === conversation.storyId); // 연결 스토리
-        return { character, conversation, version, messages, options, contentRating: story?.contentRating ?? character.contentRating, story: { title: story?.title ?? conversation.title, synopsis: story?.synopsis ?? "", userRole: story?.userRole ?? "", cast: conversation.storyCast } }; // 스토리 입력 반환(등장인물은 시작 시점 묶음)
+        return { character, conversation, version, messages, options, contentRating: story?.contentRating ?? character.contentRating, story: { title: story?.title ?? conversation.title, synopsis: story?.synopsis ?? "", userRole: story?.userRole ?? "", cast: conversation.storyCast, castNotes: conversation.storyCast.map((member) => { const linked = this.state.characters.find((item) => item.id === member.characterId); return { displayName: member.displayName, personality: linked?.personality ?? "", sample: (member.firstLine.length > 0 ? member.firstLine : linked?.greeting ?? "").slice(0, 160) }; }) } }; // 스토리 입력 반환(등장인물은 시작 시점 묶음, 성격과 말투 예는 연결된 캐릭터에서)
     } // 함수 종료
 
     private reportProgress(handler: ChatProgressHandler | undefined, phase: ChatProgressPhase, messageId: string): void // 진행 상태 전달

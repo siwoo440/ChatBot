@@ -135,12 +135,52 @@ describe("지시문 만들기", () => // 지시문 묶음
         } // 순회 종료
     }); // 검증 종료
 
+    it("내 컴퓨터 모델에는 마지막 사용자 말 뒤에 길이와 말투를 다시 알려 주고, 회사 모델에는 붙이지 않는다", () => // 끝머리 지시 검증
+    { // 검증 시작
+        const local = buildChatPrompt({ ...request, tier: "open" }).messages.at(-1); // 내 컴퓨터 모델에 보내는 마지막 말
+        expect(local?.role).toBe("user"); // 사용자 말
+        expect(local?.content.startsWith("오늘도 왔어.\n\n[")).toBe(true); // 원래 말은 그대로 앞에
+        for (const part of ["525자 안팎(문장 12개쯤)", "370자보다 짧게 끝내지 않는다", "말투는 '성격과 말투'에 적힌 대로 쓴다.", "이 지시는 답에 드러내지 않는다"]) // 끝머리 지시 내용
+        { // 순회 시작
+            expect(local?.content).toContain(part); // 포함 확인
+        } // 순회 종료
+        const storyReminder = buildChatPrompt({ ...request, tier: "open", story: { title: "기록관", synopsis: "", userRole: "", cast: [{ displayName: "리안", role: "사서" }] } }).messages.at(-1)?.content ?? ""; // 스토리의 끝머리 지시
+        expect(storyReminder).toContain("말투 예의 문장을 그대로 쓰지 않는다. 내레이션에 '소하'의 행동을 쓰지 않는다."); // 스토리는 말투 예 베끼기와 사칭을 다시 막음
+        expect(buildChatPrompt(request).messages.at(-1)?.content).toBe("오늘도 왔어."); // 회사 모델에는 붙이지 않음
+        expect(buildChatPrompt({ ...request, tier: "open", messages: [{ role: "user", content: "안녕" }, { role: "assistant", content: "어서 와." }] }).messages.at(-1)?.content).toBe("어서 와."); // 마지막이 사용자 말이 아니면 붙이지 않음
+    }); // 검증 종료
+
     it("내 컴퓨터 모델에는 최근 대화를 더 짧게 보낸다", () => // 내 컴퓨터 모델 대화 길이 검증
     { // 검증 시작
         const long = Array.from({ length: 100 }, (_item, index) => ({ role: index % 2 === 0 ? "user" as const : "assistant" as const, content: `말 ${index}` })); // 긴 대화
         expect(buildChatPrompt({ ...request, tier: "open", messages: long }).messages).toHaveLength(LOCAL_HISTORY_MESSAGES); // 최근 20개
         expect(buildChatPrompt({ ...request, messages: long }).messages).toHaveLength(PROMPT_HISTORY_MESSAGES); // 회사 모델은 40개
-        expect(buildChatPrompt({ ...request, tier: "open", messages: long }).messages.at(-1)?.content).toBe("말 99"); // 가장 최근 말 유지
+        expect(buildChatPrompt({ ...request, tier: "open", messages: long }).messages.at(-1)?.content).toBe("말 99"); // 가장 최근 말 유지(마지막이 답변이라 끝머리 지시는 붙지 않음)
+    }); // 검증 종료
+
+    it("짧은 이름과 장르, 길이·말투·호칭·진행 규칙을 알려 주고 플레이 가이드는 넣지 않는다", () => // 다듬은 지시문 검증
+    { // 검증 시작
+        const system = buildSystemPrompt({ ...request, character: { ...request.character, name: "새벽 도서관의 리안", displayName: "리안", tags: ["판타지", "힐링"] }, options: { ...request.options, playGuide: "상태창의 팁을 참고하세요." } }); // 지시문
+        for (const part of ["너는 롤플레이 캐릭터 '리안'이다", "작품 이름은 '새벽 도서관의 리안'이고 대화에서는 '리안'이라고 한다", "리안의 말과 행동만 쓴다", "## 장르와 분위기\n판타지, 힐링", "525자 안팎(문장 12개쯤)", "370자보다 짧게 끝내지 않는다", "한 문단에 두세 문장씩", "말투(반말·존댓말, 말버릇)", "대화 상대의 이름은 '소하'이다. '사용자'라고 부르지 않는다.", "되풀이하지 않고", "장소·시간·날씨"]) // 들어가야 할 내용
+        { // 순회 시작
+            expect(system).toContain(part); // 포함 확인
+        } // 순회 종료
+        expect(system).not.toContain("상태창의 팁을 참고하세요."); // 플레이 가이드는 사용자용 안내라 넣지 않음
+        expect(buildSystemPrompt(request)).not.toContain("작품 이름은"); // 이름이 하나면 덧붙이지 않음
+        expect(buildSystemPrompt({ ...request, options: { ...request.options, persona: null } })).toContain("대화 상대의 이름은 모른다. '사용자'라고 부르지 말고 '너'나 '당신'처럼 2인칭으로 부른다."); // 대화 프로필이 없을 때
+        const parsed = parseChatRequest({ ...request, character: { ...request.character, displayName: "  리안  " }, story: { title: "기록관", synopsis: "", userRole: "", cast: [{ displayName: "노아", role: "안내자", personality: "가".repeat(900) }] } }); // 요청 정리
+        expect(parsed?.character.displayName).toBe("리안"); // 짧은 이름 정리
+        expect(parsed?.story?.cast[0].personality).toHaveLength(400); // 성격은 400자까지
+        expect(parseChatRequest(request)?.character.displayName).toBe("리안"); // 보내지 않으면 이름 그대로
+    }); // 검증 종료
+
+    it("스토리는 등장인물의 성격과 말투를 함께 알려 주고 길이에 맞는 줄 수를 정한다", () => // 스토리 등장인물 검증
+    { // 검증 시작
+        const system = buildSystemPrompt({ ...request, story: { title: "비 그친 밤의 기록관", synopsis: "사라진 기록을 찾는다.", userRole: "새로 온 견습생", cast: [{ displayName: "리안", role: "사서", personality: "차분하고 다정하다. 반말을 쓴다.", sample: "왔구나. 오늘은 조용해서 좋네." }, { displayName: "노아", role: "", personality: "" }] } }); // 스토리 지시문
+        for (const part of ["- 리안: 사서 / 성격과 말투: 차분하고 다정하다. 반말을 쓴다. / 말투 예: “왔구나. 오늘은 조용해서 좋네.”", "- 노아\n", "## 등장인물(말투 예는 말투만 참고하고 그 문장을 그대로 쓰지 않는다)", "내레이션과 대사를 합쳐 8줄 안팎", "등장인물 목록의 '성격과 말투'를 그대로 따른다", "인물마다 말투를 다르게 하고", "내레이션에서도 '소하'의 행동을 지어내지 않고", "525자 안팎"]) // 들어가야 할 내용
+        { // 순회 시작
+            expect(system).toContain(part); // 포함 확인
+        } // 순회 종료
     }); // 검증 종료
 
     it("스토리는 등장인물과 [이름] 대사 형식을 알려 준다", () => // 스토리 지시문 검증
