@@ -10,12 +10,15 @@ export interface AccountServiceValues // 설정 값(환경 변수에서 읽음)
     anonKey?: string; // Supabase 공개 키(Publishable key 또는 예전 방식의 anon 키. 브라우저에 내보내도 되는 키이고, 비밀 키를 넣으면 안 됨)
 } // 구조 종료
 
+const SERVICE_PATHS: ReadonlySet<string> = new Set(["", "/rest/v1", "/auth/v1"]); // 받아 주는 주소 끝 경로(없음, 또는 Supabase 화면이 붙여 보여 주는 데이터·로그인 경로)
+
 function cleanUrl(value: string): string | null // 주소 다듬기(프로젝트 주소 모양이 아니면 없음)
 { // 함수 시작
     try // 해석 시도
     { // 시도 시작
         const url = new URL(value.trim()); // 주소 해석
-        return (url.protocol === "https:" || url.protocol === "http:") && (url.pathname === "/" || url.pathname === "") ? url.origin : null; // 경로 없는 http(s) 주소만
+        const path = url.pathname.replace(/\/+$/, ""); // 끝의 빗금을 뗀 경로
+        return (url.protocol === "https:" || url.protocol === "http:") && SERVICE_PATHS.has(path) ? url.origin : null; // http(s) 주소이고 경로가 없거나 서비스 경로일 때만(경로는 떼고 씀)
     } // 시도 종료
     catch // 주소가 아님
     { // 실패 시작

@@ -96,6 +96,16 @@ describe("계정 서비스 설정", () => // 설정 묶음
         expect(readAccountServiceConfig({ service: "supabase", url: "https://demo.supabase.co", anonKey: "" })).toEqual({ mode: "practice" }); // 키가 없으면 연습용
         expect(readAccountServiceConfig({ service: "supabase", url: "demo.supabase.co/rest", anonKey: "key" })).toEqual({ mode: "practice" }); // 주소 모양이 다르면 연습용
     }); // 검증 종료
+
+    it("Supabase 화면이 주소 끝에 붙여 보여 주는 경로는 떼고 받는다", () => // 주소 끝 경로 검증
+    { // 검증 시작
+        const expected = { mode: "supabase", url: "https://demo.supabase.co", anonKey: "key" }; // 기대하는 설정(경로를 뗀 주소)
+        expect(readAccountServiceConfig({ service: "supabase", url: "https://demo.supabase.co/rest/v1/", anonKey: "key" })).toEqual(expected); // 데이터 주소 모양(끝 빗금 있음)
+        expect(readAccountServiceConfig({ service: "supabase", url: "https://demo.supabase.co/rest/v1", anonKey: "key" })).toEqual(expected); // 데이터 주소 모양(끝 빗금 없음)
+        expect(readAccountServiceConfig({ service: "supabase", url: "https://demo.supabase.co/auth/v1/", anonKey: "key" })).toEqual(expected); // 로그인 주소 모양
+        expect(readAccountServiceConfig({ service: "supabase", url: "https://supabase.com/dashboard/project/demo", anonKey: "key" })).toEqual({ mode: "practice" }); // 관리 화면 주소는 프로젝트 주소가 아니라 연습용
+        expect(readAccountServiceConfig({ service: "supabase", url: "https://demo.supabase.co/rest/v1/mv_snapshots", anonKey: "key" })).toEqual({ mode: "practice" }); // 그 밖의 경로가 붙으면 연습용
+    }); // 검증 종료
 }); // 묶음 종료
 
 describe("Supabase 로그인", () => // 로그인 묶음
