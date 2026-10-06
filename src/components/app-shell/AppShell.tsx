@@ -8,6 +8,7 @@ import { ConversationPanel } from "@/components/app-shell/ConversationPanel"; //
 import { MobileBottomNavigation } from "@/components/app-shell/MobileBottomNavigation"; // 모바일 메뉴
 import { THEME_STORAGE_KEY } from "@/lib/theme/stored-theme"; // 테마 저장 키
 import { UserPanel } from "@/components/app-shell/UserPanel"; // 사용자 패널
+import { getAuthAdapter, signOutAndLeave } from "@/features/account/account-actions"; // 로그아웃
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 저장소
 import { getClaimableCount } from "@/features/rewards/reward-model"; // 받을 보상 수
 import { formatUsageDuration } from "@/features/safety/usage-time"; // 이용 시간 표시
@@ -117,7 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) // 앱 셸
             <div className={styles.grid}> {/* 패널 그리드 */}
                 <ConversationPanel open={state.settings.leftPanelOpen} onNavigate={closePanelsForNavigation} /> {/* 대화 패널 */}
                 <div className={styles.content}>{children}</div> {/* 중앙 콘텐츠 */}
-                <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} rewards={state.rewards} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} onHideMature={hideMature} /> {/* 사용자 패널 */}
+                <UserPanel profile={state.profile} wallet={state.wallet} settings={state.settings} rewards={state.rewards} open={state.settings.rightPanelOpen} onNavigate={closePanelsForNavigation} onLogout={() => void signOutAndLeave(getAuthAdapter())} onHideMature={hideMature} /> {/* 사용자 패널 */}
             </div> {/* 그리드 종료 */}
             {(state.settings.leftPanelOpen || state.settings.rightPanelOpen) ? <button type="button" className={styles.scrim} aria-label={t("열린 패널 닫기")} onClick={closePanels} /> : null} {/* 패널 배경 */}
             <MobileBottomNavigation onNavigate={closePanelsForNavigation} /> {/* 모바일 하단 메뉴 */}

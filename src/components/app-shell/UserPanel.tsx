@@ -1,5 +1,6 @@
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
+import { useAccountSession } from "@/features/account/use-account-session"; // 계정 세션
 import type { AppSettings, RewardState, TokenWallet, UserProfile } from "@/features/core/types"; // 사용자 타입
 import { ATTENDANCE_CYCLE, getAttendanceView, getBonusView, getClaimableCount } from "@/features/rewards/reward-model"; // 출석·미션 규칙
 import { isAdultVerified } from "@/features/adult/adult-access"; // 성인 인증 판정
@@ -15,11 +16,13 @@ interface UserPanelProps // 패널 속성
     rewards?: RewardState; // 출석·미션(있으면 토큰 아래에 카드 표시)
     open: boolean; // 열림 상태
     onNavigate(): void; // 내부 이동 처리
+    onLogout?(): void; // 로그아웃 처리(로그인해 있을 때만 버튼을 보임)
     onHideMature?(): void; // 19+ 보기 끄기 처리(없거나 19+ 보기가 꺼져 있으면 버튼을 숨김. 로그인이 없어 로그아웃 버튼은 두지 않음)
 } // 구조 종료
 
-export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate, onHideMature }: UserPanelProps) // 사용자 패널
+export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate, onLogout, onHideMature }: UserPanelProps) // 사용자 패널
 { // 함수 시작
+    const account = useAccountSession(); // 지금 로그인한 계정(손님이면 없음)
     const adultVerified = isAdultVerified(profile, new Date()); // 성인 인증 상태
     const attendance = rewards === undefined ? null : getAttendanceView(rewards.attendance, new Date()); // 출석 상태
     const bonus = rewards === undefined ? null : getBonusView(rewards.missions, new Date()); // 미션 상태
@@ -37,6 +40,19 @@ export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate
                     </div> {/* 배지 묶음 종료 */}
                 </div> {/* 프로필 문구 종료 */}
             </section> {/* 프로필 영역 종료 */}
+            <section className="user-panel-account" aria-label={t("로그인 상태")}> {/* 로그인 상태 */}
+                {account === null ? ( // 손님
+                    <> {/* 로그인 안내 */}
+                        <Link href={"/login" as Route} className="user-panel-login" onClick={onNavigate}>{t("로그인")}</Link> {/* 로그인 화면으로 */}
+                        <small>{t("로그인하면 계정마다 데이터가 따로 저장돼요.")}</small> {/* 안내 */}
+                    </> // 로그인 안내 종료
+                ) : ( // 로그인함
+                    <> {/* 계정 표시 */}
+                        <span className="user-panel-account-name"><b>{account.name}</b><small>{account.provider === "practice" ? t("연습용 계정") : account.email ?? t("로그인함")}</small></span> {/* 계정 이름 */}
+                        {onLogout === undefined ? null : <button className="user-panel-logout" type="button" onClick={onLogout}>{t("로그아웃")}</button>} {/* 로그아웃 */}
+                    </> // 계정 표시 종료
+                )} {/* 판정 종료 */}
+            </section> {/* 로그인 상태 종료 */}
             <section className="user-panel-wallet" aria-label={t("토큰 정보")}> {/* 토큰 영역 */}
                 <div className="user-panel-wallet-primary"> {/* 토큰 잔액 */}
                     <span className="user-panel-wallet-label">{t("보유 토큰")}</span> {/* 잔액 표제 */}

@@ -6,6 +6,7 @@ import { createInitialState } from "@/features/core/initial-state"; // 초기 �
 import type { AppState } from "@/features/core/types"; // 상태 타입
 import { trackRewardProgress } from "@/features/rewards/reward-tracker"; // 미션 진행 추적
 import { isStorageQuotaError, LocalStorageGateway, type BackupReason, type LoadResult } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
+import { getAppStorage } from "@/lib/account/scoped-storage"; // 로그인한 계정의 저장 칸
 import { resolveLocale, setActiveLocale, t } from "@/lib/i18n"; // 화면 글자 번역·화면 언어
 import { useDocumentLanguage } from "@/features/core/use-document-language"; // 문서 언어·탭 제목 맞추기
 
@@ -21,7 +22,7 @@ function isFirstVisit(): boolean // 저장된 앱 상태가 없는 첫 방문인
 { // 함수 시작
     try // 저장소 읽기 시도
     { // 시도 시작
-        return window.localStorage.getItem(STATE_STORAGE_KEY) === null; // 저장된 것이 없으면 첫 방문
+        return getAppStorage().getItem(STATE_STORAGE_KEY) === null; // 저장된 것이 없으면 첫 방문(로그인한 계정의 칸 기준)
     } // 시도 종료
     catch // 저장소를 읽지 못함
     { // 실패 시작
@@ -97,7 +98,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
         const firstVisit = repository === undefined && isFirstVisit(); // 저장된 것이 없는 첫 방문(읽기 전에 확인)
         try // 읽기 시도
         { // 시도 시작
-            outcome = repository !== undefined ? { state: repository.load(), recovered: false, warning: null } : new LocalStorageGateway(window.localStorage).load(); // 저장 상태 읽기
+            outcome = repository !== undefined ? { state: repository.load(), recovered: false, warning: null } : new LocalStorageGateway(getAppStorage()).load(); // 저장 상태 읽기(로그인한 계정의 칸)
             outcome = { ...outcome, state: closePanelsOnNarrowFirstVisit(outcome.state, firstVisit, window.innerWidth) }; // 휴대폰 첫 방문은 패널을 닫고 시작
         } // 시도 종료
         catch // 읽기 실패 처리
@@ -143,7 +144,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             } // 조건 종료
             else // 기본 저장소 선택
             { // 조건 시작
-                new LocalStorageGateway(window.localStorage).save(state); // 브라우저 저장
+                new LocalStorageGateway(getAppStorage()).save(state); // 브라우저 저장(로그인한 계정의 칸)
             } // 조건 종료
             queueMicrotask(() => setStorageError(null)); // 오류 해제 예약
         } // 시도 종료
@@ -168,7 +169,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             } // 주입 백업 종료
             else // 기본 백업 선택
             { // 기본 백업 시작
-                new LocalStorageGateway(window.localStorage).createBackupFromState(state, reason); // 브라우저 상태 백업
+                new LocalStorageGateway(getAppStorage()).createBackupFromState(state, reason); // 브라우저 상태 백업(로그인한 계정의 칸)
             } // 기본 백업 종료
             setStorageError(null); // 백업 오류 해제
             return true; // 백업 성공 반환
@@ -194,7 +195,7 @@ export function AppProvider({ children, initialState = createInitialState(), rep
             } // 조건 종료
             else // 기본 저장소 선택
             { // 기본 시작
-                new LocalStorageGateway(window.localStorage).save(nextState); // 브라우저 저장 실행
+                new LocalStorageGateway(getAppStorage()).save(nextState); // 브라우저 저장 실행(로그인한 계정의 칸)
             } // 기본 종료
             hydrated.current = false; // 중복 저장 보류
             dispatch({ type: "replace-state", state: nextState }); // 메모리 상태 확정

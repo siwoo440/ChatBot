@@ -1859,6 +1859,50 @@
     font-size: .82rem; /* 보조 크기 */
 } /* 링크 보조 종료 */
 
+.grid :global(.user-panel-account) /* 로그인 상태(로그인 링크 또는 계정 이름과 로그아웃) */
+{ /* 상태 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 8px; /* 요소 간격 */
+} /* 상태 종료 */
+
+.grid :global(.user-panel-account small) /* 로그인 안내·계정 보조 글 */
+{ /* 안내 시작 */
+    color: var(--mv-muted); /* 안내 색 */
+    font-size: .78rem; /* 안내 크기 */
+    line-height: 1.5; /* 줄 높이 */
+} /* 안내 종료 */
+
+.grid :global(.user-panel-login) /* 로그인 링크 */
+{ /* 로그인 시작 */
+    display: flex; /* 내용 배치 */
+    align-items: center; /* 세로 가운데 */
+    justify-content: center; /* 가로 가운데 */
+    min-height: 46px; /* 버튼 높이 */
+    border-radius: 14px; /* 버튼 모서리 */
+    background: #6d28d9; /* 계정 색 배경 */
+    color: #ffffff !important; /* 흰 글자 */
+    font-weight: 800; /* 버튼 굵기 */
+    text-decoration: none; /* 밑줄 제거 */
+    transition: background 150ms ease, transform 150ms ease; /* 버튼 전환 */
+} /* 로그인 종료 */
+
+.grid :global(.user-panel-login:hover) /* 로그인 올림 */
+{ /* 로그인 올림 시작 */
+    background: #5b21b6; /* 진한 배경 */
+    transform: translateY(-1px); /* 위쪽 이동 */
+} /* 로그인 올림 종료 */
+
+.grid :global(.user-panel-account-name) /* 계정 이름 */
+{ /* 이름 시작 */
+    display: grid; /* 세로 배치 */
+    gap: 2px; /* 줄 간격 */
+    padding: 10px 14px; /* 이름 여백 */
+    border: 1px solid var(--mv-line); /* 이름 경계 */
+    border-radius: 14px; /* 이름 모서리 */
+    color: var(--mv-ink); /* 이름 색 */
+    background: light-dark(#faf8ff, #17141f); /* 이름 배경 */
+} /* 이름 종료 */
+
 .grid :global(.user-panel-logout) /* 로그아웃 버튼 */
 { /* 로그아웃 시작 */
     width: 100%; /* 전체 너비 */

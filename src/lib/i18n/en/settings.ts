@@ -348,4 +348,7 @@ export const settings: Record<string, string> = {
     "초대 보너스는 한 번만 받을 수 있어요.": "The invite bonus can only be claimed once.",
     "· 기본 길이 기준": "· at the default length",
     "답변 길이를 늘리면 등급마다 정해진 만큼 더 들고, 유저 노트를 {0}자 넘게 적으면 메시지당 {1}토큰이 더 들어요. 지금 대화의 비용은 입력창 옆 등급 버튼에서 볼 수 있어요.": "Longer replies cost a set extra amount for each tier, and a user note longer than {0} characters costs {1} extra token per message. You can see the cost of the current chat on the tier button next to the input.",
+    "로그인하지 않음 · 이 브라우저에만 저장돼요": "Not logged in · saved only in this browser",
+    "{0} · 연습용 계정(이 브라우저 안에서만 나뉘어요)": "{0} · practice account (separated only inside this browser)",
+    "{0} · 로그인함": "{0} · logged in",
 };

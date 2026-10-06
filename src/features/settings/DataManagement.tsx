@@ -1,5 +1,6 @@
 "use client"; // 클라이언트 컴포넌트
 
+import { getAppStorage } from "@/lib/account/scoped-storage"; // 로그인한 계정의 저장 칸
 import { useEffect, useState, type ChangeEvent } from "react"; // 리액트 상태
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { downloadJsonFile } from "@/features/settings/data-download"; // 파일 다운로드
@@ -31,7 +32,7 @@ function describeFailure(caught: unknown, fallback: string): string // 실패 �
 
 function createGateway(): LocalStorageGateway // 저장소 생성 함수
 { // 함수 시작
-    return new LocalStorageGateway(window.localStorage); // 브라우저 저장소 반환
+    return new LocalStorageGateway(getAppStorage()); // 브라우저 저장소 반환(로그인한 계정의 칸)
 } // 함수 종료
 
 export function DataManagement() // 데이터 관리 화면
