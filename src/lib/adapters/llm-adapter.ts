@@ -36,6 +36,10 @@ export interface SummaryInput // 요약 입력
     conversation: Conversation; // 대화방
     version: ConversationVersion; // 대화 버전
     messages: Message[]; // 요약 메시지
+    userName?: string; // 사용자 이름(대화 프로필). 실제 AI 요약의 대화 줄에 붙임
+    speakerName?: string; // 답하는 쪽 이름(캐릭터의 짧은 이름, 스토리는 「이야기」). 없으면 연습용 요약을 씀
+    contentRating?: ContentRating; // 작품 이용 등급(19세 작품은 직접 돌리는 모델만 요약)
+    language?: Locale; // 요약 언어(없으면 한국어)
 } // 구조 종료
 
 export interface LLMAdapter // 대화 어댑터

@@ -42,7 +42,7 @@ import { canViewMatureContent } from "@/features/adult/adult-access"; // 19세 �
 import type { GeneratedImage } from "@/features/core/types"; // 생성 이미지 타입
 import { canUseImageForRating } from "@/features/images/image-model"; // 이미지 등급 판정
 import styles from "@/features/chat/ChatScreen.module.css"; // 채팅 스타일
-import { t } from "@/lib/i18n"; // 화면 글자 번역
+import { getActiveLocale, t } from "@/lib/i18n"; // 화면 글자 번역·화면 언어
 import { PageTitle } from "@/components/feedback/PageTitle"; // 탭 제목
 import { ChatServiceError, RemoteLLMAdapter, type ChatServiceCode } from "@/lib/adapters/remote-llm-adapter"; // 실제 AI 어댑터
 
@@ -292,7 +292,9 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
         { // 조건 시작
             return; // 생략
         } // 조건 종료
-        const summary = await adapter.summarizeConversation({ conversation: chat, version: chatVersion, messages: messages.slice(-10) }); // 요약
+        const chatStory = chat.mode === "story" ? current.stories.find((item) => item.id === chat.storyId) : undefined; // 연결 스토리
+        const persona = latestGlobalState.current.personas.find((item) => item.id === chat.settings.personaId) ?? latestGlobalState.current.personas[0]; // 이 대화의 대화 프로필(없으면 기본 프로필)
+        const summary = await adapter.summarizeConversation({ conversation: chat, version: chatVersion, messages: messages.slice(-10), userName: persona?.name, speakerName: chat.mode === "story" ? t("이야기") : deriveDisplayName(lead.name), contentRating: chatStory?.contentRating ?? lead.contentRating, language: getActiveLocale() }); // 요약(실제 AI를 쓸 수 있으면 대화 내용을 읽고 요약)
         const status = messages.filter((message) => message.role === "assistant" && message.status !== undefined && message.status !== null).at(-1)?.status; // 최근 상태창
         const levelOf = (name: string) => status?.stats.find((item) => item.target === name && (item.statId === AFFECTION_STAT_ID || item.name === "호감도"))?.value ?? chatVersion.relationshipLevel; // 호감도 스탯(없으면 관계 수치)
         const people = getStatusPeople(chat, deriveDisplayName(lead.name)).map((name) => ({ name, level: levelOf(name), stage: chatVersion.relationshipStage, emotion: chatVersion.emotion })); // 관계도 인물

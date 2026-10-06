@@ -108,6 +108,27 @@ describe("실제 AI 어댑터", () => // 어댑터 묶음
         expect(toChatRequest({ ...input, story }, options).story?.cast).toEqual([{ displayName: "리안", role: "사서", personality: "차분하고 다정하다.", sample: "왔구나." }, { displayName: "노아", role: "안내자", personality: "", sample: "" }]); // 성격과 말투 예를 붙여 보냄
     }); // 검증 종료
 
+    it("대화 요약은 실제 AI를 쓸 수 있으면 보조 통로에 맡기고, 못 쓰거나 실패하면 연습용 요약으로 넘어간다", async () => // 요약 검증
+    { // 검증 시작
+        const conversation = { ...mockConversations[0], settings: { ...mockConversations[0].settings, tier: "plus" as const } }; // 플러스챗 대화
+        const summaryInput = { conversation, version: mockConversationVersions[0], messages: [message("system", "안내"), message("assistant", "어서 와."), message("user", "안녕")], userName: "소하", speakerName: "리안", contentRating: "all" as const, language: "ko" as const }; // 요약 입력
+        const fetcher = vi.fn(async () => Response.json({ summary: "소하가 도서관에 들렀다." })); // 가짜 보조 통로
+        const adapter = new RemoteLLMAdapter(practice, fetcher as unknown as typeof fetch, async () => live); // 어댑터
+        expect(await adapter.summarizeConversation(summaryInput)).toBe("소하가 도서관에 들렀다."); // 실제 AI 요약
+        const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit]; // 보낸 요청
+        expect(url).toBe("/api/chat/assist"); // 보조 통로
+        expect(JSON.parse(init.body as string)).toEqual({ task: "summary", tier: "plus", contentRating: "all", language: "ko", title: conversation.title, lines: [{ name: "리안", content: "어서 와." }, { name: "소하", content: "안녕" }] }); // 이름을 붙인 대화 줄(안내 메시지 제외)
+        fetcher.mockClear(); // 기록 비움
+        expect(await adapter.summarizeConversation({ ...summaryInput, contentRating: "mature" })).toBe("요약"); // 19세 작품은 회사 등급에 보내지 않음
+        expect(await new RemoteLLMAdapter(practice, fetcher as unknown as typeof fetch, async () => ({ enabled: false, tiers: {}, models: {} })).summarizeConversation(summaryInput)).toBe("요약"); // 실제 AI가 꺼져 있으면 연습용
+        expect(await adapter.summarizeConversation({ conversation, version: mockConversationVersions[0], messages: summaryInput.messages })).toBe("요약"); // 이름을 받지 못하면 연습용
+        expect(fetcher).not.toHaveBeenCalled(); // 세 경우 모두 보내지 않음
+        const failing = new RemoteLLMAdapter(practice, (async () => Response.json({ error: "bad-output" }, { status: 502 })) as unknown as typeof fetch, async () => live); // 실패하는 보조 통로
+        expect(await failing.summarizeConversation(summaryInput)).toBe("요약"); // 실패하면 연습용 요약
+        const offline = new RemoteLLMAdapter(practice, (async () => { throw new TypeError("fetch failed"); }) as unknown as typeof fetch, async () => live); // 연결 실패
+        expect(await offline.summarizeConversation(summaryInput)).toBe("요약"); // 연결이 안 돼도 연습용 요약
+    }); // 검증 종료
+
     it("열쇠가 틀리거나 답이 비면 이유를 담은 오류를 낸다", async () => // 실패 검증
     { // 검증 시작
         const badKey = new RemoteLLMAdapter(practice, (async () => Response.json({ error: "bad-key", detail: "invalid" }, { status: 502 })) as unknown as typeof fetch, async () => live); // 열쇠 거절

@@ -1,10 +1,11 @@
-// 실제 AI 어댑터: 실제 AI를 쓸 수 있는 등급이면 서버 통로로 답을 받고, 아니면(열쇠 없음·외부 AI 등급의 19세 작품·서버 없음) 연습용 AI로 답한다. 요약과 스탯 판단은 아직 연습용 규칙을 쓴다.
+// 실제 AI 어댑터: 실제 AI를 쓸 수 있는 등급이면 서버 통로로 답과 대화 요약을 받고, 아니면(열쇠 없음·외부 AI 등급의 19세 작품·서버 없음) 연습용 AI를 쓴다. 스탯 판단은 아직 연습용 규칙을 쓴다.
 import type { ChatReplyOptions, LLMAdapter, LLMInput, SummaryInput } from "@/lib/adapters/llm-adapter"; // 어댑터 계약
 import { loadModelStatus, type ModelStatus } from "@/lib/adapters/model-status"; // 실제 AI 상태
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // 연습용 AI
 import { getChatTier } from "@/features/chat/chat-tiers"; // 채팅 등급
 import { deriveDisplayName } from "@/features/story/story-model"; // 짧은 이름
 import type { StatChange, StatJudgeInput } from "@/features/chat/stat-model"; // 스탯 판단 형식
+import type { ChatTierId, ContentRating } from "@/features/core/types"; // 도메인 타입
 import type { ChatRequest } from "@/lib/llm/prompt-builder"; // 서버 통로 요청
 
 export type ChatServiceCode = "bad-key" | "rate-limited" | "provider-busy" | "provider-error" | "model-offline" | "model-missing" | "local-only" | "bad-request" | "too-large" | "unknown"; // 실패 이유
@@ -109,8 +110,34 @@ export class RemoteLLMAdapter implements LLMAdapter // 실제 AI 어댑터
         } // 조건 종료
     } // 함수 종료
 
-    public summarizeConversation(input: SummaryInput): Promise<string> // 대화 요약(연습용 규칙)
+    private async canAssist(tier: ChatTierId, contentRating: ContentRating | undefined): Promise<boolean> // 이 등급으로 보조 일(요약 등)을 실제 AI에 맡길 수 있는지
     { // 함수 시작
+        const status = await this.status(); // 실제 AI 상태
+        return status.tiers[tier] === true && (contentRating !== "mature" || getChatTier(tier).mature); // 실제 AI 등급이고, 19세 작품이면 직접 돌리는 모델일 때만
+    } // 함수 종료
+
+    public async summarizeConversation(input: SummaryInput): Promise<string> // 대화 요약(실제 AI를 쓸 수 있으면 맡기고, 못 쓰거나 실패하면 연습용 규칙)
+    { // 함수 시작
+        const tier = input.conversation.settings.tier; // 이 대화의 채팅 등급
+        if (input.speakerName === undefined || !(await this.canAssist(tier, input.contentRating))) // 이름을 받지 못했거나 실제 AI를 쓸 수 없음
+        { // 조건 시작
+            return this.fallback.summarizeConversation(input); // 연습용 요약
+        } // 조건 종료
+        const speakerName = input.speakerName; // 답하는 쪽 이름
+        const lines = input.messages.flatMap((message) => message.role === "user" ? [{ name: input.userName ?? "사용자", content: message.content }] : message.role === "assistant" ? [{ name: speakerName, content: message.content }] : []); // 이름을 붙인 대화 줄(안내 메시지 제외)
+        try // 실제 AI 요약 시도
+        { // 시도 시작
+            const response = await this.fetcher("/api/chat/assist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ task: "summary", tier, contentRating: input.contentRating ?? "all", language: input.language ?? "ko", title: input.conversation.title, lines }) }); // 보조 통로 요청
+            const body = response.ok ? await response.json() as { summary?: unknown } : null; // 받은 답
+            if (typeof body?.summary === "string" && body.summary.trim().length > 0) // 쓸 수 있는 요약
+            { // 조건 시작
+                return body.summary.trim(); // 실제 AI 요약
+            } // 조건 종료
+        } // 시도 종료
+        catch // 연결 실패
+        { // 실패 시작
+            // 요약은 대화를 막지 않으므로 알리지 않고 연습용 요약으로 넘어감
+        } // 실패 종료
         return this.fallback.summarizeConversation(input); // 연습용 요약
     } // 함수 종료
 

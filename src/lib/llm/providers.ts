@@ -200,3 +200,17 @@ export function streamProviderReply(model: ResolvedModel, prompt: BuiltPrompt, f
 { // 함수 시작
     return model.provider === "anthropic" ? streamAnthropic(model, prompt, fetcher, signal) : model.provider === "gemini" ? streamGemini(model, prompt, fetcher, signal) : model.provider === "local" ? streamLocal(model, prompt, fetcher, signal) : streamOpenAI(model, prompt, fetcher, signal); // 회사별 흐름
 } // 함수 종료
+
+export async function collectReply(chunks: AsyncIterable<string>, limit = 8000): Promise<string> // 흘러나오는 답을 끝까지 모으기(보조 통로용. 한도를 넘으면 그만 받음)
+{ // 함수 시작
+    let text = ""; // 모은 글
+    for await (const chunk of chunks) // 조각 순회
+    { // 순회 시작
+        text += chunk; // 붙임
+        if (text.length >= limit) // 한도 도달
+        { // 조건 시작
+            break; // 그만 받음
+        } // 조건 종료
+    } // 순회 종료
+    return text.slice(0, limit); // 모은 글 반환
+} // 함수 종료
