@@ -99,6 +99,7 @@ NEXT_PUBLIC_ACCOUNT_SERVICE=supabase
 
 - 스위치를 바꾸면 그 전 방식으로 로그인해 둔 계정은 로그인하지 않은 것으로 본다. 데이터는 지워지지 않고, 그 방식으로 돌아가 로그인하면 다시 보인다.
 - 연습용 계정에 있던 데이터를 실제 계정으로 옮기려면 연습용일 때 `개인정보 및 보안 → 데이터 관리`에서 JSON으로 내보내고, 실제 계정으로 로그인한 뒤 가져온다.
+- 화면 테스트(E2E)는 스위치와 상관없이 연습용으로 돈다(`playwright.config.ts`가 테스트 서버를 연습용으로 띄운다). 테스트가 실제 서비스에 가입하는 일은 없다. 프로덕션 빌드로 테스트할 때는 빌드할 때 `NEXT_PUBLIC_ACCOUNT_SERVICE=practice`를 준다(`HANDOFF.md` 4절).
 
 ## 6. 확인하기
 
@@ -108,6 +109,18 @@ NEXT_PUBLIC_ACCOUNT_SERVICE=supabase
 4. Supabase의 `Table Editor → mv_snapshots`에 줄이 하나 생겼는지 본다.
 5. 다른 브라우저(또는 시크릿 창)에서 같은 계정으로 로그인해, 앞에서 바꾼 내용(예: 보관한 캐릭터)이 그대로 보이는지 확인한다.
 6. Google 로그인을 켰다면 `Google로 계속하기` 버튼이 보인다. 눌러서 로그인되는지 확인한다.
+
+## 밖에서 점검하기 (값을 내보내지 않고)
+
+가입하지 않고도 연결이 어디까지 됐는지 볼 수 있다. `.env.local`의 주소와 공개 키를 읽어 **읽기만 하는 요청** 세 가지를 보낸다(머리말: `apikey`와 `authorization: Bearer`에 공개 키). 점검 도구는 값을 화면에 내보내지 않고 모양(길이, 시작 글자, 경로)과 응답만 내보낸다.
+
+| 요청 | 정상일 때 | 뜻 |
+| --- | --- | --- |
+| `GET /auth/v1/settings` | 200. `external.email`이 `true` | 주소와 공개 키가 맞다. `external.google`로 Google 로그인이 켜졌는지, `mailer_autoconfirm`으로 확인 메일이 필요한지도 본다 |
+| `GET /rest/v1/mv_snapshots?select=user_id&limit=1` | 401, 코드 `42501`(`permission denied`) | 표가 있고, 로그인하지 않으면 읽지 못한다. 404(`PGRST205`)면 2단계의 SQL을 실행하지 않은 것 |
+| `GET /auth/v1/authorize?provider=google&redirect_to=…`(따라가지 않음) | 302로 `accounts.google.com`에 넘어가고 `redirect_uri`가 `<프로젝트 주소>/auth/v1/callback` | Google 로그인이 켜져 있다. 400(`provider is not enabled`)이면 꺼져 있는 것 |
+
+`Redirect URLs`에 넣은 돌아올 주소는 밖에서 볼 수 없다. 실제로 Google 로그인을 해 봐야 안다.
 
 ## 안 될 때
 
@@ -122,7 +135,7 @@ NEXT_PUBLIC_ACCOUNT_SERVICE=supabase
 
 ## 알아 둘 것
 
-- 이 연결 코드는 가짜 서버로 시험했다. 실제 프로젝트로는 2026-10-06에 **읽기만 하는 요청 세 가지**만 확인했다: 로그인 설정이 읽히는지(`/auth/v1/settings`), `mv_snapshots` 표가 있고 공개 키만으로는 읽을 수 없는지(`permission denied`가 나오면 정상), Google 로그인이 켜져 있는지. 가입, 로그인, 서버 저장, Google 로그인은 아직 실제로 돌려 보지 않았으므로 처음 켤 때 6단계를 꼭 해 본다.
+- 이 연결 코드는 가짜 서버로 시험했다. 실제 프로젝트로는 2026-10-06에 **읽기만 하는 요청 세 가지**만 확인했다: 로그인 설정이 읽히는지(`/auth/v1/settings`), `mv_snapshots` 표가 있고 공개 키만으로는 읽을 수 없는지(`permission denied`가 나오면 정상), Google 로그인이 켜져 있는지. 같은 날 스위치를 켜고 로그인 화면이 이메일·비밀번호와 회원가입으로 바뀌는 것, 브라우저에서 보낸 설정 요청이 성공하는 것까지 봤다. **가입, 로그인, 서버 저장, Google 로그인은 아직 실제로 돌려 보지 않았으므로** 6단계를 꼭 해 본다.
 - 무료 요금제의 프로젝트는 한동안 쓰지 않으면 멈출 수 있다. 멈췄으면 Supabase 화면에서 다시 켠다.
 - 비밀번호를 잊었을 때 다시 정하는 화면은 아직 없다(Supabase 화면에서 사용자에게 재설정 메일을 보낼 수 있다).
 - 앱 데이터는 계정마다 통째로 한 벌 저장한다. 토큰 잔액도 그 안에 있어 브라우저가 정한 값을 그대로 믿는다. 다른 사람에게 열기 전에 바꿔야 한다.
