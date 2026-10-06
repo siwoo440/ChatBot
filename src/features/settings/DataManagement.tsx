@@ -21,7 +21,7 @@ function readFile(file: File): Promise<string> // 파일 읽기 함수
 
 function reasonLabel(reason: BackupSnapshot["reason"]): string // 백업 사유 변환
 { // 함수 시작
-    const labels = { manual: t("수동"), import: t("가져오기 전"), reset: t("초기화 전"), restore: t("복구 전"), recovery: t("자동 복구"), "message-delete": t("메시지 삭제 전"), "version-delete": t("버전 삭제 전"), "conversation-delete": t("대화 삭제 전"), "character-delete": t("캐릭터 삭제 전"), "story-delete": t("스토리 삭제 전"), "image-delete": t("이미지 삭제 전") }; // 사유 목록
+    const labels = { manual: t("수동"), import: t("가져오기 전"), reset: t("초기화 전"), restore: t("복구 전"), recovery: t("자동 복구"), "message-delete": t("메시지 삭제 전"), "version-delete": t("버전 삭제 전"), "conversation-delete": t("대화 삭제 전"), "character-delete": t("캐릭터 삭제 전"), "story-delete": t("스토리 삭제 전"), "image-delete": t("이미지 삭제 전"), sync: t("서버 데이터 받기 전") }; // 사유 목록
     return labels[reason]; // 사유 이름 반환
 } // 함수 종료
 

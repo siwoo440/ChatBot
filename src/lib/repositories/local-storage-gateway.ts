@@ -12,7 +12,7 @@ const backupKey = "mateverse:v1:backup"; // 예전 대표 백업 키(더 쓰지 
 const BACKUP_LIMIT = 3; // 보통 백업 보관 개수(최근 순)
 const RECOVERY_LIMIT = 2; // 손상 원본 보관 개수(보통 백업에 밀려 지워지지 않게 따로 셈)
 const backupHistoryKey = "mateverse:v1:backup-history"; // 백업 이력 키
-const backupReasons = ["manual", "import", "reset", "restore", "recovery", "message-delete", "version-delete", "conversation-delete", "character-delete", "story-delete", "image-delete"] as const; // 백업 사유 목록
+const backupReasons = ["manual", "import", "reset", "restore", "recovery", "message-delete", "version-delete", "conversation-delete", "character-delete", "story-delete", "image-delete", "sync"] as const; // 백업 사유 목록(sync: 서버 데이터를 받기 전)
 
 export interface LoadResult // 읽기 결과 구조
 { // 구조 시작

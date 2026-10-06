@@ -1,5 +1,6 @@
 import type { Route } from "next"; // 경로 타입
 import Link from "next/link"; // 내부 경로 링크
+import { describeSyncStatus, useSyncStatus } from "@/features/account/sync-status"; // 서버 저장 상태
 import { useAccountSession } from "@/features/account/use-account-session"; // 계정 세션
 import type { AppSettings, RewardState, TokenWallet, UserProfile } from "@/features/core/types"; // 사용자 타입
 import { ATTENDANCE_CYCLE, getAttendanceView, getBonusView, getClaimableCount } from "@/features/rewards/reward-model"; // 출석·미션 규칙
@@ -23,6 +24,8 @@ interface UserPanelProps // 패널 속성
 export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate, onLogout, onHideMature }: UserPanelProps) // 사용자 패널
 { // 함수 시작
     const account = useAccountSession(); // 지금 로그인한 계정(손님이면 없음)
+    const sync = useSyncStatus(); // 서버 저장 상태
+    const syncText = describeSyncStatus(sync); // 상태 한 줄 글
     const adultVerified = isAdultVerified(profile, new Date()); // 성인 인증 상태
     const attendance = rewards === undefined ? null : getAttendanceView(rewards.attendance, new Date()); // 출석 상태
     const bonus = rewards === undefined ? null : getBonusView(rewards.missions, new Date()); // 미션 상태
@@ -48,7 +51,7 @@ export function UserPanel({ profile, wallet, settings, rewards, open, onNavigate
                     </> // 로그인 안내 종료
                 ) : ( // 로그인함
                     <> {/* 계정 표시 */}
-                        <span className="user-panel-account-name"><b>{account.name}</b><small>{account.provider === "practice" ? t("연습용 계정") : account.email ?? t("로그인함")}</small></span> {/* 계정 이름 */}
+                        <span className="user-panel-account-name"><b>{account.name}</b><small>{account.provider === "practice" ? t("연습용 계정") : account.email ?? t("로그인함")}</small>{syncText.length === 0 ? null : <small className="user-panel-sync" data-phase={sync.phase} role="status">{t(syncText)}</small>}</span> {/* 계정 이름과 서버 저장 상태 */}
                         {onLogout === undefined ? null : <button className="user-panel-logout" type="button" onClick={onLogout}>{t("로그아웃")}</button>} {/* 로그아웃 */}
                     </> // 계정 표시 종료
                 )} {/* 판정 종료 */}
