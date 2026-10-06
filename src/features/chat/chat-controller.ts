@@ -135,7 +135,9 @@ export class ChatController // 채팅 제어기
         } // 조건 종료
         try // 판단 시도
         { // 시도 시작
-            return await this.options.llm.judgeStats(input, signal); // AI 판단
+            const story = conversation.mode === "story" ? this.state.stories.find((item) => item.id === conversation.storyId) : undefined; // 연결 스토리
+            const context = { tier: this.context.settings.tier, contentRating: story?.contentRating ?? character.contentRating, userName: this.context.persona?.name ?? "사용자", speakerName: conversation.mode === "story" ? "이야기" : deriveDisplayName(character.name) }; // 실제 AI에 맡길 때 쓰는 문맥
+            return await this.options.llm.judgeStats({ ...input, context }, signal); // AI 판단
         } // 시도 종료
         catch // 판단 실패
         { // 실패 시작

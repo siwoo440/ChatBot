@@ -1,4 +1,4 @@
-import type { StatDefinition, StatMode, StatRule, StatScope, StatusSnapshot, StatusTemplate, StatValue } from "@/features/core/types"; // 도메인 타입
+import type { ChatTierId, ContentRating, StatDefinition, StatMode, StatRule, StatScope, StatusSnapshot, StatusTemplate, StatValue } from "@/features/core/types"; // 도메인 타입
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
 export const STAT_LIMIT = 6; // 작품당 스탯 최대 수
@@ -39,6 +39,15 @@ export interface StatJudgeInput // AI 판단 입력
     userMessage: string; // 이번 사용자 메시지
     reply: string; // 이번 응답
     emotion: string; // 이번 감정
+    context?: StatJudgeContext; // 실제 AI에 맡길 때 쓰는 문맥(없으면 연습용 규칙만)
+} // 구조 종료
+
+export interface StatJudgeContext // 스탯 판단 문맥
+{ // 구조 시작
+    tier: ChatTierId; // 채팅 등급
+    contentRating: ContentRating; // 작품 이용 등급
+    userName: string; // 사용자 이름
+    speakerName: string; // 답한 쪽 이름(캐릭터의 짧은 이름, 스토리는 「이야기」)
 } // 구조 종료
 
 function hash(text: string): number // 결정 해시

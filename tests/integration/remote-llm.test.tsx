@@ -129,6 +129,26 @@ describe("실제 AI 어댑터", () => // 어댑터 묶음
         expect(await offline.summarizeConversation(summaryInput)).toBe("요약"); // 연결이 안 돼도 연습용 요약
     }); // 검증 종료
 
+    it("스탯 판단은 실제 AI를 쓸 수 있으면 보조 통로에 맡기고, 못 쓰거나 실패하면 연습용 규칙으로 넘어간다", async () => // 스탯 판단 검증
+    { // 검증 시작
+        const judgeInput = { stats: [{ statId: "affection", name: "호감도", target: "리안", value: 34, min: 0, max: 100, maxChange: 5 }, { statId: "memory", name: "기록한 기억", target: null, value: 3, min: 0, max: 50, maxChange: 2 }], userMessage: "고마워", reply: "나도 고마워.", emotion: "설렘", context: { tier: "plus" as const, contentRating: "all" as const, userName: "소하", speakerName: "리안" } }; // 판단 입력
+        const rules: LLMAdapter = { ...practice, judgeStats: async () => [{ statId: "affection", target: "리안", delta: 1 }] }; // 연습용 규칙 대역
+        const fetcher = vi.fn(async () => Response.json({ deltas: [4, 0] })); // 가짜 보조 통로
+        const adapter = new RemoteLLMAdapter(rules, fetcher as unknown as typeof fetch, async () => live); // 어댑터
+        expect(await adapter.judgeStats(judgeInput)).toEqual([{ statId: "affection", target: "리안", delta: 4 }, { statId: "memory", target: null, delta: 0 }]); // 실제 AI 판단을 스탯에 맞춰 돌려줌
+        const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit]; // 보낸 요청
+        expect(url).toBe("/api/chat/assist"); // 보조 통로
+        expect(JSON.parse(init.body as string)).toEqual({ task: "stats", tier: "plus", contentRating: "all", userName: "소하", speakerName: "리안", stats: [{ name: "호감도", target: "리안", value: 34, min: 0, max: 100, maxChange: 5 }, { name: "기록한 기억", target: null, value: 3, min: 0, max: 50, maxChange: 2 }], userMessage: "고마워", reply: "나도 고마워." }); // 스탯 식별자는 보내지 않음
+        fetcher.mockClear(); // 기록 비움
+        const expected = [{ statId: "affection", target: "리안", delta: 1 }]; // 연습용 규칙의 결과
+        expect(await adapter.judgeStats({ ...judgeInput, context: undefined })).toEqual(expected); // 문맥이 없으면 연습용
+        expect(await adapter.judgeStats({ ...judgeInput, context: { ...judgeInput.context, contentRating: "mature" } })).toEqual(expected); // 19세 작품은 회사 등급에 보내지 않음
+        expect(fetcher).not.toHaveBeenCalled(); // 두 경우 모두 보내지 않음
+        expect(await new RemoteLLMAdapter(rules, (async () => Response.json({ deltas: [4] })) as unknown as typeof fetch, async () => live).judgeStats(judgeInput)).toEqual(expected); // 개수가 다르면 연습용
+        expect(await new RemoteLLMAdapter(rules, (async () => Response.json({ error: "bad-output" }, { status: 502 })) as unknown as typeof fetch, async () => live).judgeStats(judgeInput)).toEqual(expected); // 실패하면 연습용
+        expect(await new RemoteLLMAdapter(rules, (async () => { throw new TypeError("fetch failed"); }) as unknown as typeof fetch, async () => live).judgeStats(judgeInput)).toEqual(expected); // 연결이 안 돼도 연습용
+    }); // 검증 종료
+
     it("열쇠가 틀리거나 답이 비면 이유를 담은 오류를 낸다", async () => // 실패 검증
     { // 검증 시작
         const badKey = new RemoteLLMAdapter(practice, (async () => Response.json({ error: "bad-key", detail: "invalid" }, { status: 502 })) as unknown as typeof fetch, async () => live); // 열쇠 거절

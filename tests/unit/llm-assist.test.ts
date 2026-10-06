@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"; // 테스트 도구
 import { POST } from "@/app/api/chat/assist/route"; // 보조 통로
-import { buildSummaryPrompt, cleanSummary, parseAssistRequest, SUMMARY_LIMIT, type SummaryRequest } from "@/lib/llm/assist-builder"; // 보조 지시문
+import { buildStatsPrompt, buildSummaryPrompt, cleanSummary, parseAssistRequest, parseStatDeltas, SUMMARY_LIMIT, type StatsRequest, type SummaryRequest } from "@/lib/llm/assist-builder"; // 보조 지시문
 import { resetChatSlots } from "@/lib/llm/chat-gate"; // 문지기
 import type { FetchLike } from "@/lib/llm/providers"; // 요청 함수 형식
 
@@ -26,6 +26,7 @@ function useLocalModel(): void // 오픈챗(내 컴퓨터 모델)만 켠 환경
 } // 함수 종료
 
 const summary: SummaryRequest = { task: "summary", tier: "open", contentRating: "all", language: "ko", title: "새벽 도서관의 리안 · 다시 온 독자", lines: [{ name: "소하", content: "오늘 비가 와서 우울해." }, { name: "리안", content: "*옆자리에 앉는다.* 여기 있을게." }] }; // 요약 요청
+const stats: StatsRequest = { task: "stats", tier: "open", contentRating: "all", userName: "소하", speakerName: "리안", stats: [{ name: "호감도", target: "리안", value: 34, min: 0, max: 100, maxChange: 5 }, { name: "기록한 기억", target: null, value: 3, min: 0, max: 50, maxChange: 2 }], userMessage: "고마워, 이건 선물이야.", reply: "*찻잔을 받아 든다.* 고마워." }; // 스탯 판단 요청
 const post = (body: unknown, host = "localhost:3002") => POST(new Request(`http://${host}/api/chat/assist`, { method: "POST", headers: { host, "content-type": "application/json" }, body: typeof body === "string" ? body : JSON.stringify(body) })); // 요청 보내기
 const reason = async (response: Response) => (await response.json() as { error: string }).error; // 거절 이유
 
@@ -111,5 +112,55 @@ describe("보조 통로의 대화 요약", () => // 통로 묶음
         vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("fetch failed"); })); // 프로그램 꺼짐
         const offline = await post(summary); // 요청
         expect([offline.status, await reason(offline)]).toEqual([502, "model-offline"]); // 프로그램 꺼짐으로 알림
+    }); // 검증 종료
+}); // 묶음 종료
+
+describe("스탯 판단 지시문", () => // 스탯 판단 묶음
+{ // 묶음 시작
+    it("요청을 검사하고 수치를 정리한다", () => // 요청 정리 검증
+    { // 검증 시작
+        expect(parseAssistRequest(stats)).toEqual(stats); // 올바른 요청은 그대로
+        expect(parseAssistRequest({ ...stats, stats: [] })).toBeNull(); // 판단할 수치 없음
+        expect(parseAssistRequest({ ...stats, reply: "" })).toBeNull(); // 답변 없음
+        const cleaned = parseAssistRequest({ ...stats, userName: "", stats: [{ name: "호감도", target: "", value: 34.6, min: 0, max: 100, maxChange: 0 }, { name: "", target: null, value: 1, min: 0, max: 1, maxChange: 1 }, { name: "긴장", target: "리안", value: "많음", min: 0, max: 10, maxChange: 3 }] }); // 어긋난 값이 섞인 요청
+        expect(cleaned?.task === "stats" ? [cleaned.userName, cleaned.stats] : null).toEqual(["사용자", [{ name: "호감도", target: null, value: 35, min: 0, max: 100, maxChange: 1 }]]); // 이름 없는 수치·숫자가 아닌 값은 빼고, 값은 정수로, 변화 한도는 1 이상으로
+    }); // 검증 종료
+
+    it("수치 목록에 번호를 붙이고 이번 대화와 답 형식을 알려 준다", () => // 지시문 검증
+    { // 검증 시작
+        const prompt = buildStatsPrompt(stats); // 지시문
+        for (const part of ["정수", "허용 범위 안에서", "'소하'의 이번 말과 행동을 '리안' 쪽에서 어떻게 받아들였는지", "답변의 말투가 부드럽다는 이유로 올리지 않는다", "JSON 한 줄만", "{\"1\": 0, \"2\": 0}"]) // 규칙
+        { // 순회 시작
+            expect(prompt.system).toContain(part); // 포함 확인
+        } // 순회 종료
+        expect(prompt.messages[0].content).toContain("1. 리안의 호감도: 지금 34 (범위 0~100, 이번 변화 -5~+5)\n2. 기록한 기억: 지금 3 (범위 0~50, 이번 변화 -2~+2)"); // 번호를 붙인 수치 목록
+        expect(prompt.messages[0].content).toContain("소하: 고마워, 이건 선물이야.\n리안: *찻잔을 받아 든다.* 고마워."); // 이번 대화
+        expect(prompt.maxTokens).toBeLessThanOrEqual(300); // 짧은 답만 받음
+    }); // 검증 종료
+
+    it("답에서 JSON을 찾아 번호 순서대로 읽고, 한도를 넘는 값은 줄이고, 읽을 수 없으면 없음을 돌려준다", () => // 답 읽기 검증
+    { // 검증 시작
+        expect(parseStatDeltas("{\"1\": 3, \"2\": 0}", stats.stats)).toEqual([3, 0]); // 그대로
+        expect(parseStatDeltas("```json\n{\"1\": +9, \"2\": -7.6}\n```\n호감도가 올랐습니다.", stats.stats)).toEqual([5, -2]); // 울타리·덧붙인 말·더하기 표시가 있어도 읽고 한도 안으로
+        expect(parseStatDeltas("{\"1\": \"2\"}", stats.stats)).toEqual([2, 0]); // 글자로 온 숫자, 빠진 번호는 0
+        expect(parseStatDeltas("{\"호감도\": 3}", stats.stats)).toEqual([0, 0]); // 번호가 아닌 열쇠는 0
+        expect(parseStatDeltas("호감도가 3 올랐습니다.", stats.stats)).toBeNull(); // JSON 없음
+        expect(parseStatDeltas("{1: 3", stats.stats)).toBeNull(); // 깨진 JSON
+    }); // 검증 종료
+
+    it("보조 통로가 내 컴퓨터 모델의 판단을 번호 순서의 변화 목록으로 돌려준다", async () => // 통로 검증
+    { // 검증 시작
+        useLocalModel(); // 오픈챗 켬
+        const fetcher = vi.fn<FetchLike>(async () => sse("{\"1\": 4, \"2\": 1}")); // 가짜 Ollama
+        vi.stubGlobal("fetch", fetcher); // 요청 함수 바꿈
+        const response = await post(stats); // 요청
+        expect([response.status, await response.json()]).toEqual([200, { deltas: [4, 1] }]); // 변화 목록
+        const sent = JSON.parse(fetcher.mock.calls[0][1].body as string) as { messages: Array<{ role: string; content: string }> }; // 보낸 내용
+        expect(sent.messages[1].content).toContain("1. 리안의 호감도"); // 수치 목록을 보냄
+        vi.stubGlobal("fetch", vi.fn(async () => sse("잘 모르겠어요."))); // 읽을 수 없는 답
+        const unreadable = await post(stats); // 요청
+        expect([unreadable.status, await reason(unreadable)]).toEqual([502, "bad-output"]); // 쓸 수 없는 답
+        const mature = await post({ ...stats, tier: "plus", contentRating: "mature" }); // 19세 작품을 회사 등급으로
+        expect([mature.status, await reason(mature)]).toEqual([422, "mature-not-supported"]); // 연습용으로
     }); // 검증 종료
 }); // 묶음 종료

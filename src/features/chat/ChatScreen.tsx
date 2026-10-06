@@ -293,8 +293,9 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
             return; // 생략
         } // 조건 종료
         const chatStory = chat.mode === "story" ? current.stories.find((item) => item.id === chat.storyId) : undefined; // 연결 스토리
-        const persona = latestGlobalState.current.personas.find((item) => item.id === chat.settings.personaId) ?? latestGlobalState.current.personas[0]; // 이 대화의 대화 프로필(없으면 기본 프로필)
-        const summary = await adapter.summarizeConversation({ conversation: chat, version: chatVersion, messages: messages.slice(-10), userName: persona?.name, speakerName: chat.mode === "story" ? t("이야기") : deriveDisplayName(lead.name), contentRating: chatStory?.contentRating ?? lead.contentRating, language: getActiveLocale() }); // 요약(실제 AI를 쓸 수 있으면 대화 내용을 읽고 요약)
+        const liveSettings = latestGlobalState.current.conversations.find((item) => item.id === chat.id)?.settings ?? chat.settings; // 지금 대화방 설정(제어기의 복사본은 화면을 열 때의 등급을 들고 있을 수 있음)
+        const persona = latestGlobalState.current.personas.find((item) => item.id === liveSettings.personaId) ?? latestGlobalState.current.personas[0]; // 이 대화의 대화 프로필(없으면 기본 프로필)
+        const summary = await adapter.summarizeConversation({ conversation: { ...chat, settings: liveSettings }, version: chatVersion, messages: messages.slice(-10), userName: persona?.name, speakerName: chat.mode === "story" ? t("이야기") : deriveDisplayName(lead.name), contentRating: chatStory?.contentRating ?? lead.contentRating, language: getActiveLocale() }); // 요약(실제 AI를 쓸 수 있으면 대화 내용을 읽고 요약)
         const status = messages.filter((message) => message.role === "assistant" && message.status !== undefined && message.status !== null).at(-1)?.status; // 최근 상태창
         const levelOf = (name: string) => status?.stats.find((item) => item.target === name && (item.statId === AFFECTION_STAT_ID || item.name === "호감도"))?.value ?? chatVersion.relationshipLevel; // 호감도 스탯(없으면 관계 수치)
         const people = getStatusPeople(chat, deriveDisplayName(lead.name)).map((name) => ({ name, level: levelOf(name), stage: chatVersion.relationshipStage, emotion: chatVersion.emotion })); // 관계도 인물

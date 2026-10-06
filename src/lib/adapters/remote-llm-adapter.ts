@@ -1,4 +1,4 @@
-// 실제 AI 어댑터: 실제 AI를 쓸 수 있는 등급이면 서버 통로로 답과 대화 요약을 받고, 아니면(열쇠 없음·외부 AI 등급의 19세 작품·서버 없음) 연습용 AI를 쓴다. 스탯 판단은 아직 연습용 규칙을 쓴다.
+// 실제 AI 어댑터: 실제 AI를 쓸 수 있는 등급이면 서버 통로로 답과 대화 요약을 받고, 아니면(열쇠 없음·외부 AI 등급의 19세 작품·서버 없음) 연습용 AI를 쓴다. 스탯 판단도 같은 방식으로 맡긴다.
 import type { ChatReplyOptions, LLMAdapter, LLMInput, SummaryInput } from "@/lib/adapters/llm-adapter"; // 어댑터 계약
 import { loadModelStatus, type ModelStatus } from "@/lib/adapters/model-status"; // 실제 AI 상태
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // 연습용 AI
@@ -21,6 +21,7 @@ export class ChatServiceError extends Error // 실제 AI 실패(이유 코드 �
 
 const fallbackCodes = new Set(["disabled", "no-key", "mature-not-supported"]); // 연습용으로 넘기는 이유
 export const REQUEST_HISTORY_MESSAGES = 80; // 서버 통로로 보내는 최근 메시지 수(서버는 이 가운데 최근 40개까지만 지시문에 씀)
+export const STAT_JUDGE_TIMEOUT_MS = 15_000; // 스탯 판단을 기다리는 시간(판단이 끝나야 답변이 마무리되므로 오래 기다리지 않음)
 export const REQUEST_HISTORY_CHARS = 100_000; // 서버 통로로 보내는 대화 전체 글자 수(요청 크기 한도 400,000자를 넘지 않게)
 
 function recentMessages(messages: ChatRequest["messages"]): ChatRequest["messages"] // 최근 대화만 남기기(대화 전체를 보내면 긴 대화에서 요청이 너무 커지고 서버가 최근 말을 버림)
@@ -141,8 +142,38 @@ export class RemoteLLMAdapter implements LLMAdapter // 실제 AI 어댑터
         return this.fallback.summarizeConversation(input); // 연습용 요약
     } // 함수 종료
 
-    public async judgeStats(input: StatJudgeInput, signal?: AbortSignal): Promise<StatChange[]> // 스탯 판단(연습용 규칙)
+    public async judgeStats(input: StatJudgeInput, signal?: AbortSignal): Promise<StatChange[]> // 스탯 판단(실제 AI를 쓸 수 있으면 맡기고, 못 쓰거나 실패하면 연습용 규칙)
     { // 함수 시작
-        return this.fallback.judgeStats === undefined ? [] : this.fallback.judgeStats(input, signal); // 연습용 판단
+        const byRules = async (): Promise<StatChange[]> => this.fallback.judgeStats === undefined ? [] : this.fallback.judgeStats(input, signal); // 연습용 판단
+        const context = input.context; // 판단 문맥
+        if (context === undefined || !(await this.canAssist(context.tier, context.contentRating))) // 문맥이 없거나 실제 AI를 쓸 수 없음
+        { // 조건 시작
+            return byRules(); // 연습용 판단
+        } // 조건 종료
+        const stopper = new AbortController(); // 중단 장치(사용자 중단과 시간 초과를 함께 받음)
+        const stop = () => stopper.abort(); // 중단
+        const timer = setTimeout(stop, STAT_JUDGE_TIMEOUT_MS); // 시간 초과
+        signal?.addEventListener("abort", stop, { once: true }); // 사용자 중단
+        try // 실제 AI 판단 시도
+        { // 시도 시작
+            const stats = input.stats.map((stat) => ({ name: stat.name, target: stat.target, value: stat.value, min: stat.min, max: stat.max, maxChange: stat.maxChange })); // 보낼 수치(식별자는 보내지 않고 순서로 맞춤)
+            const response = await this.fetcher("/api/chat/assist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ task: "stats", tier: context.tier, contentRating: context.contentRating, userName: context.userName, speakerName: context.speakerName, stats, userMessage: input.userMessage, reply: input.reply }), signal: stopper.signal }); // 보조 통로 요청
+            const body = response.ok ? await response.json() as { deltas?: unknown } : null; // 받은 답
+            const deltas = Array.isArray(body?.deltas) ? body.deltas as unknown[] : []; // 번호 순서의 변화
+            if (deltas.length === input.stats.length && deltas.every((delta) => typeof delta === "number" && Number.isFinite(delta))) // 수치마다 변화가 하나씩 있음
+            { // 조건 시작
+                return input.stats.map((stat, index) => ({ statId: stat.statId, target: stat.target, delta: deltas[index] as number })); // 실제 AI 판단
+            } // 조건 종료
+        } // 시도 종료
+        catch // 연결 실패·중단·시간 초과
+        { // 실패 시작
+            // 판단이 안 돼도 답변은 그대로 두고 연습용 규칙으로 넘어감
+        } // 실패 종료
+        finally // 정리
+        { // 정리 시작
+            clearTimeout(timer); // 시간 초과 해제
+            signal?.removeEventListener("abort", stop); // 중단 감지 해제
+        } // 정리 종료
+        return byRules(); // 연습용 판단
     } // 함수 종료
 } // 클래스 종료

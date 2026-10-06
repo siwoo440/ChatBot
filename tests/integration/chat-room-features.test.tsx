@@ -24,9 +24,11 @@ class CapturingLLMAdapter implements LLMAdapter // 입력 기록 어댑터
         yield "기록한 응답"; // 응답
     } // 함수 종료
 
-    public async summarizeConversation(_input: SummaryInput): Promise<string> // 요약
+    public summaries: SummaryInput[] = []; // 받은 요약 입력
+
+    public async summarizeConversation(input: SummaryInput): Promise<string> // 요약
     { // 함수 시작
-        void _input; // 사용 표시
+        this.summaries.push(input); // 입력 기록
         return Promise.resolve("둘은 도서관에서 오래 이야기를 나눴다."); // 요약 반환
     } // 함수 종료
 } // 클래스 종료
@@ -155,6 +157,25 @@ describe("채팅방 설정과 고정 상태창", () => // 기능 묶음
         expect(options?.writingStyle).toBe("romance"); // 문체 전달
         expect(options?.preventImpersonation).toBe(false); // 사칭 방지 전달
         expect(options?.persona?.name).toBeTruthy(); // 기본 대화 프로필 전달
+    }); // 검증 종료
+
+    it("요약을 맡길 때 지금 고른 채팅 등급과 이름, 작품 등급을 함께 넘긴다", async () => // 요약 입력 검증
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구
+        const llm = new CapturingLLMAdapter(); // 기록 어댑터
+        renderChat(llm); // 렌더(기존 1턴, 베이직챗)
+        await user.click(screen.getByRole("button", { name: /^채팅 모델/ })); // 등급 메뉴
+        await user.click(within(screen.getByRole("menu", { name: "채팅 모델 선택" })).getByRole("menuitemradio", { name: /플러스챗/ })); // 대화 도중 플러스챗으로 바꿈
+        for (const text of ["하나", "둘", "셋", "넷"]) // 2~5턴
+        { // 순회 시작
+            await send(user, text); // 전송
+        } // 순회 종료
+        await waitFor(() => expect(llm.summaries).toHaveLength(1)); // 5턴에 요약 한 번
+        const input = llm.summaries[0]; // 요약 입력
+        expect(input.conversation.settings.tier).toBe("plus"); // 바꾼 등급으로 맡김(화면을 열 때의 등급이 아님)
+        expect([input.speakerName, input.contentRating, input.language]).toEqual(["리안", "all", "ko"]); // 캐릭터의 짧은 이름, 작품 등급, 화면 언어
+        expect(input.userName).toBeTruthy(); // 대화 프로필 이름
+        expect(input.messages).toHaveLength(10); // 최근 10개 메시지
     }); // 검증 종료
 
     it("5턴마다 요약 메모리가 자동으로 쌓이고 알림이 오며, 목표는 직접 추가할 수 있다", async () => // 요약 메모리 검증

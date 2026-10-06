@@ -1,6 +1,6 @@
-// 보조 통로: 답변 말고 실제 AI에 맡기는 작은 일(대화 요약)을 받아, 답을 끝까지 모아 정리한 뒤 한 번에 돌려준다. 실패하면 브라우저가 연습용 규칙으로 넘어간다.
+// 보조 통로: 답변 말고 실제 AI에 맡기는 작은 일(대화 요약, 스탯 판단)을 받아, 답을 끝까지 모아 정리한 뒤 한 번에 돌려준다. 실패하면 브라우저가 연습용 규칙으로 넘어간다.
 import { getChatTier } from "@/features/chat/chat-tiers"; // 채팅 등급
-import { ASSIST_TIMEOUT_MS, buildSummaryPrompt, cleanSummary, parseAssistRequest } from "@/lib/llm/assist-builder"; // 보조 지시문
+import { ASSIST_TIMEOUT_MS, buildStatsPrompt, buildSummaryPrompt, cleanSummary, parseAssistRequest, parseStatDeltas } from "@/lib/llm/assist-builder"; // 보조 지시문
 import { takeChatSlot } from "@/lib/llm/chat-gate"; // 문지기
 import { readChatBody, refuse, refuseProviderFailure } from "@/lib/llm/chat-request"; // 통로 공통
 import { resolveModel } from "@/lib/llm/model-catalog"; // 모델 목록
@@ -37,12 +37,18 @@ export async function POST(request: Request): Promise<Response> // 보조 일 �
     let raw = ""; // 모델의 답
     try // 답 받기
     { // 시도 시작
-        raw = await collectReply(streamProviderReply(model, buildSummaryPrompt(assist), fetch, AbortSignal.any([request.signal, AbortSignal.timeout(ASSIST_TIMEOUT_MS)]))); // 끝까지 모음(브라우저가 끊거나 너무 오래 걸리면 그만둠)
+        raw = await collectReply(streamProviderReply(model, assist.task === "summary" ? buildSummaryPrompt(assist) : buildStatsPrompt(assist), fetch, AbortSignal.any([request.signal, AbortSignal.timeout(ASSIST_TIMEOUT_MS)]))); // 끝까지 모음(브라우저가 끊거나 너무 오래 걸리면 그만둠)
     } // 시도 종료
     catch (error) // 회사 오류
     { // 실패 시작
         return refuseProviderFailure(error, model.provider === "local"); // 이유 알림
     } // 실패 종료
+    const headers = { "cache-control": "no-store", "x-chat-model": model.model }; // 응답 머리말
+    if (assist.task === "stats") // 스탯 판단
+    { // 조건 시작
+        const deltas = parseStatDeltas(raw, assist.stats); // 번호 순서의 변화
+        return deltas === null ? refuse(502, "bad-output") : Response.json({ deltas }, { headers }); // 변화 반환(읽을 수 없는 답이면 거절)
+    } // 조건 종료
     const summary = cleanSummary(raw); // 요약 정리
-    return summary.length === 0 ? refuse(502, "bad-output") : Response.json({ summary }, { headers: { "cache-control": "no-store", "x-chat-model": model.model } }); // 요약 반환(쓸 수 없는 답이면 거절)
+    return summary.length === 0 ? refuse(502, "bad-output") : Response.json({ summary }, { headers }); // 요약 반환(쓸 수 없는 답이면 거절)
 } // 함수 종료
