@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"; // 테스트 도구
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import { ACCOUNT_SESSION_KEY, readAccountSession, writeAccountSession, type AccountSession } from "@/lib/account/account-session"; // 계정 세션
 import { createPracticeAuthAdapter, PRACTICE_ACCOUNTS_KEY } from "@/lib/account/practice-auth-adapter"; // 연습용 로그인
-import { createScopedStorage } from "@/lib/account/scoped-storage"; // 계정별 저장 칸
+import { createScopedStorage, scopeKey } from "@/lib/account/scoped-storage"; // 계정별 저장 칸
 import { LocalStorageGateway } from "@/lib/repositories/local-storage-gateway"; // 로컬 저장소
 
 const session: AccountSession = { accountId: "practice-1a2b3c", name: "소하", email: null, provider: "practice", signedInAt: "2026-10-06T00:00:00.000Z" }; // 연습용 계정 세션
@@ -60,6 +60,20 @@ describe("계정별 저장 칸", () => // 저장 칸 묶음
         expect([localStorage.getItem("mateverse:theme"), localStorage.getItem(ACCOUNT_SESSION_KEY), localStorage.getItem("mateverse:v1:usage-time")]).toEqual(["dark", "x", "1"]); // 그대로 저장
         scoped.removeItem("mateverse:v1:state"); // 계정 칸의 값 지우기
         expect(scoped.getItem("mateverse:v1:state")).toBeNull(); // 없음
+    }); // 검증 종료
+
+    it("작성 중 임시 저장도 계정마다 다른 칸에 두고, 손님은 지금까지 쓰던 칸을 그대로 쓴다", () => // 임시 저장 칸 검증
+    { // 검증 시작
+        const draftKey = "mateverse:draft:character:new"; // 새 캐릭터 임시 저장 열쇠
+        createScopedStorage(localStorage, null).setItem(draftKey, "guest"); // 손님의 임시 저장
+        createScopedStorage(localStorage, "practice-aaa").setItem(draftKey, "mine"); // 첫 계정의 임시 저장
+        expect(localStorage.getItem(draftKey)).toBe("guest"); // 손님 것은 그대로
+        expect(localStorage.getItem("mateverse:v1:u:practice-aaa:draft:character:new")).toBe("mine"); // 계정 칸의 열쇠 이름
+        expect(createScopedStorage(localStorage, "practice-aaa").getItem(draftKey)).toBe("mine"); // 첫 계정은 자기 것을 읽음
+        expect(createScopedStorage(localStorage, "practice-bbb").getItem(draftKey)).toBeNull(); // 둘째 계정에는 없음
+        createScopedStorage(localStorage, "practice-aaa").removeItem(draftKey); // 첫 계정의 것만 지움
+        expect([localStorage.getItem("mateverse:v1:u:practice-aaa:draft:character:new"), localStorage.getItem(draftKey)]).toEqual([null, "guest"]); // 손님 것은 남음
+        expect(scopeKey("mateverse:draft:story:story-1", "practice-aaa")).toBe("mateverse:v1:u:practice-aaa:draft:story:story-1"); // 스토리 임시 저장도 같은 규칙
     }); // 검증 종료
 }); // 묶음 종료
 

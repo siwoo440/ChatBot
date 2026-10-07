@@ -1,13 +1,23 @@
-// 계정별 저장 칸: 로그인한 계정마다 앱 데이터(상태·백업)를 다른 열쇠 이름으로 저장하게 한다. 로그인하지 않은 손님은 지금까지 쓰던 열쇠를 그대로 쓴다.
+// 계정별 저장 칸: 로그인한 계정마다 앱 데이터(상태·백업·작성 중 임시 저장)를 다른 열쇠 이름으로 저장하게 한다. 로그인하지 않은 손님은 지금까지 쓰던 열쇠를 그대로 쓴다.
 import { getAccountServiceConfig } from "@/lib/account/account-config"; // 계정 서비스 설정
 import { ACCOUNT_SESSION_KEY, readActiveSession } from "@/lib/account/account-session"; // 계정 세션
 
 const APP_PREFIX = "mateverse:v1:"; // 앱 데이터 열쇠의 앞부분
+const DRAFT_PREFIX = "mateverse:draft:"; // 작성 중 임시 저장 열쇠의 앞부분(편집기가 씀)
 const sharedKeys = new Set([ACCOUNT_SESSION_KEY, "mateverse:v1:usage-time", "mateverse:v1:practice-accounts", "mateverse:v1:auth", "mateverse:v1:auth-verifier"]); // 계정과 상관없이 기기 전체가 함께 쓰는 열쇠
 
-export function scopeKey(key: string, scope: string): string // 계정 칸의 열쇠 이름 만들기(앱 데이터 열쇠만 바꿈)
+export function accountKeyPrefix(scope: string): string // 그 계정의 열쇠가 모두 시작하는 글(이 기기에서 계정 데이터를 찾을 때 씀)
 { // 함수 시작
-    return !key.startsWith(APP_PREFIX) || sharedKeys.has(key) || key.startsWith(`${APP_PREFIX}u:`) || key.startsWith(`${APP_PREFIX}practice-`) ? key : `${APP_PREFIX}u:${scope}:${key.slice(APP_PREFIX.length)}`; // 공용 열쇠·이미 칸이 붙은 열쇠는 그대로
+    return `${APP_PREFIX}u:${scope}:`; // 계정 칸의 앞부분
+} // 함수 종료
+
+export function scopeKey(key: string, scope: string): string // 계정 칸의 열쇠 이름 만들기(앱 데이터와 임시 저장 열쇠만 바꿈)
+{ // 함수 시작
+    if (key.startsWith(DRAFT_PREFIX)) // 작성 중 임시 저장
+    { // 조건 시작
+        return `${accountKeyPrefix(scope)}draft:${key.slice(DRAFT_PREFIX.length)}`; // 계정 칸 안의 임시 저장 자리로
+    } // 조건 종료
+    return !key.startsWith(APP_PREFIX) || sharedKeys.has(key) || key.startsWith(`${APP_PREFIX}u:`) || key.startsWith(`${APP_PREFIX}practice-`) ? key : `${accountKeyPrefix(scope)}${key.slice(APP_PREFIX.length)}`; // 공용 열쇠·이미 칸이 붙은 열쇠는 그대로
 } // 함수 종료
 
 export function createScopedStorage(storage: Storage, scope: string | null): Storage // 계정 칸을 쓰는 저장소 만들기(손님이면 원래 저장소 그대로)

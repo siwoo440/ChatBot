@@ -6,6 +6,7 @@ import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태 훅
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import type { AppState } from "@/features/core/types"; // 상태 타입
 import { StoryEditor } from "@/features/story/StoryEditor"; // 스토리 편집기
+import { writeAccountSession, type AccountSession } from "@/lib/account/account-session"; // 계정 세션
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // Mock 대화 어댑터
 import { renderWithApp } from "@/test/render-with-app"; // 앱 렌더 도구
 
@@ -115,6 +116,25 @@ describe("작성 중 자동 저장", () => // 자동 저장 묶음
         await user.click(within(screen.getByRole("group", { name: "자동 저장 안내" })).getByRole("button", { name: "지우기" })); // 지우기
         expect(localStorage.getItem(draftKey)).toBeNull(); // 삭제
         expect(screen.getByRole("textbox", { name: "캐릭터 이름" })).toHaveValue(""); // 빈 초안 유지
+    }); // 검증 종료
+
+    it("로그인한 계정의 자동 저장은 그 계정의 칸에만 두어, 손님이 쓰던 것과 섞이지 않는다", async () => // 계정별 자동 저장
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구
+        const account: AccountSession = { accountId: "practice-soha", name: "소하", email: null, provider: "practice", signedInAt: "2026-10-07T00:00:00.000Z" }; // 연습용 계정
+        localStorage.setItem(draftKey, JSON.stringify({ savedAt: "2026-10-03T12:00:00.000Z", draft: { name: "손님 초안" } })); // 손님이 쓰다 만 초안
+        writeAccountSession(localStorage, account); // 로그인
+        const first = renderWithApp(<CharacterEditor />); // 계정으로 새 캐릭터
+        expect(screen.queryByRole("group", { name: "자동 저장 안내" })).toBeNull(); // 손님 초안을 계정에게 권하지 않음
+        await user.type(screen.getByRole("textbox", { name: "캐릭터 이름" }), "계정 초안"); // 이름
+        expect(await screen.findByText(/작성 중인 내용을 자동 저장했어요/, undefined, { timeout: 3000 })).toBeVisible(); // 자동 저장 표시
+        expect(JSON.parse(localStorage.getItem(`mateverse:v1:u:${account.accountId}:draft:character:new`) ?? "{}").draft.name).toBe("계정 초안"); // 계정 칸에 보관
+        expect(JSON.parse(localStorage.getItem(draftKey) ?? "{}").draft.name).toBe("손님 초안"); // 손님 초안은 그대로
+        first.unmount(); // 창 닫기
+        writeAccountSession(localStorage, null); // 로그아웃
+        renderWithApp(<CharacterEditor />); // 손님으로 새 캐릭터
+        await user.click(within(screen.getByRole("group", { name: "자동 저장 안내" })).getByRole("button", { name: "이어서 쓰기" })); // 이어 쓰기
+        expect(screen.getByRole("textbox", { name: "캐릭터 이름" })).toHaveValue("손님 초안"); // 손님에게는 손님 초안만 보임
     }); // 검증 종료
 }); // 묶음 종료
 

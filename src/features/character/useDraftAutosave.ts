@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"; // 리액트 도구
 import { clearDraft, loadDraft, saveDraft, type StoredDraft } from "@/features/character/draft-storage"; // 초안 보관
+import { getAppStorage } from "@/lib/account/scoped-storage"; // 로그인한 계정의 저장 칸
 
 export const DRAFT_AUTOSAVE_DELAY = 700; // 입력이 멈춘 뒤 보관까지 기다리는 시간(ms)
 
@@ -14,9 +15,9 @@ export interface DraftAutosave<T> // 자동 저장 상태
     clear(): void; // 저장을 마친 뒤 보관분 지우기
 } // 구조 종료
 
-export function useDraftAutosave<T extends object>(key: string, draft: T, dirty: boolean, base: T): DraftAutosave<T> // 작성 중 자동 저장(입력이 멈추면 보관, 저장하면 지움)
+export function useDraftAutosave<T extends object>(key: string, draft: T, dirty: boolean, base: T): DraftAutosave<T> // 작성 중 자동 저장(입력이 멈추면 보관, 저장하면 지움. 로그인했으면 그 계정의 칸에 둠)
 { // 함수 시작
-    const [stored, setStored] = useState<StoredDraft<T> | null>(() => typeof window === "undefined" ? null : loadDraft(window.localStorage, key, base)); // 예전 보관분
+    const [stored, setStored] = useState<StoredDraft<T> | null>(() => typeof window === "undefined" ? null : loadDraft(getAppStorage(), key, base)); // 예전 보관분(로그인한 계정의 칸)
     const [savedAt, setSavedAt] = useState<string | null>(null); // 이번 보관 시각
     useEffect(() => // 입력이 멈추면 보관
     { // 효과 시작
@@ -27,7 +28,7 @@ export function useDraftAutosave<T extends object>(key: string, draft: T, dirty:
         const timer = window.setTimeout(() => // 잠시 뒤 보관
         { // 보관 시작
             const now = new Date().toISOString(); // 보관 시각
-            if (saveDraft(window.localStorage, key, draft, now)) // 보관 성공
+            if (saveDraft(getAppStorage(), key, draft, now)) // 보관 성공
             { // 조건 시작
                 setSavedAt(now); // 시각 표시
             } // 조건 종료
@@ -46,12 +47,12 @@ export function useDraftAutosave<T extends object>(key: string, draft: T, dirty:
         }, // 함수 종료
         discard: () => // 지우기
         { // 함수 시작
-            clearDraft(window.localStorage, key); // 보관분 삭제
+            clearDraft(getAppStorage(), key); // 보관분 삭제
             setStored(null); // 묻기 끝
         }, // 함수 종료
         clear: () => // 저장 뒤 정리
         { // 함수 시작
-            clearDraft(window.localStorage, key); // 보관분 삭제
+            clearDraft(getAppStorage(), key); // 보관분 삭제
             setSavedAt(null); // 시각 지움
         }, // 함수 종료
     }); // 상태 종료
