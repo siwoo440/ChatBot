@@ -106,7 +106,7 @@ describe("작성 중 자동 저장", () => // 자동 저장 묶음
         expect(screen.getByRole("status", { name: "저장 상태" })).toHaveTextContent("공개 저장했습니다."); // 저장 완료
         expect(localStorage.getItem(draftKey)).toBeNull(); // 자동 저장분 지움
         expect(screen.getByLabelText("상태 요약")).toHaveTextContent("새벽 사서"); // 내 캐릭터로 저장
-    }); // 검증 종료
+    }, 20_000); // 검증 종료(글자를 많이 쳐서 느린 컴퓨터에서는 기본 5초를 넘기므로 넉넉히 기다림. 넘기면 치던 글자가 다음 테스트로 새어 들어감)
 
     it("자동 저장한 내용을 쓰지 않으려면 지울 수 있다", async () => // 지우기
     { // 검증 시작
@@ -135,7 +135,7 @@ describe("작성 중 자동 저장", () => // 자동 저장 묶음
         renderWithApp(<CharacterEditor />); // 손님으로 새 캐릭터
         await user.click(within(screen.getByRole("group", { name: "자동 저장 안내" })).getByRole("button", { name: "이어서 쓰기" })); // 이어 쓰기
         expect(screen.getByRole("textbox", { name: "캐릭터 이름" })).toHaveValue("손님 초안"); // 손님에게는 손님 초안만 보임
-    }); // 검증 종료
+    }, 20_000); // 검증 종료(자동 저장을 기다리는 시간이 있어 넉넉히 기다림)
 }); // 묶음 종료
 
 describe("시험 대화", () => // 시험 대화 묶음
