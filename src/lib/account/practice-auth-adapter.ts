@@ -1,6 +1,7 @@
 // 연습용 로그인: 실제 로그인 서비스를 연결하기 전에 계정 나누기를 이 브라우저 안에서 해 볼 수 있게 한다. 비밀번호 없이 이름만 받는다(보안이 없으므로 연습용).
 import type { AccountSession } from "@/lib/account/account-session"; // 계정 세션
 import type { AuthAdapter, AuthResult, PracticeAccount, SignInInput } from "@/lib/account/auth-adapter"; // 로그인 계약
+import { PRACTICE_SERVER_PREFIX } from "@/lib/account/snapshot-store"; // 연습용 서버 저장 키의 앞부분
 
 export const PRACTICE_ACCOUNTS_KEY = "mateverse:v1:practice-accounts"; // 연습용 계정 목록 저장 키
 export const PRACTICE_NAME_LIMIT = 20; // 계정 이름 최대 글자 수
@@ -52,6 +53,19 @@ export function createPracticeAuthAdapter(storage: Storage, now: () => string = 
         signIn, // 로그인
         signUp: signIn, // 연습용은 가입과 로그인이 같음
         signOut: async () => undefined, // 서비스 쪽에 정리할 것이 없음
+        deleteAccount: async (session) => // 계정 지우기(쓴 계정 목록에서 빼고, 연습용 서버의 저장본도 함께 지움)
+        { // 함수 시작
+            try // 지우기 시도
+            { // 시도 시작
+                storage.setItem(PRACTICE_ACCOUNTS_KEY, JSON.stringify(readAccounts(storage).filter((item) => item.accountId !== session.accountId))); // 목록에서 빼기
+                storage.removeItem(`${PRACTICE_SERVER_PREFIX}${session.accountId}`); // 연습용 서버의 저장본 지우기
+                return { ok: true }; // 지움
+            } // 시도 종료
+            catch // 저장소를 쓰지 못함
+            { // 실패 시작
+                return { ok: false, reason: "unavailable" }; // 지우지 못함
+            } // 실패 종료
+        }, // 함수 종료
         listAccounts: () => readAccounts(storage), // 이 브라우저에서 쓴 계정
     }; // 구현 반환
 } // 함수 종료

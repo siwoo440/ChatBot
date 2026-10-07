@@ -7,6 +7,7 @@ import { useAccountSession } from "@/features/account/use-account-session"; // �
 import { memoryCategoryLabels } from "@/features/chat/memory-model"; // 메모리 분류 이름
 import { useModelStatus } from "@/features/chat/use-model-status"; // 실제 AI 연결 상태
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
+import { AccountManagement } from "@/features/settings/AccountManagement"; // 계정 관리
 import { DataManagement } from "@/features/settings/DataManagement"; // 데이터 관리
 import { describeExternalTransfer } from "@/features/settings/provider-summary"; // 외부 전송 안내
 import { getMemoryGroups, getReportEntries } from "@/features/settings/settings-insights"; // 메모리·신고 요약
@@ -41,6 +42,7 @@ export function PrivacySettings() // 개인정보 및 보안 화면
                 </dl> {/* 저장 정보 종료 */}
                 <p>{t("브라우저 데이터를 지우면 캐릭터와 대화도 함께 지워집니다. 중요한 변경 전에는 아래에서 JSON으로 내보내거나 로컬 백업을 만들어 두세요.")}</p> {/* 주의 안내 */}
             </section> {/* 저장 위치 종료 */}
+            <AccountManagement /> {/* 계정 관리(로그인했을 때만) */}
             <div id="data"> {/* 데이터 관리 앵커 */}
                 <DataManagement /> {/* 데이터 관리 */}
             </div> {/* 데이터 관리 앵커 종료 */}

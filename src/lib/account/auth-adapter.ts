@@ -3,6 +3,7 @@ import type { AccountSession } from "@/lib/account/account-session"; // 계정 �
 
 export type AuthFailure = "invalid-name" | "invalid-email" | "weak-password" | "wrong-credentials" | "email-taken" | "confirm-email" | "unavailable"; // 로그인 실패 이유
 export type AuthResult = { ok: true; session: AccountSession } | { ok: false; reason: AuthFailure }; // 로그인 결과
+export type AccountDeleteResult = { ok: true } | { ok: false; reason: "unavailable" }; // 계정 지우기 결과
 export type SocialProvider = "google" | "kakao"; // 간편 로그인 서비스
 
 export interface SignInInput // 로그인 입력
@@ -28,5 +29,6 @@ export interface AuthAdapter // 로그인 계약
     signIn(input: SignInInput): Promise<AuthResult>; // 로그인
     signUp(input: SignInInput): Promise<AuthResult>; // 회원가입
     signOut(session: AccountSession): Promise<void>; // 로그아웃(서비스 쪽 정리)
+    deleteAccount(session: AccountSession): Promise<AccountDeleteResult>; // 계정 지우기(탈퇴. 서비스의 계정과 서버 저장본을 함께 지움)
     listAccounts(): PracticeAccount[]; // 이 브라우저에서 쓴 연습용 계정(실제 서비스는 빈 목록)
 } // 구조 종료

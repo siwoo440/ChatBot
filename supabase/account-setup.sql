@@ -49,4 +49,25 @@ $$;
 drop trigger if exists mv_snapshots_touch on public.mv_snapshots;
 create trigger mv_snapshots_touch before update on public.mv_snapshots for each row execute function public.mv_touch_snapshot();
 
+-- 계정 지우기(탈퇴): 로그인한 사람이 자기 계정을 지운다. 계정을 지우면 위 표의 저장본도 함께 지워진다(on delete cascade).
+-- 계정 표(auth.users)는 로그인한 사람의 권한으로는 지울 수 없어, 만든 사람의 권한으로 도는 함수(security definer)를 두고 자기 것만 지우게 한다.
+create or replace function public.mv_delete_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+    if (select auth.uid()) is null then
+        raise exception 'not signed in' using errcode = '28000';
+    end if;
+    delete from auth.users where id = (select auth.uid());
+end;
+$$;
+
+-- 이 함수는 로그인한 사람만 부를 수 있다(공개 키만 가진 요청은 부르지 못함).
+revoke all on function public.mv_delete_account() from public;
+revoke all on function public.mv_delete_account() from anon;
+grant execute on function public.mv_delete_account() to authenticated;
+
 commit;

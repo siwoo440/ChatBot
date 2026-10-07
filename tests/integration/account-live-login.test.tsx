@@ -11,7 +11,7 @@ const ok: AuthResult = { ok: true, session }; // 로그인 성공
 
 function liveAdapter(overrides: Partial<AuthAdapter> = {}): AuthAdapter // 실제 서비스 로그인 대역
 { // 함수 시작
-    return { mode: "live", listAccounts: () => [], socialProviders: async () => ["google"], startSocialSignIn: vi.fn(async () => undefined), completeSocialSignIn: vi.fn(async () => ok), signIn: vi.fn(async () => ok), signUp: vi.fn(async () => ok), signOut: vi.fn(async () => undefined), ...overrides }; // 대역 반환
+    return { mode: "live", listAccounts: () => [], socialProviders: async () => ["google"], startSocialSignIn: vi.fn(async () => undefined), completeSocialSignIn: vi.fn(async () => ok), signIn: vi.fn(async () => ok), signUp: vi.fn(async () => ok), signOut: vi.fn(async () => undefined), deleteAccount: vi.fn(async () => ({ ok: true as const })), ...overrides }; // 대역 반환
 } // 함수 종료
 
 describe("실제 서비스 로그인 화면", () => // 로그인 화면 묶음

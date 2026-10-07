@@ -30,6 +30,7 @@ export const SUPABASE_TOKENS_KEY = "mateverse:v1:auth"; // 출입증 저장 키(
 export const SUPABASE_VERIFIER_KEY = "mateverse:v1:auth-verifier"; // 간편 로그인 확인 글 저장 키(탭 저장소)
 export const PASSWORD_MIN_LENGTH = 8; // 비밀번호 최소 길이
 const SNAPSHOT_TABLE = "mv_snapshots"; // 저장본 표 이름
+const DELETE_ACCOUNT_FUNCTION = "mv_delete_account"; // 계정 지우기 함수 이름(데이터베이스 설정 파일이 만듦)
 const REFRESH_MARGIN_MS = 60_000; // 출입증이 이만큼 남으면 새로 받음
 const supportedProviders: readonly SocialProvider[] = ["google", "kakao"]; // 앱이 받는 간편 로그인
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // 이메일 모양
@@ -122,7 +123,18 @@ function createClient(config: SupabaseConfig, options: SupabaseOptions) // 두 �
         const tokens = readTokens(options.storage); // 지금 출입증
         return tokens === null ? null : tokens.expiresAt - now() > REFRESH_MARGIN_MS ? tokens.accessToken : refresh(); // 남은 시간이 넉넉하면 그대로
     }; // 함수 종료
-    return { call, saveSession, refresh, accessToken, now }; // 도구 반환
+    const authed = async (path: string, init: { method?: string; body?: unknown; prefer?: string } = {}): Promise<{ status: number; body: unknown }> => // 출입증을 붙인 요청(끝난 출입증이면 한 번 새로 받아 다시)
+    { // 함수 시작
+        const token = await accessToken(); // 출입증
+        if (token === null) // 로그인하지 않음
+        { // 조건 시작
+            throw new Error("not signed in"); // 요청하지 못함
+        } // 조건 종료
+        const first = await call(path, { ...init, token }); // 요청
+        const renewed = first.status === 401 ? await refresh() : null; // 출입증이 끝났으면 새로 받기
+        return renewed === null ? first : call(path, { ...init, token: renewed }); // 새 출입증으로 다시
+    }; // 함수 종료
+    return { call, saveSession, refresh, accessToken, authed, now }; // 도구 반환
 } // 함수 종료
 
 export function createSupabaseAuthAdapter(config: SupabaseConfig, options: SupabaseOptions): AuthAdapter // Supabase 로그인 구현
@@ -213,6 +225,23 @@ export function createSupabaseAuthAdapter(config: SupabaseConfig, options: Supab
                 await client.call("/auth/v1/logout", { method: "POST", token: tokens.accessToken }).catch(() => undefined); // 서비스에 알림(실패해도 이 기기에서는 로그아웃)
             } // 조건 종료
         }, // 함수 종료
+        deleteAccount: async () => // 계정 지우기(탈퇴): 데이터베이스의 함수가 내 계정을 지우고, 저장본은 계정과 함께 지워짐
+        { // 함수 시작
+            try // 요청 시도
+            { // 시도 시작
+                const result = await client.authed(`/rest/v1/rpc/${DELETE_ACCOUNT_FUNCTION}`, { method: "POST", body: {} }); // 내 출입증으로 지우기 함수 부르기
+                if (result.status < 200 || result.status >= 300) // 거절(함수를 만들지 않았거나 서버가 받지 않음)
+                { // 조건 시작
+                    return { ok: false, reason: "unavailable" }; // 지우지 못함(로그인은 그대로)
+                } // 조건 종료
+                options.storage.removeItem(SUPABASE_TOKENS_KEY); // 지운 계정의 출입증을 이 기기에서 지움
+                return { ok: true }; // 지움
+            } // 시도 종료
+            catch // 로그인하지 않았거나 서비스에 닿지 못함
+            { // 실패 시작
+                return { ok: false, reason: "unavailable" }; // 지우지 못함
+            } // 실패 종료
+        }, // 함수 종료
     }; // 구현 반환
 } // 함수 종료
 
@@ -225,17 +254,7 @@ function toSnapshot(row: unknown): RemoteSnapshot | null // 표의 줄을 저장
 export function createSupabaseSnapshotStore(config: SupabaseConfig, options: SupabaseOptions): SnapshotStore // Supabase 저장본 구현(표 mv_snapshots에 계정마다 한 줄)
 { // 함수 시작
     const client = createClient(config, options); // 요청 도구
-    const request = async (path: string, init: { method?: string; body?: unknown; prefer?: string } = {}): Promise<{ status: number; body: unknown }> => // 출입증을 붙인 요청(끝난 출입증이면 한 번 새로 받아 다시)
-    { // 함수 시작
-        const token = await client.accessToken(); // 출입증
-        if (token === null) // 로그인하지 않음
-        { // 조건 시작
-            throw new Error("not signed in"); // 요청하지 못함
-        } // 조건 종료
-        const first = await client.call(path, { ...init, token }); // 요청
-        const renewed = first.status === 401 ? await client.refresh() : null; // 출입증이 끝났으면 새로 받기
-        return renewed === null ? first : client.call(path, { ...init, token: renewed }); // 새 출입증으로 다시
-    }; // 함수 종료
+    const request = client.authed; // 출입증을 붙인 요청
     const pull = async (accountId: string): Promise<RemoteSnapshot | null> => // 저장본 받기
     { // 함수 시작
         const result = await request(`/rest/v1/${SNAPSHOT_TABLE}?select=revision,state,updated_at,device_id&user_id=eq.${encodeURIComponent(accountId)}&limit=1`); // 내 줄 읽기

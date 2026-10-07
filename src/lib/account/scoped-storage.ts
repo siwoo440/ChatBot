@@ -20,6 +20,22 @@ export function scopeKey(key: string, scope: string): string // 계정 칸의 �
     return !key.startsWith(APP_PREFIX) || sharedKeys.has(key) || key.startsWith(`${APP_PREFIX}u:`) || key.startsWith(`${APP_PREFIX}practice-`) ? key : `${accountKeyPrefix(scope)}${key.slice(APP_PREFIX.length)}`; // 공용 열쇠·이미 칸이 붙은 열쇠는 그대로
 } // 함수 종료
 
+export function clearAccountData(storage: Storage, scope: string): number // 이 기기에서 그 계정의 칸에 있는 것을 모두 지우기(지운 항목 수를 돌려줌. 서버 저장본과 손님 데이터는 건드리지 않음)
+{ // 함수 시작
+    const prefix = accountKeyPrefix(scope); // 그 계정의 열쇠 앞부분
+    const keys: string[] = []; // 지울 열쇠
+    for (let index = 0; index < storage.length; index += 1) // 저장 항목 순회(지우면서 돌면 차례가 밀리므로 먼저 모음)
+    { // 순회 시작
+        const key = storage.key(index); // 항목 이름
+        if (key !== null && key.startsWith(prefix)) // 그 계정의 것
+        { // 조건 시작
+            keys.push(key); // 모으기
+        } // 조건 종료
+    } // 순회 종료
+    keys.forEach((key) => storage.removeItem(key)); // 지우기
+    return keys.length; // 지운 수
+} // 함수 종료
+
 export function createScopedStorage(storage: Storage, scope: string | null): Storage // 계정 칸을 쓰는 저장소 만들기(손님이면 원래 저장소 그대로)
 { // 함수 시작
     if (scope === null) // 손님

@@ -14,6 +14,8 @@ class FakeSupabase // 가짜 Supabase(로그인과 저장본 표만 흉내 냄)
     public confirmEmail = false; // 가입할 때 메일 확인이 필요한지
     public accessToken = "access-1"; // 지금 유효한 출입증
     public refreshes = 0; // 출입증을 새로 받은 횟수
+    public deleteReady = true; // 계정 지우기 함수를 데이터베이스에 만들어 두었는지
+    public deleted = false; // 계정이 지워졌는지
 
     private session(email: string, provider = "email", name?: string): Record<string, unknown> // 로그인 결과
     { // 함수 시작
@@ -53,6 +55,20 @@ class FakeSupabase // 가짜 Supabase(로그인과 저장본 표만 흉내 냄)
         if (url.endsWith("/auth/v1/logout")) // 로그아웃
         { // 조건 시작
             return new Response(null, { status: 204 }); // 완료
+        } // 조건 종료
+        if (url.endsWith("/rest/v1/rpc/mv_delete_account")) // 계정 지우기 함수
+        { // 조건 시작
+            if (headers.authorization !== `Bearer ${this.accessToken}`) // 출입증이 다름
+            { // 조건 시작
+                return json(401, { message: "JWT expired" }); // 거절
+            } // 조건 종료
+            if (!this.deleteReady || init.method !== "POST") // 함수를 만들지 않았거나 부르는 방법이 다름
+            { // 조건 시작
+                return json(404, { code: "PGRST202", message: "Could not find the function public.mv_delete_account" }); // 없는 함수
+            } // 조건 종료
+            this.deleted = true; // 계정 지움
+            this.row = null; // 저장본도 함께 지워짐
+            return new Response(null, { status: 204 }); // 완료(내용 없음)
         } // 조건 종료
         if (url.includes("/rest/v1/mv_snapshots")) // 저장본 표
         { // 조건 시작
@@ -178,6 +194,35 @@ describe("Supabase 로그인", () => // 로그인 묶음
         await adapter().signOut(signedIn.ok ? signedIn.session : { accountId: userId, name: "", email: null, provider: "email", signedInAt: "" }); // 로그아웃
         expect(server.calls.at(-1)).toMatchObject({ url: "https://demo.supabase.co/auth/v1/logout", method: "POST", headers: { authorization: "Bearer access-1" } }); // 서비스에 알림
         expect(localStorage.getItem(SUPABASE_TOKENS_KEY)).toBeNull(); // 출입증 지움
+    }); // 검증 종료
+
+    it("계정을 지우면 출입증을 붙여 데이터베이스의 지우기 함수를 부르고, 끝나면 이 기기의 출입증을 지운다", async () => // 탈퇴 검증
+    { // 검증 시작
+        const signedIn = await adapter().signIn({ email: "soha@example.com", password: "right-password-1" }); // 로그인
+        if (!signedIn.ok) // 로그인 실패(일어나지 않음)
+        { // 조건 시작
+            throw new Error("sign in failed"); // 테스트 중단
+        } // 조건 종료
+        await createSupabaseSnapshotStore(config, { storage: localStorage, fetcher: server.fetch as typeof fetch, now: () => Date.parse("2026-10-06T00:00:00.000Z") }).push(userId, "{\"a\":1}", null, "device-a"); // 저장본을 올려 둠
+        expect(await adapter().deleteAccount(signedIn.session)).toEqual({ ok: true }); // 지움
+        expect(server.calls.at(-1)).toMatchObject({ url: "https://demo.supabase.co/rest/v1/rpc/mv_delete_account", method: "POST", headers: { apikey: "public-anon-key", authorization: "Bearer access-1" } }); // 내 출입증으로 부름
+        expect([server.deleted, server.row]).toEqual([true, null]); // 계정과 저장본이 사라짐
+        expect(localStorage.getItem(SUPABASE_TOKENS_KEY)).toBeNull(); // 출입증 지움
+    }); // 검증 종료
+
+    it("지우기 함수가 없거나 로그인하지 않았으면 지우지 못했다고 알리고, 출입증이 끝났으면 새로 받아 다시 부른다", async () => // 탈퇴 실패·출입증 검증
+    { // 검증 시작
+        const account = { accountId: userId, name: "soha", email: "soha@example.com", provider: "email" as const, signedInAt: "2026-10-06T00:00:00.000Z" }; // 계정 세션
+        expect(await adapter().deleteAccount(account)).toEqual({ ok: false, reason: "unavailable" }); // 로그인하지 않음
+        expect(server.calls).toHaveLength(0); // 서버에 보내지 않음
+        await adapter().signIn({ email: "soha@example.com", password: "right-password-1" }); // 로그인
+        server.deleteReady = false; // 함수를 아직 만들지 않은 프로젝트
+        expect(await adapter().deleteAccount(account)).toEqual({ ok: false, reason: "unavailable" }); // 지우지 못함
+        expect([server.deleted, localStorage.getItem(SUPABASE_TOKENS_KEY) === null]).toEqual([false, false]); // 계정도 출입증도 그대로(로그인 유지)
+        server.deleteReady = true; // 함수를 만든 뒤
+        server.accessToken = "access-rotated"; // 서버가 예전 출입증을 받지 않음
+        expect(await adapter().deleteAccount(account)).toEqual({ ok: true }); // 새로 받아 다시 불러 지움
+        expect([server.refreshes, server.deleted]).toEqual([1, true]); // 한 번 새로 받음
     }); // 검증 종료
 }); // 묶음 종료
 
