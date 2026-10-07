@@ -13,7 +13,7 @@ export const AFFECTION_STAT_ID = "affection"; // 기본 호감도 스탯 식별�
 export const statModes: Array<{ id: StatMode; label: string; description: string }> = // 정하는 방법
 [ // 목록 시작
     { id: "rule", label: "규칙대로", description: "매 턴 변화와 낱말 규칙으로만 바뀌어요" }, // 규칙
-    { id: "ai", label: "AI가 판단", description: "대화 흐름을 보고 AI가 올리거나 내려요" }, // AI
+    { id: "ai", label: "AI가 판단", description: "대화 흐름을 보고 AI가 올리거나 내려요" }, // AI 판단
     { id: "both", label: "규칙 + AI", description: "규칙 변화에 AI 판단을 더해요" }, // 둘 다
 ]; // 목록 종료
 
@@ -144,7 +144,7 @@ export function formatStatValue(stat: Pick<StatValue, "value" | "min" | "max">):
 
 export function formatStatDelta(delta: number): string // 변화 표시
 { // 함수 시작
-    return `${delta > 0 ? "+" : ""}${delta}`; // +2·-1·0
+    return `${delta > 0 ? "+" : ""}${delta}`; // 표시 예: +2·-1·0
 } // 함수 종료
 
 export function normalizeStats(stats: readonly StatDefinition[]): StatDefinition[] // 스탯 정리(앞뒤 공백, 빈 낱말 규칙 제거)

@@ -26,12 +26,12 @@ describe("미션 진행 추적", () => // 추적 묶음
     { // 검증 시작
         let state = createInitialState(); // 초기 상태
         state = run(state, { type: "merge-chat-state", conversationId: "conversation-rian", state: chatWith(state, [userMessage("u1"), userMessage("u2")], 2), allowCreate: false }); // 2번 보냄
-        expect(state.rewards.missions).toMatchObject({ dateKey: "2026-10-03", progress: { "send-messages": 2 } }); // 2/5
+        expect(state.rewards.missions).toMatchObject({ dateKey: "2026-10-03", progress: { "send-messages": 2 } }); // 진행 2/5 확인
         expect(state.notifications.some((item) => item.kind === "reward")).toBe(false); // 아직 알림 없음
         state = run(state, { type: "merge-chat-state", conversationId: "conversation-rian", state: chatWith(state, [], 1), allowCreate: false }); // 다시 생성(새 메시지 없음)
         expect(state.rewards.missions.progress["send-messages"]).toBe(2); // 그대로
         state = run(state, { type: "merge-chat-state", conversationId: "conversation-rian", state: chatWith(state, [userMessage("u3"), userMessage("u4"), userMessage("u5")], 3), allowCreate: false }); // 3번 더
-        expect(state.rewards.missions.progress["send-messages"]).toBe(5); // 5/5
+        expect(state.rewards.missions.progress["send-messages"]).toBe(5); // 진행 5/5 확인
         expect(state.notifications[0]).toMatchObject({ id: "reward-mission-2026-10-03-send-messages", kind: "reward", title: "오늘의 미션 완료", href: "/rewards", read: false }); // 완료 알림
         state = run(state, { type: "merge-chat-state", conversationId: "conversation-rian", state: chatWith(state, [userMessage("u6")], 1), allowCreate: false }); // 더 보냄
         expect(state.notifications.filter((item) => item.kind === "reward")).toHaveLength(1); // 알림은 한 번
@@ -42,7 +42,7 @@ describe("미션 진행 추적", () => // 추적 묶음
         const chat = createInitialState(); // 채팅 상태(리안 대화 포함)
         const global = appReducer(createInitialState(), { type: "delete-conversation", conversationId: "conversation-rian" }); // 전역에는 없는 대화
         const created = run(global, { type: "merge-chat-state", conversationId: "conversation-rian", state: chat, allowCreate: true }); // 첫 저장
-        expect(created.rewards.missions.progress["start-conversation"]).toBe(1); // 1/1
+        expect(created.rewards.missions.progress["start-conversation"]).toBe(1); // 진행 1/1 확인
         const again = run(created, { type: "merge-chat-state", conversationId: "conversation-rian", state: chat, allowCreate: false }); // 같은 대화 다시 저장
         expect(again.rewards.missions.progress["start-conversation"]).toBe(1); // 그대로
     }); // 검증 종료
@@ -50,7 +50,7 @@ describe("미션 진행 추적", () => // 추적 묶음
     it("좋아요나 보관을 새로 하면 세고, 취소했다 다시 눌러도 하루 한 번이다", () => // 좋아요·보관 미션
     { // 검증 시작
         let state = run(createInitialState(), { type: "toggle-character-like", characterId: "rian" }); // 좋아요
-        expect(state.rewards.missions.progress["favorite-work"]).toBe(1); // 1/1
+        expect(state.rewards.missions.progress["favorite-work"]).toBe(1); // 진행 1/1 확인
         state = run(state, { type: "toggle-character-like", characterId: "rian" }); // 취소
         state = run(state, { type: "toggle-character-like", characterId: "rian" }); // 다시
         state = run(state, { type: "toggle-bookmark", characterId: "rian" }); // 보관

@@ -57,7 +57,7 @@ describe("상태창", () => // 상태창 묶음
     it("직전 턴 값에 낱말 규칙과 AI 판단을 더하고 인물별로 묶어 복사 문구를 만든다", () => // 변화 검증
     { // 검증 시작
         const first = composeStatus({ ...base, userMessage: "고마워", aiChanges: [{ statId: "affection", target: "리안", delta: 3 }] }); // 1턴: 고마워 +2, AI +3
-        expect(first.stats[0]).toMatchObject({ value: 5, delta: 5 }); // 0 → 5
+        expect(first.stats[0]).toMatchObject({ value: 5, delta: 5 }); // 0에서 5로 변함
         const second = composeStatus({ ...base, turn: 2, previous: first, userMessage: "선물이야", aiChanges: [{ statId: "affection", target: "리안", delta: 99 }] }); // 2턴: 선물 +5, AI는 한도 5
         expect(second.stats[0]).toMatchObject({ value: 15, delta: 10 }); // AI 변화는 한 턴 최대 5
         const story = composeStatus({ ...base, people: ["하린", "유나"] }); // 스토리
@@ -75,7 +75,7 @@ describe("상태창", () => // 상태창 묶음
         expect(turn1).toEqual([expect.objectContaining({ statId: "stamina", target: null, value: 7, delta: -3 }), expect.objectContaining({ statId: "trust", target: "리안", value: 48, delta: -2 })]); // 규칙만은 AI 무시·AI만은 낱말 무시·한도
         const previous = { turn: 1, location: null, time: null, tip: null, stats: turn1, thoughts: [], custom: [] }; // 직전 상태창
         const turn2 = computeStats({ stats: [stamina], people: ["리안"], previous, userMessage: "잠깐 쉬자 쉬자", aiChanges: [] }); // 2턴
-        expect(turn2[0]).toMatchObject({ value: 9, delta: 2 }); // 7 - 3 + 5
+        expect(turn2[0]).toMatchObject({ value: 9, delta: 2 }); // 계산: 7 - 3 + 5
         const turn3 = computeStats({ stats: [stamina], people: ["리안"], previous: { ...previous, stats: turn2 }, userMessage: "쉬자", aiChanges: [] }); // 3턴
         expect(turn3[0]).toMatchObject({ value: 10, delta: 1 }); // 최댓값 10에서 멈춤
         expect(currentStatValues({ ...createDefaultStatusTemplate(true), stats: [stamina] }, ["리안"], null)).toEqual([expect.objectContaining({ value: 10, delta: 0 })]); // 첫 응답 전 초기값

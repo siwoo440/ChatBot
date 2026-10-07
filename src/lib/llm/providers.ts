@@ -71,7 +71,7 @@ async function openStream(fetcher: FetchLike, url: string, headers: Record<strin
     return response.body; // 흐름 반환
 } // 함수 종료
 
-async function* streamAnthropic(model: ResolvedModel, prompt: BuiltPrompt, fetcher: FetchLike, signal?: AbortSignal): AsyncIterable<string> // Anthropic(Claude)
+async function* streamAnthropic(model: ResolvedModel, prompt: BuiltPrompt, fetcher: FetchLike, signal?: AbortSignal): AsyncIterable<string> // Anthropic(Claude) 형식으로 보내고 답 조각 받기
 { // 함수 시작
     const body = await openStream(fetcher, `${model.baseUrl}/messages`, { "x-api-key": model.apiKey, "anthropic-version": "2023-06-01" }, { model: model.model, max_tokens: prompt.maxTokens, system: prompt.system, messages: prompt.messages, stream: true }, signal); // 요청
     for await (const data of readSseData(body)) // 내용 순회
@@ -89,7 +89,7 @@ async function* streamAnthropic(model: ResolvedModel, prompt: BuiltPrompt, fetch
     } // 순회 종료
 } // 함수 종료
 
-async function* streamGemini(model: ResolvedModel, prompt: BuiltPrompt, fetcher: FetchLike, signal?: AbortSignal): AsyncIterable<string> // Google(Gemini)
+async function* streamGemini(model: ResolvedModel, prompt: BuiltPrompt, fetcher: FetchLike, signal?: AbortSignal): AsyncIterable<string> // Google(Gemini) 형식으로 보내고 답 조각 받기
 { // 함수 시작
     const contents = prompt.messages.map((message) => ({ role: message.role === "assistant" ? "model" : "user", parts: [{ text: message.content }] })); // 대화
     const body = await openStream(fetcher, `${model.baseUrl}/models/${encodeURIComponent(model.model)}:streamGenerateContent?alt=sse`, { "x-goog-api-key": model.apiKey }, { systemInstruction: { parts: [{ text: prompt.system }] }, contents, generationConfig: { maxOutputTokens: prompt.maxTokens + REASONING_HEADROOM } }, signal); // 요청

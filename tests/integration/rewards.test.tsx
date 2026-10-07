@@ -136,7 +136,7 @@ describe("대화하면서 채우는 미션", () => // 채팅 연동 묶음
         const balance = () => Number(screen.getByLabelText("잔액").textContent); // 전역 잔액
         const used = () => Number(screen.getByLabelText("누적 사용").textContent); // 누적 사용
         await send("안녕"); // 1번
-        await waitFor(() => expect(screen.getByLabelText("메시지 미션")).toHaveTextContent("1")); // 1/5
+        await waitFor(() => expect(screen.getByLabelText("메시지 미션")).toHaveTextContent("1")); // 진행 1/5 확인
         const before = balance(); // 출석 전 잔액
         await user.click(screen.getByRole("button", { name: "바깥 출석" })); // 채팅 중 출석(+5)
         expect(balance()).toBe(before + 5); // 받은 토큰 반영
@@ -144,7 +144,7 @@ describe("대화하면서 채우는 미션", () => // 채팅 연동 묶음
         { // 반복 시작
             await send(text); // 보내기
         } // 반복 종료
-        await waitFor(() => expect(screen.getByLabelText("메시지 미션")).toHaveTextContent("5")); // 5/5
+        await waitFor(() => expect(screen.getByLabelText("메시지 미션")).toHaveTextContent("5")); // 진행 5/5 확인
         expect(screen.getByLabelText("보상 알림")).toHaveTextContent("1"); // 완료 알림 한 번
         expect(used()).toBeGreaterThanOrEqual(5); // 메시지 5번 이상의 토큰 사용
         expect(balance()).toBe(1240 + 5 - used()); // 받은 5토큰은 남고 쓴 만큼만 줄어듦

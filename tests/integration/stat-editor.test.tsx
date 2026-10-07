@@ -34,17 +34,17 @@ describe("제작자 스탯 편집", () => // 묶음
         await user.type(within(card).getByLabelText("아이콘"), "💪"); // 아이콘
         const initial = within(card).getByLabelText("초기값"); // 초기값
         await user.clear(initial); // 비우기
-        await user.type(initial, "80"); // 80
+        await user.type(initial, "80"); // 초기값 80 입력
         await user.click(within(card).getByRole("radio", { name: /규칙대로/ })); // 규칙만
         expect(within(card).queryByLabelText("AI 한 턴 최대 변화")).toBeNull(); // AI 한도 숨김
         const perTurn = within(card).getByLabelText("매 턴 변화"); // 매 턴
         await user.clear(perTurn); // 비우기
-        await user.type(perTurn, "-2"); // -2
+        await user.type(perTurn, "-2"); // 턴마다 -2 입력
         await user.click(within(card).getByRole("button", { name: "＋ 낱말 규칙" })); // 낱말 규칙
         await user.type(within(card).getByLabelText("낱말 1"), "물약"); // 낱말
         const delta = within(card).getByLabelText("변화"); // 변화
         await user.clear(delta); // 비우기
-        await user.type(delta, "30"); // +30
+        await user.type(delta, "30"); // 변화량 +30 입력
         await user.selectOptions(within(card).getByLabelText("적용 대상"), "shared"); // 공통
         await user.click(screen.getByRole("button", { name: "공개 저장" })); // 저장
         expect(screen.getByRole("status", { name: "저장 상태" })).toHaveTextContent("공개 저장했습니다."); // 저장 안내

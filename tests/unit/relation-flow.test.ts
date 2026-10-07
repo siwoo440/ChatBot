@@ -37,7 +37,7 @@ describe("관계 수치와 관계 스탯", () => // 관계 흐름 묶음
         expect(first.stat).toBeGreaterThanOrEqual(41); // 34에서 시작해 규칙 7 이상
         expect(first.stat).toBeLessThanOrEqual(46); // AI는 최대 +5
         expect(first.level).toBe(first.stat); // 관계 수치 = 스탯 값
-        expect(first.stage).toBe("아는 사이"); // 15~49
+        expect(first.stage).toBe("아는 사이"); // 15~49 구간의 단계
         await controller.sendMessage("짜증나, 꺼져"); // 거친 말
         const second = relationOf(controller); // 2턴 뒤
         expect(second.level).toBeLessThan(first.level); // 내려감(예전 방식은 오르기만 했음)
@@ -48,10 +48,10 @@ describe("관계 수치와 관계 스탯", () => // 관계 흐름 묶음
     { // 검증 시작
         const state = withTemplate(createInitialState(), "rian", { stats: [{ ...createAffectionStat(), mode: "rule", perTurn: 20, rules: [] }] }); // 매 턴 +20
         const controller = makeController(state); // 리안(관계 34)
-        await controller.sendMessage("오늘도 왔어"); // 34 → 54
+        await controller.sendMessage("오늘도 왔어"); // 수치 34 → 54
         expect(relationOf(controller)).toMatchObject({ level: 54, stage: "가까운 사이" }); // 50 이상
-        await controller.sendMessage("또 왔어"); // 54 → 74
-        await controller.sendMessage("계속 올게"); // 74 → 94
+        await controller.sendMessage("또 왔어"); // 수치 54 → 74
+        await controller.sendMessage("계속 올게"); // 수치 74 → 94
         expect(relationOf(controller)).toMatchObject({ level: 94, stage: "특별한 사이" }); // 80 이상
     }); // 검증 종료
 
@@ -59,8 +59,8 @@ describe("관계 수치와 관계 스탯", () => // 관계 흐름 묶음
     { // 검증 시작
         const state = withTemplate(createInitialState(), "rian", { stats: [{ ...createAffectionStat(), min: -50, max: 50, initial: 0, mode: "rule", perTurn: 10, rules: [] }] }); // -50~50, 매 턴 +10
         const controller = makeController(state); // 리안(관계 34 → 스탯 -16)
-        await controller.sendMessage("안녕"); // -16 → -6
-        expect(relationOf(controller)).toMatchObject({ stat: -6, level: 44 }); // (-6 + 50) / 100
+        await controller.sendMessage("안녕"); // 수치 -16 → -6
+        expect(relationOf(controller)).toMatchObject({ stat: -6, level: 44 }); // 계산: (-6 + 50) / 100
     }); // 검증 종료
 
     it("다시 생성해도 관계 값이 두 번 더해지지 않는다", async () => // 다시 생성 검증
@@ -94,9 +94,9 @@ describe("관계 수치와 관계 스탯", () => // 관계 흐름 묶음
     { // 검증 시작
         const controller = makeController(withTemplate(createInitialState(), "rian", { relationStatId: null })); // 지정 없음
         await controller.sendMessage("짜증나"); // 거친 말에도 +1
-        expect(relationOf(controller).level).toBe(35); // 34 + 1
+        expect(relationOf(controller).level).toBe(35); // 계산: 34 + 1
         await controller.sendMessage("고마워"); // 다정한 말 +3
-        expect(relationOf(controller).level).toBe(38); // 35 + 3
+        expect(relationOf(controller).level).toBe(38); // 계산: 35 + 3
         expect(relationOf(controller).stat).not.toBe(38); // 호감도 스탯은 따로 계산
     }); // 검증 종료
 

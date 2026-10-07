@@ -129,7 +129,7 @@ const rankingCreators: readonly RankingCreator[] = [ // 주제별 제작자(한 
     { id: "creator-alley", name: "골목길 필름", themes: ["현대", "예술", "여행"] }, // 현대 일상
     { id: "creator-compass", name: "나침반 원정대", themes: ["모험", "시간", "연금술"] }, // 모험
     { id: "creator-brass", name: "황동 톱니 공작소", themes: ["스팀펑크"] }, // 스팀펑크
-    { id: "creator-neon", name: "네온 시그널", themes: ["SF"] }, // SF
+    { id: "creator-neon", name: "네온 시그널", themes: ["SF"] }, // SF(공상 과학)
     { id: "creator-cozy", name: "포근한 오후", themes: ["힐링"] }, // 힐링
     { id: "creator-ink", name: "먹빛 화실", themes: ["동양풍"] }, // 동양풍
     { id: "creator-midnight", name: "자정 서고", themes: ["고딕", "미스터리"] }, // 고딕·미스터리

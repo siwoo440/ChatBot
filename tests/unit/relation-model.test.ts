@@ -21,10 +21,10 @@ describe("관계 스탯", () => // 관계 스탯 묶음
 
     it("스탯 값을 0~100 관계 수치로 환산하고 되돌린다", () => // 환산 검증
     { // 검증 시작
-        const affection = createAffectionStat(); // 0~100
+        const affection = createAffectionStat(); // 범위 0~100
         expect(toRelationLevel(affection, 34)).toBe(34); // 그대로
         expect(fromRelationLevel(affection, 34)).toBe(34); // 그대로
-        const trust = { ...createStat(0), id: "trust", name: "신뢰", min: -50, max: 50 }; // -50~50
+        const trust = { ...createStat(0), id: "trust", name: "신뢰", min: -50, max: 50 }; // 범위 -50~50
         expect(toRelationLevel(trust, 0)).toBe(50); // 가운데
         expect(toRelationLevel(trust, 50)).toBe(100); // 최댓값
         expect(fromRelationLevel(trust, 25)).toBe(-25); // 되돌리기

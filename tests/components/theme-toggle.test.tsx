@@ -32,7 +32,7 @@ describe("헤더 다크 모드 스위치", () => // 묶음
         const user = userEvent.setup(); // 사용자
         renderWithApp(<AppShell><main>본문</main><ThemeProbe /></AppShell>); // 렌더
         const toggle = screen.getByRole("switch", { name: "다크 모드" }); // 다크 모드
-        const adult = screen.getByRole("switch", { name: "19+ 콘텐츠 보기" }); // 19+
+        const adult = screen.getByRole("switch", { name: "19+ 콘텐츠 보기" }); // 19+ 스위치 조회
         expect(toggle.compareDocumentPosition(adult) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // 19+보다 앞(왼쪽)
         expect(toggle).toHaveAttribute("aria-checked", "false"); // 처음엔 밝게
         expect(document.documentElement.dataset.theme).toBe("light"); // 루트 밝음

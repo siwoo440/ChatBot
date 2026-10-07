@@ -83,7 +83,7 @@ describe("초대받은 사람 보너스", () => // 초대받은 사람 묶음
         expect(plain.referral.qualifyingMessages).toBe(0); // 세지 않음
         let state = appReducer(createInitialState(), { type: "redeem-invite-code", code: friendCode, now }); // 초대받음
         state = send(state, ["u1", "u2", "u3"]); // 3번
-        expect(state.referral.qualifyingMessages).toBe(3); // 3/5
+        expect(state.referral.qualifyingMessages).toBe(3); // 진행 3/5 확인
         state = send(state, ["u4", "u5", "u6", "u7"]); // 4번 더
         expect(INVITE_QUALIFY_MESSAGES).toBe(5); // 조건
         expect(state.referral.qualifyingMessages).toBe(5); // 5까지만

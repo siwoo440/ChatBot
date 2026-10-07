@@ -34,7 +34,7 @@ describe("삭제 확인 창의 키보드 사용", () => // 대화상자 묶음
         expect(cancel).toHaveFocus(); // 창 안에서 처음으로
         await user.tab({ shift: true }); // 처음에서 뒤로
         expect(confirm).toHaveFocus(); // 창 안에서 마지막으로
-        await user.keyboard("{Escape}"); // Esc
+        await user.keyboard("{Escape}"); // Esc 키 누르기
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument(); // 창 닫힘
         expect(opener).toHaveFocus(); // 연 버튼으로 복귀
         expect(screen.getByRole("tabpanel")).toHaveTextContent("새벽 도서관의 리안"); // 대화는 그대로
@@ -52,7 +52,7 @@ describe("삭제 확인 창의 키보드 사용", () => // 대화상자 묶음
         expect(within(dialog).getByRole("button", { name: "취소" })).toHaveFocus(); // 취소에 초점
         await user.tab({ shift: true }); // 처음에서 뒤로
         expect(within(dialog).getByRole("button", { name: "이미지 삭제 확인" })).toHaveFocus(); // 창 안에서 마지막으로
-        await user.keyboard("{Escape}"); // Esc
+        await user.keyboard("{Escape}"); // Esc 키 누르기
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument(); // 창 닫힘
         expect(opener).toHaveFocus(); // 연 버튼으로 복귀
     }); // 테스트 종료

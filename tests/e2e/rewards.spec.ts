@@ -54,7 +54,7 @@ test("대화에서 메시지를 보내면 미션 진행이 오르고 오른쪽 �
     await expect(card).toContainText("오늘 출석 전"); // 출석 전
     await card.click(); // 보상 페이지로
     await expect(page).toHaveURL(/\/rewards$/); // 보상 페이지
-    await expect(page.getByRole("progressbar", { name: "메시지 5번 보내기 진행" })).toHaveAttribute("aria-valuenow", "1"); // 1/5
+    await expect(page.getByRole("progressbar", { name: "메시지 5번 보내기 진행" })).toHaveAttribute("aria-valuenow", "1"); // 진행 1/5 확인
 }); // 테스트 종료
 
 for (const width of [390, 820, 1440]) // 화면 너비 순회

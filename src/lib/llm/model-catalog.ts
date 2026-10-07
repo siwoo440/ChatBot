@@ -26,9 +26,9 @@ const defaultModels: Record<ChatTierId, string> = // 등급별 기본 모델 이
 
 const providerSettings: Record<ChatProvider, { keyName: string; baseUrlName: string; baseUrl: string; keyRequired: boolean }> = // 회사별 열쇠 이름과 주소
 { // 목록 시작
-    gemini: { keyName: "GEMINI_API_KEY", baseUrlName: "GEMINI_BASE_URL", baseUrl: "https://generativelanguage.googleapis.com/v1beta", keyRequired: true }, // Google
+    gemini: { keyName: "GEMINI_API_KEY", baseUrlName: "GEMINI_BASE_URL", baseUrl: "https://generativelanguage.googleapis.com/v1beta", keyRequired: true }, // Google(Gemini를 만든 회사)
     openai: { keyName: "OPENAI_API_KEY", baseUrlName: "OPENAI_BASE_URL", baseUrl: "https://api.openai.com/v1", keyRequired: true }, // OpenAI(같은 형식을 쓰는 다른 회사는 주소만 바꿈)
-    anthropic: { keyName: "ANTHROPIC_API_KEY", baseUrlName: "ANTHROPIC_BASE_URL", baseUrl: "https://api.anthropic.com/v1", keyRequired: true }, // Anthropic
+    anthropic: { keyName: "ANTHROPIC_API_KEY", baseUrlName: "ANTHROPIC_BASE_URL", baseUrl: "https://api.anthropic.com/v1", keyRequired: true }, // Anthropic(Claude를 만든 회사)
     local: { keyName: "LOCAL_API_KEY", baseUrlName: "LOCAL_BASE_URL", baseUrl: "http://127.0.0.1:11434/v1", keyRequired: false }, // 내 컴퓨터(Ollama 기본 주소, 열쇠 없이 씀. 빌린 서버로 옮기면 주소와 열쇠만 바꿈)
 }; // 목록 종료
 
