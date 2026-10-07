@@ -131,4 +131,5 @@ ollama create qwen3-14b-16k -f Modelfile
 - `docs/text-play-download-development.md`: 기능별 설계와 검증 기록.
 - `docs/ACCOUNT-SETUP.md`: 실제 로그인과 서버 저장(Supabase, Google 로그인)을 연결하는 순서.
 - `docs/SERVICES.md`: 외부 서비스마다의 역할, 연결 상태, 비용(조사한 날과 출처 포함).
+- `docs/policy/`: 개인정보처리방침과 이용약관 초안(시행 전), 정해 줄 것과 법률 검토 때 볼 것.
 - `docs/image-requests.md`: 그림 요청 기록.
