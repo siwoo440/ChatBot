@@ -52,6 +52,18 @@ class FakeSupabase // 가짜 Supabase(로그인과 저장본 표만 흉내 냄)
             this.accessToken = `access-${this.refreshes + 1}`; // 새 출입증
             return record?.refresh_token === "refresh-1" ? json(200, this.session("soha@example.com")) : json(400, { error_code: "refresh_token_not_found" }); // 결과
         } // 조건 종료
+        if (url.includes("/auth/v1/recover")) // 비밀번호를 다시 정하는 메일 보내기
+        { // 조건 시작
+            return record?.email === "limited@example.com" ? json(429, { code: 429, error_code: "over_email_send_rate_limit", msg: "email rate limit exceeded" }) : json(200, {}); // 한 주소만 너무 잦다고 거절(가입하지 않은 주소도 성공으로 답함)
+        } // 조건 종료
+        if (url.endsWith("/auth/v1/user") && init.method === "PUT") // 비밀번호 바꾸기
+        { // 조건 시작
+            if (headers.authorization !== "Bearer recovery-token") // 메일의 링크가 준 출입증이 아님
+            { // 조건 시작
+                return json(403, { code: 403, error_code: "bad_jwt", msg: "invalid JWT" }); // 거절
+            } // 조건 종료
+            return record?.password === "right-password-1" ? json(422, { code: 422, error_code: "same_password", msg: "New password should be different from the old password." }) : json(200, { id: userId, email: "soha@example.com", app_metadata: { provider: "email" }, user_metadata: {} }); // 예전 비밀번호면 거절, 아니면 사용자 정보
+        } // 조건 종료
         if (url.endsWith("/auth/v1/logout")) // 로그아웃
         { // 조건 시작
             return new Response(null, { status: 204 }); // 완료
@@ -194,6 +206,36 @@ describe("Supabase 로그인", () => // 로그인 묶음
         await adapter().signOut(signedIn.ok ? signedIn.session : { accountId: userId, name: "", email: null, provider: "email", signedInAt: "" }); // 로그아웃
         expect(server.calls.at(-1)).toMatchObject({ url: "https://demo.supabase.co/auth/v1/logout", method: "POST", headers: { authorization: "Bearer access-1" } }); // 서비스에 알림
         expect(localStorage.getItem(SUPABASE_TOKENS_KEY)).toBeNull(); // 출입증 지움
+    }); // 검증 종료
+
+    it("비밀번호를 다시 정하는 메일은 이메일 모양을 먼저 보고, 돌아올 주소와 함께 요청하며, 너무 잦으면 그렇게 알린다", async () => // 재설정 메일 검증
+    { // 검증 시작
+        expect(await adapter().requestPasswordReset("not-an-email", "http://localhost:3002/auth/reset")).toEqual({ ok: false, reason: "invalid-email" }); // 이메일 모양
+        expect(server.calls).toHaveLength(0); // 서버에 보내지 않음
+        expect(await adapter().requestPasswordReset(" Soha@Example.com ", "http://localhost:3002/auth/reset")).toEqual({ ok: true }); // 요청
+        expect(server.calls[0]).toMatchObject({ url: "https://demo.supabase.co/auth/v1/recover?redirect_to=http%3A%2F%2Flocalhost%3A3002%2Fauth%2Freset", method: "POST", headers: { apikey: "public-anon-key" }, body: { email: "soha@example.com" } }); // 다듬은 이메일과 돌아올 주소
+        expect(await adapter().requestPasswordReset("limited@example.com", "http://localhost:3002/auth/reset")).toEqual({ ok: false, reason: "too-many" }); // 너무 잦음
+        const offline = createSupabaseAuthAdapter(config, { storage: localStorage, session: sessionStorage, fetcher: (async () => { throw new TypeError("fetch failed"); }) as typeof fetch }); // 닿지 않는 서버
+        expect(await offline.requestPasswordReset("soha@example.com", "http://localhost:3002/auth/reset")).toEqual({ ok: false, reason: "unavailable" }); // 연결 실패
+    }); // 검증 종료
+
+    it("메일의 링크가 준 출입증으로 새 비밀번호를 정하면 그 계정으로 로그인하고, 쓸 수 없는 링크와 약한·같은 비밀번호는 이유를 알린다", async () => // 새 비밀번호 검증
+    { // 검증 시작
+        const link = new URLSearchParams("access_token=recovery-token&refresh_token=refresh-9&expires_in=3600&token_type=bearer&type=recovery"); // 메일의 링크가 준 값
+        expect(adapter().canCompletePasswordReset(link)).toBe(true); // 쓸 수 있는 링크
+        for (const broken of ["", "error=access_denied&error_code=otp_expired", "access_token=recovery-token&refresh_token=refresh-9&type=signup", "refresh_token=refresh-9&type=recovery", "access_token=recovery-token&type=recovery"]) // 쓸 수 없는 링크들
+        { // 순회 시작
+            expect(adapter().canCompletePasswordReset(new URLSearchParams(broken))).toBe(false); // 쓸 수 없음
+            expect(await adapter().completePasswordReset(new URLSearchParams(broken), "new-password-1")).toEqual({ ok: false, reason: "link-expired" }); // 링크 안내
+        } // 순회 종료
+        expect(await adapter().completePasswordReset(link, "short")).toEqual({ ok: false, reason: "weak-password" }); // 짧은 비밀번호
+        expect(server.calls).toHaveLength(0); // 여기까지 서버에 보내지 않음
+        expect(await adapter().completePasswordReset(link, "right-password-1")).toEqual({ ok: false, reason: "same-password" }); // 예전과 같은 비밀번호
+        expect(await adapter().completePasswordReset(new URLSearchParams("access_token=stale-token&refresh_token=refresh-9&type=recovery"), "new-password-1")).toEqual({ ok: false, reason: "link-expired" }); // 끝난 출입증
+        expect(localStorage.getItem(SUPABASE_TOKENS_KEY)).toBeNull(); // 실패하는 동안에는 로그인하지 않음
+        expect(await adapter().completePasswordReset(link, "new-password-1")).toEqual({ ok: true, session: { accountId: userId, name: "soha", email: "soha@example.com", provider: "email", signedInAt: "2026-10-06T00:00:00.000Z" } }); // 바꾸고 로그인
+        expect(server.calls.at(-1)).toMatchObject({ url: "https://demo.supabase.co/auth/v1/user", method: "PUT", headers: { authorization: "Bearer recovery-token" }, body: { password: "new-password-1" } }); // 링크의 출입증으로 요청
+        expect(JSON.parse(localStorage.getItem(SUPABASE_TOKENS_KEY) ?? "{}")).toMatchObject({ accessToken: "recovery-token", refreshToken: "refresh-9", userId }); // 링크가 준 출입증을 보관
     }); // 검증 종료
 
     it("계정을 지우면 출입증을 붙여 데이터베이스의 지우기 함수를 부르고, 끝나면 이 기기의 출입증을 지운다", async () => // 탈퇴 검증

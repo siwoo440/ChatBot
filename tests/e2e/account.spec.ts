@@ -183,3 +183,21 @@ for (const width of [390, 820, 1440]) // 화면 너비 순회
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); // 넘침 없음
     }); // 테스트 종료
 } // 순회 종료
+
+for (const width of [390, 820, 1440]) // 화면 너비 순회
+{ // 순회 시작
+    test(`${width}px 비밀번호 다시 정하기 화면은 연습용일 때 비밀번호가 없다고 알리고 가로로 넘치지 않는다`, async ({ page }) => // 재설정 화면 검증
+    { // 테스트 시작
+        await page.setViewportSize({ width, height: 900 }); // 화면 크기
+        await seed(page); // 준비
+        await page.goto("/auth/reset#access_token=not-a-real-token&refresh_token=none&type=recovery"); // 메일의 링크 모양으로 열기
+        await expect(page).toHaveTitle("비밀번호 다시 정하기 | Mate Verse"); // 탭 제목
+        await expect(page.getByRole("heading", { name: "비밀번호 다시 정하기" })).toBeVisible(); // 제목
+        await expect(page.getByText("연습용 로그인에는 비밀번호가 없어요. 이름만으로 로그인할 수 있어요.")).toBeVisible(); // 연습용 안내
+        expect(new URL(page.url()).hash).toBe(""); // 주소 뒤의 값을 지움
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); // 넘침 없음
+        await page.getByRole("link", { name: "로그인 화면으로" }).click(); // 로그인 화면으로
+        await expect(page.getByLabel("계정 이름")).toBeVisible(); // 연습용 로그인 양식
+        await expect(page.getByRole("button", { name: "비밀번호를 잊으셨나요?" })).toHaveCount(0); // 연습용에는 비밀번호 찾기가 없음
+    }); // 테스트 종료
+} // 순회 종료

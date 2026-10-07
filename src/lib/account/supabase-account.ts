@@ -63,6 +63,14 @@ function toFailure(body: unknown): AuthFailure // 서비스가 알려 준 오류
     { // 조건 시작
         return "email-taken"; // 가입한 메일 안내
     } // 조건 종료
+    if (text.includes("same_password") || text.includes("different from the old password")) // 예전과 같은 비밀번호
+    { // 조건 시작
+        return "same-password"; // 다른 비밀번호 안내
+    } // 조건 종료
+    if (text.includes("rate_limit") || text.includes("rate limit")) // 요청이 너무 잦음(메일은 한 시간에 보낼 수 있는 수가 정해져 있음)
+    { // 조건 시작
+        return "too-many"; // 잠시 뒤 안내
+    } // 조건 종료
     if (text.includes("weak_password") || text.includes("password should be")) // 약한 비밀번호
     { // 조건 시작
         return "weak-password"; // 비밀번호 안내
@@ -171,9 +179,59 @@ export function createSupabaseAuthAdapter(config: SupabaseConfig, options: Supab
             return { ok: false, reason: "unavailable" }; // 서비스 오류
         } // 실패 종료
     }; // 함수 종료
+    const canCompletePasswordReset = (params: URLSearchParams): boolean => params.get("type") === "recovery" && params.get("error") === null && (params.get("access_token") ?? "").length > 0 && (params.get("refresh_token") ?? "").length > 0; // 재설정 링크가 준 값인지(종류가 재설정이고, 오류가 없고, 출입증 두 개가 있음)
     return { // 로그인 계약 구현
         mode: "live", // 실제 서비스
         listAccounts: () => [], // 연습용 계정 목록 없음
+        requestPasswordReset: async (rawEmail, redirectTo) => // 비밀번호를 다시 정하는 메일 보내기(가입하지 않은 주소여도 서비스는 성공으로 답함)
+        { // 함수 시작
+            const email = rawEmail.trim().toLowerCase(); // 다듬은 이메일
+            if (!EMAIL_PATTERN.test(email)) // 이메일 모양 아님
+            { // 조건 시작
+                return { ok: false, reason: "invalid-email" }; // 거절
+            } // 조건 종료
+            try // 요청 시도
+            { // 시도 시작
+                const result = await client.call(`/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, { method: "POST", body: { email } }); // 메일 요청(링크를 누르면 redirectTo로 돌아옴)
+                return result.status >= 200 && result.status < 300 ? { ok: true } : { ok: false, reason: result.status === 429 ? "too-many" : toFailure(result.body) }; // 보냈거나 거절된 이유
+            } // 시도 종료
+            catch // 서비스에 닿지 못함
+            { // 실패 시작
+                return { ok: false, reason: "unavailable" }; // 서비스 오류
+            } // 실패 종료
+        }, // 함수 종료
+        canCompletePasswordReset, // 재설정 링크 판정
+        completePasswordReset: async (params, password) => // 새 비밀번호 정하기(메일의 링크가 준 출입증으로 바꾸고 그 계정으로 로그인)
+        { // 함수 시작
+            const accessToken = params.get("access_token"); // 링크가 준 출입증
+            const refreshToken = params.get("refresh_token"); // 링크가 준 출입증을 새로 받는 표
+            if (!canCompletePasswordReset(params) || accessToken === null || refreshToken === null) // 쓸 수 없는 링크
+            { // 조건 시작
+                return { ok: false, reason: "link-expired" }; // 메일을 다시 받게 함
+            } // 조건 종료
+            if (password.length < PASSWORD_MIN_LENGTH) // 짧은 비밀번호
+            { // 조건 시작
+                return { ok: false, reason: "weak-password" }; // 거절
+            } // 조건 종료
+            try // 요청 시도
+            { // 시도 시작
+                const result = await client.call("/auth/v1/user", { method: "PUT", token: accessToken, body: { password } }); // 비밀번호 바꾸기
+                if (result.status === 401 || result.status === 403) // 출입증이 끝났거나 이미 씀
+                { // 조건 시작
+                    return { ok: false, reason: "link-expired" }; // 메일을 다시 받게 함
+                } // 조건 종료
+                if (result.status < 200 || result.status >= 300) // 그 밖의 거절
+                { // 조건 시작
+                    return { ok: false, reason: toFailure(result.body) }; // 이유 반환
+                } // 조건 종료
+                const account = client.saveSession({ access_token: accessToken, refresh_token: refreshToken, expires_in: Number(params.get("expires_in")) || 3600, user: result.body }); // 링크가 준 출입증을 보관하고 계정 세션 만들기
+                return account !== null ? { ok: true, session: account } : { ok: false, reason: "unavailable" }; // 로그인
+            } // 시도 종료
+            catch // 서비스에 닿지 못함
+            { // 실패 시작
+                return { ok: false, reason: "unavailable" }; // 서비스 오류
+            } // 실패 종료
+        }, // 함수 종료
         signIn: (input) => withPassword(input, "/auth/v1/token?grant_type=password", false), // 로그인
         signUp: (input) => withPassword(input, "/auth/v1/signup", true), // 회원가입
         socialProviders: async () => // 프로젝트에서 켜 둔 간편 로그인

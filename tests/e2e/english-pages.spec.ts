@@ -30,6 +30,7 @@ const routes = [ // 영어로 열어 볼 주소(모든 페이지)
     "/library", // 보관함
     "/login", // 로그인
     "/auth/callback", // 간편 로그인에서 돌아오는 화면
+    "/auth/reset", // 비밀번호 다시 정하기
     "/rewards", // 출석과 미션
     "/settings/profile", // 프로필 관리
     "/settings/tokens", // 토큰 이용 내역

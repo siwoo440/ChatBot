@@ -111,6 +111,8 @@
     color: light-dark(#be123c, #f27997); /* 오류 색 */
     font-size: 0.9rem; /* 오류 크기 */
     font-weight: 700; /* 오류 굵기 */
+    line-height: 1.5; /* 줄 높이 */
+    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
 } /* 오류 종료 */
 
 .actions /* 동작 묶음 */
@@ -234,3 +236,37 @@
     display: grid; /* 세로 배치 */
     gap: 8px; /* 버튼 간격 */
 } /* 묶음 종료 */
+
+.textButton /* 글자만 있는 버튼(비밀번호 찾기·돌아가기) */
+{ /* 버튼 시작 */
+    justify-self: start; /* 내용 너비 */
+    min-height: 44px; /* 누르는 높이 */
+    padding: 0 4px; /* 버튼 여백 */
+    border: 0; /* 경계 제거 */
+    color: light-dark(#5b21b6, #c4b5fd); /* 링크 색 */
+    font: inherit; /* 글꼴 상속 */
+    font-weight: 750; /* 굵기 */
+    text-decoration: underline; /* 밑줄 */
+    text-underline-offset: 4px; /* 밑줄 간격 */
+    background: transparent; /* 배경 없음 */
+    cursor: pointer; /* 선택 커서 */
+} /* 버튼 종료 */
+
+.textButton:focus-visible /* 글자 버튼 초점 */
+{ /* 초점 시작 */
+    outline: 3px solid var(--mv-focus); /* 초점 외곽선 */
+    outline-offset: 2px; /* 외곽선 간격 */
+    border-radius: 8px; /* 외곽선 모서리 */
+} /* 초점 종료 */
+
+.notice /* 메일을 보냈다는 안내 */
+{ /* 안내 시작 */
+    margin: 0; /* 기본 여백 제거 */
+    padding: 12px 14px; /* 안내 여백 */
+    border-radius: 12px; /* 안내 모서리 */
+    color: light-dark(#065f46, #9af7dd); /* 안내 글자 */
+    font-weight: 700; /* 안내 굵기 */
+    line-height: 1.6; /* 줄 높이 */
+    background: light-dark(#dcfce7, #173d24); /* 안내 배경 */
+    word-break: keep-all; /* 한글 단어 단위 줄바꿈 */
+} /* 안내 종료 */

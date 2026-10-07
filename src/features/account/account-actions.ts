@@ -1,4 +1,4 @@
-// 계정 동작: 로그인·로그아웃·계정 데이터 지우기·탈퇴를 하고 화면을 새로 연다. 계정마다 저장 칸이 달라, 세션을 바꾼 뒤에는 앱 데이터를 그 계정의 칸에서 처음부터 다시 읽어야 한다.
+// 계정 동작: 로그인·로그아웃·비밀번호 다시 정하기·계정 데이터 지우기·탈퇴를 하고 화면을 새로 연다. 계정마다 저장 칸이 달라, 세션을 바꾼 뒤에는 앱 데이터를 그 계정의 칸에서 처음부터 다시 읽어야 한다.
 import { getAccountServiceConfig } from "@/lib/account/account-config"; // 계정 서비스 설정
 import { readAccountSession, writeAccountSession } from "@/lib/account/account-session"; // 계정 세션
 import type { AccountDeleteResult, AuthAdapter, AuthResult, SignInInput } from "@/lib/account/auth-adapter"; // 로그인 계약
@@ -30,6 +30,17 @@ export async function completeSocialAndEnter(adapter: AuthAdapter, params: URLSe
 export async function signInAndEnter(adapter: AuthAdapter, input: SignInInput, navigate: Navigate = reloadTo, mode: "sign-in" | "sign-up" = "sign-in"): Promise<AuthResult> // 로그인(또는 가입)하고 메인으로 들어가기
 { // 함수 시작
     const result = mode === "sign-up" ? await adapter.signUp(input) : await adapter.signIn(input); // 로그인 시도
+    if (result.ok) // 성공
+    { // 조건 시작
+        writeAccountSession(window.localStorage, result.session); // 세션 저장
+        navigate("/"); // 그 계정의 데이터로 새로 열기
+    } // 조건 종료
+    return result; // 결과 반환(실패하면 화면이 이유를 보여 줌)
+} // 함수 종료
+
+export async function completeResetAndEnter(adapter: AuthAdapter, params: URLSearchParams, password: string, navigate: Navigate = reloadTo): Promise<AuthResult> // 새 비밀번호를 정하고 그 계정으로 메인에 들어가기
+{ // 함수 시작
+    const result = await adapter.completePasswordReset(params, password); // 새 비밀번호 정하기
     if (result.ok) // 성공
     { // 조건 시작
         writeAccountSession(window.localStorage, result.session); // 세션 저장

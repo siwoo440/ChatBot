@@ -1,8 +1,9 @@
 // 로그인 계약: 화면은 이 계약만 보고 로그인·로그아웃을 한다. 지금은 연습용 구현만 있고, 실제 서비스(Supabase)를 연결하면 같은 계약의 다른 구현을 끼운다.
 import type { AccountSession } from "@/lib/account/account-session"; // 계정 세션
 
-export type AuthFailure = "invalid-name" | "invalid-email" | "weak-password" | "wrong-credentials" | "email-taken" | "confirm-email" | "unavailable"; // 로그인 실패 이유
+export type AuthFailure = "invalid-name" | "invalid-email" | "weak-password" | "wrong-credentials" | "email-taken" | "confirm-email" | "too-many" | "link-expired" | "same-password" | "unavailable"; // 로그인·비밀번호 다시 정하기 실패 이유
 export type AuthResult = { ok: true; session: AccountSession } | { ok: false; reason: AuthFailure }; // 로그인 결과
+export type PasswordResetRequestResult = { ok: true } | { ok: false; reason: AuthFailure }; // 재설정 메일 요청 결과
 export type AccountDeleteResult = { ok: true } | { ok: false; reason: "unavailable" }; // 계정 지우기 결과
 export type SocialProvider = "google" | "kakao"; // 간편 로그인 서비스
 
@@ -28,6 +29,9 @@ export interface AuthAdapter // 로그인 계약
     completeSocialSignIn(params: URLSearchParams): Promise<AuthResult>; // 간편 로그인 마무리(돌아온 주소의 값으로 로그인)
     signIn(input: SignInInput): Promise<AuthResult>; // 로그인
     signUp(input: SignInInput): Promise<AuthResult>; // 회원가입
+    requestPasswordReset(email: string, redirectTo: string): Promise<PasswordResetRequestResult>; // 비밀번호를 다시 정하는 메일 보내기(메일의 링크는 redirectTo로 돌아옴. 연습용은 비밀번호가 없어 쓰지 않음)
+    canCompletePasswordReset(params: URLSearchParams): boolean; // 메일의 링크가 주소 뒤에 붙여 준 값으로 비밀번호를 다시 정할 수 있는지
+    completePasswordReset(params: URLSearchParams, password: string): Promise<AuthResult>; // 새 비밀번호를 정하고 그 계정으로 로그인
     signOut(session: AccountSession): Promise<void>; // 로그아웃(서비스 쪽 정리)
     deleteAccount(session: AccountSession): Promise<AccountDeleteResult>; // 계정 지우기(탈퇴. 서비스의 계정과 서버 저장본을 함께 지움)
     listAccounts(): PracticeAccount[]; // 이 브라우저에서 쓴 연습용 계정(실제 서비스는 빈 목록)

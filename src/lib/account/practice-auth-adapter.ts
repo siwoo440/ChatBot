@@ -52,6 +52,9 @@ export function createPracticeAuthAdapter(storage: Storage, now: () => string = 
         completeSocialSignIn: async () => ({ ok: false, reason: "unavailable" }), // 간편 로그인 없음
         signIn, // 로그인
         signUp: signIn, // 연습용은 가입과 로그인이 같음
+        requestPasswordReset: async () => ({ ok: false, reason: "unavailable" }), // 비밀번호가 없어 다시 정할 것도 없음
+        canCompletePasswordReset: () => false, // 비밀번호가 없음
+        completePasswordReset: async () => ({ ok: false, reason: "unavailable" }), // 비밀번호가 없음
         signOut: async () => undefined, // 서비스 쪽에 정리할 것이 없음
         deleteAccount: async (session) => // 계정 지우기(쓴 계정 목록에서 빼고, 연습용 서버의 저장본도 함께 지움)
         { // 함수 시작

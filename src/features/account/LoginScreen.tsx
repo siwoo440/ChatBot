@@ -17,6 +17,9 @@ export const failureMessages: Record<AuthFailure, string> = // 실패 이유별 
     "wrong-credentials": "이메일이나 비밀번호가 맞지 않아요.", // 틀린 정보
     "email-taken": "이미 가입한 이메일이에요. 로그인해 주세요.", // 가입된 이메일
     "confirm-email": "받은 메일의 확인 버튼을 누른 뒤 로그인해 주세요.", // 메일 확인 필요
+    "too-many": "요청이 너무 잦아요. 잠시 뒤 다시 시도해 주세요.", // 요청이 너무 잦음
+    "link-expired": "링크가 만료됐거나 이미 사용됐어요. 로그인 화면에서 메일을 다시 받아 주세요.", // 쓸 수 없는 재설정 링크
+    "same-password": "예전과 다른 비밀번호를 정해 주세요.", // 예전과 같은 비밀번호
     unavailable: "지금은 로그인할 수 없어요. 잠시 뒤 다시 시도해 주세요.", // 서비스 오류
 }; // 안내 종료
 
@@ -30,6 +33,8 @@ export function LoginScreen({ adapter, navigate }: { adapter?: AuthAdapter; navi
     const [email, setEmail] = useState(""); // 이메일(실제 서비스)
     const [password, setPassword] = useState(""); // 비밀번호(실제 서비스)
     const [joining, setJoining] = useState(false); // 회원가입 양식인지
+    const [resetting, setResetting] = useState(false); // 비밀번호를 다시 정하는 메일을 받는 양식인지
+    const [notice, setNotice] = useState(""); // 메일을 보냈다는 안내
     const [providers, setProviders] = useState<SocialProvider[]>([]); // 쓸 수 있는 간편 로그인
     const [error, setError] = useState(""); // 오류 안내
     const [busy, setBusy] = useState(false); // 처리 중
@@ -58,6 +63,25 @@ export function LoginScreen({ adapter, navigate }: { adapter?: AuthAdapter; navi
         setBusy(false); // 처리 끝
         setError(result.ok ? "" : t(failureMessages[result.reason])); // 실패 이유 안내
     }; // 함수 종료
+    const requestReset = async (event: FormEvent<HTMLFormElement>) => // 비밀번호를 다시 정하는 메일 요청
+    { // 함수 시작
+        event.preventDefault(); // 기본 제출 차단
+        if (auth === null || busy) // 준비 전·처리 중
+        { // 조건 시작
+            return; // 생략
+        } // 조건 종료
+        setBusy(true); // 처리 시작
+        const result = await auth.requestPasswordReset(email, `${window.location.origin}/auth/reset`); // 메일 요청(링크는 재설정 화면으로 돌아옴)
+        setBusy(false); // 처리 끝
+        setNotice(result.ok ? t("입력한 주소로 가입한 계정이 있으면 비밀번호를 다시 정하는 메일을 보냈어요. 메일의 링크를 눌러 주세요.") : ""); // 보냈다는 안내(가입 여부는 알려 주지 않음)
+        setError(result.ok ? "" : result.reason === "unavailable" ? t("지금은 메일을 보낼 수 없어요. 잠시 뒤 다시 시도해 주세요.") : t(failureMessages[result.reason])); // 실패 이유 안내(서비스 오류는 이 양식에 맞는 말로)
+    }; // 함수 종료
+    const showReset = (next: boolean) => // 재설정 양식과 로그인 양식 사이를 오가기
+    { // 함수 시작
+        setResetting(next); // 양식 바꾸기
+        setError(""); // 오류 지움
+        setNotice(""); // 안내 지움
+    }; // 함수 종료
     const submit = (event: FormEvent<HTMLFormElement>) => // 양식 제출
     { // 함수 시작
         event.preventDefault(); // 기본 제출 차단
@@ -71,7 +95,7 @@ export function LoginScreen({ adapter, navigate }: { adapter?: AuthAdapter; navi
         <main className={styles.page}> {/* 로그인 본문 */}
             <section className={styles.card} aria-labelledby="login-title"> {/* 로그인 카드 */}
                 <span className={styles.eyebrow}>ACCOUNT</span> {/* 표제 */}
-                <h1 id="login-title">{t("로그인")}</h1> {/* 제목 */}
+                <h1 id="login-title">{session === null && live && resetting ? t("비밀번호 다시 정하기") : t("로그인")}</h1> {/* 제목(재설정 메일을 받는 양식에서는 그 이름으로) */}
                 {session !== null ? ( // 로그인해 있음
                     <> {/* 로그인 상태 */}
                         <p className={styles.lead}>{t("지금 {0} 계정으로 로그인해 있어요.", [session.name])}</p> {/* 지금 계정 */}
@@ -80,6 +104,17 @@ export function LoginScreen({ adapter, navigate }: { adapter?: AuthAdapter; navi
                             <button type="button" className={styles.secondary} disabled={auth === null} onClick={() => { if (auth !== null) { void signOutAndLeave(auth, navigate); } }}>{t("로그아웃")}</button> {/* 로그아웃 */}
                         </div> {/* 동작 종료 */}
                     </> // 로그인 상태 종료
+                ) : live && resetting ? ( // 비밀번호를 다시 정하는 메일 받기
+                    <> {/* 재설정 메일 */}
+                        <p className={styles.lead}>{t("가입한 이메일을 적으면 비밀번호를 다시 정하는 링크를 메일로 보내 드려요.")}</p> {/* 안내 */}
+                        <form className={styles.form} onSubmit={(event) => void requestReset(event)} noValidate> {/* 재설정 메일 양식 */}
+                            <label className={styles.field}><span>{t("이메일")}</span><input type="email" value={email} autoComplete="email" spellCheck={false} onChange={(event) => { setEmail(event.target.value); setError(""); setNotice(""); }} /></label> {/* 이메일 */}
+                            {error.length === 0 ? null : <p className={styles.error} role="alert">{error}</p>} {/* 오류 안내 */}
+                            {notice.length === 0 ? null : <p className={styles.notice} role="status">{notice}</p>} {/* 보냈다는 안내 */}
+                            <button type="submit" className={styles.primary} disabled={busy}>{t("재설정 메일 보내기")}</button> {/* 제출 */}
+                        </form> {/* 양식 종료 */}
+                        <button type="button" className={styles.textButton} onClick={() => showReset(false)}>{t("로그인으로 돌아가기")}</button> {/* 로그인 양식으로 */}
+                    </> // 재설정 메일 종료
                 ) : live ? ( // 실제 서비스 로그인
                     <> {/* 이메일·간편 로그인 */}
                         <div className={styles.tabs} role="tablist" aria-label={t("로그인 방식")}> {/* 로그인·회원가입 전환 */}
@@ -92,6 +127,7 @@ export function LoginScreen({ adapter, navigate }: { adapter?: AuthAdapter; navi
                             {error.length === 0 ? null : <p className={styles.error} role="alert">{error}</p>} {/* 오류 안내 */}
                             <button type="submit" className={styles.primary} disabled={busy}>{joining ? t("가입하기") : t("이메일로 로그인")}</button> {/* 제출 */}
                         </form> {/* 양식 종료 */}
+                        {joining ? null : <button type="button" className={styles.textButton} onClick={() => showReset(true)}>{t("비밀번호를 잊으셨나요?")}</button>} {/* 비밀번호 다시 정하기로(로그인 양식에서만) */}
                         {providers.length === 0 ? null : <div className={styles.social} aria-label={t("간편 로그인")}>{providers.map((provider) => <button key={provider} type="button" className={styles.secondary} disabled={busy} onClick={() => social(provider)}>{t(socialLabels[provider])}</button>)}</div>} {/* 간편 로그인 */}
                         <p className={styles.hint}>{t("로그인하면 캐릭터와 대화, 토큰이 계정에 저장돼 다른 기기에서도 이어 쓸 수 있어요. 로그인하지 않아도 지금처럼 쓸 수 있어요.")}</p> {/* 안내 */}
                     </> // 이메일·간편 로그인 종료
