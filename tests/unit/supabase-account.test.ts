@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest"; // 테스트 도구
 import { readAccountServiceConfig } from "@/lib/account/account-config"; // 계정 서비스 설정
 import { SignedOutError } from "@/lib/account/snapshot-store"; // 로그인이 끝났다는 표시
-import { createSupabaseAuthAdapter, createSupabaseSnapshotStore, SUPABASE_TOKENS_KEY, SUPABASE_VERIFIER_KEY } from "@/lib/account/supabase-account"; // Supabase 연결
+import { createSupabaseAuthAdapter, createSupabaseSnapshotStore, readSupabaseAccessToken, SUPABASE_TOKENS_KEY, SUPABASE_VERIFIER_KEY } from "@/lib/account/supabase-account"; // Supabase 연결
 
 const config = { mode: "supabase" as const, url: "https://demo.supabase.co", anonKey: "public-anon-key" }; // 시험용 설정(가짜 주소와 공개 키)
 const userId = "0a1b2c3d-1111-2222-3333-444455556666"; // 가짜 서버의 사용자 식별자
@@ -336,6 +336,17 @@ describe("Supabase 저장본", () => // 저장본 묶음
         localStorage.removeItem(SUPABASE_TOKENS_KEY); // 출입증이 없음(로그인이 끝남)
         await expect(store().pull(userId)).rejects.toBeInstanceOf(SignedOutError); // 받지 못함(다시 로그인해야 한다고 알림)
         expect(await store().push(userId, "{}", null, "device-a")).toEqual({ ok: false, reason: "signed-out" }); // 올리지 못함(다시 로그인해야 함)
+    }); // 검증 종료
+
+    it("서버 통로에 보낼 출입증은 로그인해 있을 때만 돌려주고, 곧 끝나면 새로 받아 돌려준다", async () => // 출입증 읽기 검증
+    { // 검증 시작
+        const read = () => readSupabaseAccessToken(config, { storage: localStorage, fetcher: server.fetch as typeof fetch, now: () => clock }); // 출입증 읽기
+        expect(await read()).toBe("access-1"); // 로그인해 있으면 지금 출입증
+        expect(server.calls).toHaveLength(0); // 넉넉히 남았으면 서버에 묻지 않음
+        clock += 3590 * 1000; // 출입증이 10초 뒤 끝남
+        expect(await read()).toBe("access-2"); // 새로 받은 출입증
+        localStorage.removeItem(SUPABASE_TOKENS_KEY); // 로그인하지 않음
+        expect(await read()).toBeNull(); // 출입증 없음(오류를 내지 않음)
     }); // 검증 종료
 
     it("출입증을 새로 받는 일을 서버가 거절하면 로그인이 끝난 것으로 알리고, 서버가 잠시 받지 못하는 것과는 구별한다", async () => // 로그인 끝남 검증

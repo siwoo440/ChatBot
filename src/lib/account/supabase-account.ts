@@ -350,6 +350,18 @@ function toSnapshot(row: unknown): RemoteSnapshot | null // 표의 줄을 저장
     return record !== null && typeof record === "object" && typeof record.state === "string" && Number.isInteger(Number(record.revision)) ? { revision: Number(record.revision), state: record.state, updatedAt: typeof record.updated_at === "string" ? record.updated_at : "", deviceId: typeof record.device_id === "string" ? record.device_id : "" } : null; // 저장본 반환
 } // 함수 종료
 
+export async function readSupabaseAccessToken(config: SupabaseConfig, options: SupabaseOptions): Promise<string | null> // 서버 통로에 보낼 출입증(곧 끝나면 새로 받음. 로그인하지 않았거나 받지 못하면 없음)
+{ // 함수 시작
+    try // 읽기 시도
+    { // 시도 시작
+        return await createClient(config, options).accessToken(); // 쓸 수 있는 출입증
+    } // 시도 종료
+    catch // 로그인이 끝났거나 서비스에 닿지 못함
+    { // 실패 시작
+        return null; // 출입증 없음(서버 통로가 로그인하라고 알림)
+    } // 실패 종료
+} // 함수 종료
+
 export function createSupabaseSnapshotStore(config: SupabaseConfig, options: SupabaseOptions): SnapshotStore // Supabase 저장본 구현(표 mv_snapshots에 계정마다 한 줄)
 { // 함수 시작
     const client = createClient(config, options); // 요청 도구

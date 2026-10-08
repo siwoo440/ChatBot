@@ -43,7 +43,7 @@
 | 데이터 내려받기 | `src/features/settings/DataManagement.tsx` | JSON 내보내기 |
 | 생년월일을 저장하지 않음 | `src/features/adult/AdultVerificationDialog.tsx` | 확인 뒤 입력값을 비우고 결과(방식, 시각, 만료)만 저장 |
 | 문의를 서버로 보내지 않음 | `src/features/support/SupportScreen.tsx` | 문의 글과 진단 정보를 복사만 한다 |
-| 실제 AI로 넘어가는 내용, 서버에 저장하지 않음 | `src/lib/llm/prompt-builder.ts`, `src/app/api/chat/` | 요청을 AI 회사로 전달하고 기록을 남기지 않는다. 요청 수 제한도 주소를 저장하지 않는다 |
+| 실제 AI로 넘어가는 내용, 서버에 저장하지 않음 | `src/lib/llm/prompt-builder.ts`, `src/app/api/chat/` | 요청을 AI 회사로 전달하고 기록을 남기지 않는다. 요청 수 제한은 접속 주소를 쓰지 않는다. 공개했을 때는 로그인한 사람의 계정 구분값별 횟수를 서버 메모리에서만 세고 저장하지 않는다(`src/lib/llm/chat-gate.ts`. 함께 쓰는 저장소로 옮기면 방침의 표를 고친다) |
 | 쿠키와 분석 도구를 쓰지 않음 | 코드 전체 | 쿠키를 쓰는 코드와 분석 도구가 없다 |
 | 브라우저에 저장하는 것 | `mateverse:v1:`로 시작하는 저장 칸(`src/lib/account/scoped-storage.ts`) | 앱 데이터, 백업, 임시 저장, 로그인 상태, 맞춘 기록, 이용 시간, 정렬과 필터 |
 | 대화 화면의 AI 안내 | `src/features/chat/ChatScreen.tsx` | "AI가 만든 허구의 대화입니다"를 대화 화면에 표시 |
