@@ -192,6 +192,7 @@ export function createSupabaseAuthAdapter(config: SupabaseConfig, options: Supab
             return { ok: false, reason: "unavailable" }; // 서비스 오류
         } // 실패 종료
     }; // 함수 종료
+    const canCompleteEmailConfirm = (params: URLSearchParams): boolean => params.get("type") === "signup" && params.get("error") === null && (params.get("access_token") ?? "").length > 0 && (params.get("refresh_token") ?? "").length > 0; // 가입 확인 링크가 준 값인지(종류가 가입이고 출입증 두 개가 있음)
     const canCompletePasswordReset = (params: URLSearchParams): boolean => params.get("type") === "recovery" && params.get("error") === null && (params.get("access_token") ?? "").length > 0 && (params.get("refresh_token") ?? "").length > 0; // 재설정 링크가 준 값인지(종류가 재설정이고, 오류가 없고, 출입증 두 개가 있음)
     return { // 로그인 계약 구현
         mode: "live", // 실제 서비스
@@ -246,7 +247,34 @@ export function createSupabaseAuthAdapter(config: SupabaseConfig, options: Supab
             } // 실패 종료
         }, // 함수 종료
         signIn: (input) => withPassword(input, "/auth/v1/token?grant_type=password", false), // 로그인
-        signUp: (input) => withPassword(input, "/auth/v1/signup", true), // 회원가입
+        signUp: (input) => withPassword(input, input.redirectTo === undefined ? "/auth/v1/signup" : `/auth/v1/signup?redirect_to=${encodeURIComponent(input.redirectTo)}`, true), // 회원가입(확인 메일의 링크가 돌아올 주소를 함께 보냄)
+        canCompleteEmailConfirm, // 가입 확인 링크인지
+        completeEmailConfirm: async (params) => // 가입 확인 메일의 링크가 준 출입증으로 바로 로그인
+        { // 함수 시작
+            if (!canCompleteEmailConfirm(params)) // 만료됐거나 이미 쓴 링크·다른 종류의 링크
+            { // 조건 시작
+                return { ok: false, reason: "link-expired" }; // 다시 받게 함
+            } // 조건 종료
+            const accessToken = params.get("access_token") ?? ""; // 링크가 준 출입증
+            try // 요청 시도
+            { // 시도 시작
+                const result = await client.call("/auth/v1/user", { token: accessToken }); // 이 출입증의 주인 확인(주소에 적힌 값을 그대로 믿지 않음)
+                if (result.status === 401 || result.status === 403) // 서버가 받지 않는 출입증
+                { // 조건 시작
+                    return { ok: false, reason: "link-expired" }; // 다시 받게 함
+                } // 조건 종료
+                if (result.status < 200 || result.status >= 300) // 그 밖의 거절
+                { // 조건 시작
+                    return { ok: false, reason: toFailure(result.body) }; // 이유 반환
+                } // 조건 종료
+                const account = client.saveSession({ access_token: accessToken, refresh_token: params.get("refresh_token"), expires_in: Number(params.get("expires_in")) || 3600, user: result.body }); // 출입증을 보관하고 계정 세션 만들기
+                return account !== null ? { ok: true, session: account } : { ok: false, reason: "unavailable" }; // 로그인
+            } // 시도 종료
+            catch // 서비스에 닿지 못함
+            { // 실패 시작
+                return { ok: false, reason: "unavailable" }; // 서비스 오류
+            } // 실패 종료
+        }, // 함수 종료
         socialProviders: async () => // 프로젝트에서 켜 둔 간편 로그인
         { // 함수 시작
             try // 읽기 시도

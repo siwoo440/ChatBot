@@ -40,7 +40,7 @@ class FakeSupabase // 가짜 Supabase(로그인과 저장본 표만 흉내 냄)
         { // 조건 시작
             return record?.password === "right-password-1" ? json(200, this.session(record.email)) : record?.email === "unconfirmed@example.com" ? json(400, { code: 400, error_code: "email_not_confirmed", msg: "Email not confirmed" }) : json(400, { code: 400, error_code: "invalid_credentials", msg: "Invalid login credentials" }); // 결과
         } // 조건 종료
-        if (url.endsWith("/auth/v1/signup")) // 회원가입
+        if (url.split("?")[0].endsWith("/auth/v1/signup")) // 회원가입(돌아올 주소가 붙어 올 수 있음)
         { // 조건 시작
             return record?.email === "taken@example.com" ? json(422, { code: 422, error_code: "user_already_exists", msg: "User already registered" }) : this.confirmEmail ? json(200, { id: userId, email: record?.email, confirmation_sent_at: "2026-10-06T00:00:00Z" }) : json(200, this.session(record?.email ?? "")); // 결과
         } // 조건 종료
@@ -61,6 +61,10 @@ class FakeSupabase // 가짜 Supabase(로그인과 저장본 표만 흉내 냄)
         if (url.includes("/auth/v1/recover")) // 비밀번호를 다시 정하는 메일 보내기
         { // 조건 시작
             return record?.email === "limited@example.com" ? json(429, { code: 429, error_code: "over_email_send_rate_limit", msg: "email rate limit exceeded" }) : json(200, {}); // 한 주소만 너무 잦다고 거절(가입하지 않은 주소도 성공으로 답함)
+        } // 조건 종료
+        if (url.endsWith("/auth/v1/user") && (init.method ?? "GET") === "GET") // 출입증의 주인 확인(가입 확인 메일의 링크로 돌아왔을 때)
+        { // 조건 시작
+            return headers.authorization === "Bearer confirm-token" ? json(200, { id: userId, email: "new@example.com", app_metadata: { provider: "email" }, user_metadata: {} }) : json(401, { code: 401, error_code: "bad_jwt", msg: "invalid JWT" }); // 링크가 준 출입증일 때만 사용자 정보
         } // 조건 종료
         if (url.endsWith("/auth/v1/user") && init.method === "PUT") // 비밀번호 바꾸기
         { // 조건 시작
@@ -187,6 +191,26 @@ describe("Supabase 로그인", () => // 로그인 묶음
         server.confirmEmail = false; // 메일 확인 없음
         expect(await adapter().signUp({ email: "new@example.com", password: "right-password-1" })).toMatchObject({ ok: true, session: { email: "new@example.com", provider: "email" } }); // 바로 로그인
         expect(await adapter().signUp({ email: "taken@example.com", password: "right-password-1" })).toEqual({ ok: false, reason: "email-taken" }); // 이미 가입한 메일
+    }); // 검증 종료
+
+    it("가입할 때 확인 메일의 링크가 돌아올 주소를 함께 보내고, 그 링크로 돌아오면 준 출입증으로 바로 로그인한다", async () => // 가입 확인 링크 검증
+    { // 검증 시작
+        server.confirmEmail = true; // 메일 확인 필요
+        expect(await adapter().signUp({ email: "new@example.com", password: "right-password-1", redirectTo: "http://localhost:3000/auth/callback" })).toEqual({ ok: false, reason: "confirm-email" }); // 메일 확인 안내
+        expect(new URL(server.calls.at(-1)?.url ?? "").searchParams.get("redirect_to")).toBe("http://localhost:3000/auth/callback"); // 돌아올 주소를 함께 보냄
+        expect(server.calls.at(-1)?.body).toEqual({ email: "new@example.com", password: "right-password-1" }); // 내용에는 이메일과 비밀번호만
+        const link = (values: Record<string, string>) => new URLSearchParams(values); // 메일의 링크가 주소 뒤에 붙여 준 값
+        expect(adapter().canCompleteEmailConfirm(link({ access_token: "confirm-token", refresh_token: "refresh-1", expires_in: "3600", token_type: "bearer", type: "signup" }))).toBe(true); // 가입 확인 링크
+        expect(adapter().canCompleteEmailConfirm(link({ access_token: "recovery-token", refresh_token: "refresh-1", type: "recovery" }))).toBe(false); // 비밀번호 재설정 링크는 아님
+        expect(adapter().canCompleteEmailConfirm(link({ code: "good-code" }))).toBe(false); // 간편 로그인에서 돌아온 값도 아님
+        expect(await adapter().completeEmailConfirm(link({ access_token: "confirm-token", refresh_token: "refresh-1", expires_in: "3600", token_type: "bearer", type: "signup" }))).toMatchObject({ ok: true, session: { accountId: userId, email: "new@example.com", provider: "email", name: "new" } }); // 바로 로그인
+        expect(server.calls.at(-1)).toMatchObject({ method: "GET", headers: { authorization: "Bearer confirm-token", apikey: "public-anon-key" } }); // 링크가 준 출입증으로 주인을 확인
+        expect(JSON.parse(localStorage.getItem(SUPABASE_TOKENS_KEY) ?? "{}")).toMatchObject({ accessToken: "confirm-token", refreshToken: "refresh-1", userId }); // 출입증 보관
+        localStorage.clear(); // 다시 처음부터
+        expect(await adapter().completeEmailConfirm(link({ access_token: "old-token", refresh_token: "refresh-1", type: "signup" }))).toEqual({ ok: false, reason: "link-expired" }); // 서버가 받지 않는 출입증
+        expect(await adapter().completeEmailConfirm(link({ error: "access_denied", error_code: "otp_expired", error_description: "Email link is invalid or has expired" }))).toEqual({ ok: false, reason: "link-expired" }); // 만료됐거나 이미 쓴 링크
+        expect(await adapter().completeEmailConfirm(link({ access_token: "recovery-token", refresh_token: "refresh-1", type: "recovery" }))).toEqual({ ok: false, reason: "link-expired" }); // 다른 종류의 링크
+        expect(localStorage.getItem(SUPABASE_TOKENS_KEY)).toBeNull(); // 실패하면 출입증을 보관하지 않음
     }); // 검증 종료
 
     it("켜 둔 간편 로그인만 알려 주고, 시작할 때 확인 글을 탭에 남긴 뒤 서비스 주소로 보내고, 돌아오면 코드로 로그인을 마친다", async () => // 간편 로그인 검증

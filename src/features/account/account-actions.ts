@@ -27,6 +27,17 @@ export async function completeSocialAndEnter(adapter: AuthAdapter, params: URLSe
     return result; // 결과 반환
 } // 함수 종료
 
+export async function completeEmailConfirmAndEnter(adapter: AuthAdapter, params: URLSearchParams, navigate: Navigate = reloadTo): Promise<AuthResult> // 가입 확인 메일의 링크로 돌아온 뒤 바로 로그인하고 메인으로 들어가기
+{ // 함수 시작
+    const result = await adapter.completeEmailConfirm(params); // 링크가 준 출입증으로 로그인
+    if (result.ok) // 성공
+    { // 조건 시작
+        writeAccountSession(window.localStorage, result.session); // 세션 저장
+        navigate("/"); // 그 계정의 데이터로 새로 열기
+    } // 조건 종료
+    return result; // 결과 반환(실패하면 화면이 이유를 보여 줌)
+} // 함수 종료
+
 export async function signInAndEnter(adapter: AuthAdapter, input: SignInInput, navigate: Navigate = reloadTo, mode: "sign-in" | "sign-up" = "sign-in"): Promise<AuthResult> // 로그인(또는 가입)하고 메인으로 들어가기
 { // 함수 시작
     const result = mode === "sign-up" ? await adapter.signUp(input) : await adapter.signIn(input); // 로그인 시도

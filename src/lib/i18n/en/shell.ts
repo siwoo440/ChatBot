@@ -277,4 +277,5 @@ export const shell: Record<string, string> = {
     "다시 로그인": "Sign in again",
     "나중에": "Later",
     "로그인이 끝났어요. 다시 로그인하면 서버에 이어서 저장해요.": "You have been signed out. Sign in again to keep saving to the server.",
+    "링크가 만료됐거나 이미 사용됐어요. 가입 확인을 이미 마쳤다면 그대로 로그인해 주세요. 아니라면 로그인 화면에서 같은 이메일로 다시 가입하거나, 비밀번호 재설정 메일을 다시 받아 주세요.": "This link has expired or was already used. If you already confirmed your email, just sign in. Otherwise, sign up again with the same email or request a new password reset email from the sign-in screen.",
 };
