@@ -1,7 +1,7 @@
 // Supabase 연결: 로그인 계약(AuthAdapter)과 서버 저장 계약(SnapshotStore)의 실제 구현. Supabase가 여는 주소(로그인 /auth/v1, 표 /rest/v1)를 그대로 부른다. 스위치를 켜기 전에는 쓰이지 않는다.
 import type { AccountProvider, AccountSession } from "@/lib/account/account-session"; // 계정 세션
 import type { AuthAdapter, AuthFailure, AuthResult, SignInInput, SocialProvider } from "@/lib/account/auth-adapter"; // 로그인 계약
-import type { PushResult, RemoteSnapshot, SnapshotStore } from "@/lib/account/snapshot-store"; // 서버 저장 계약
+import { SignedOutError, type PushResult, type RemoteSnapshot, type SnapshotStore } from "@/lib/account/snapshot-store"; // 서버 저장 계약·로그인이 끝났다는 표시
 
 export interface SupabaseConfig // 연결 설정
 { // 구조 시작
@@ -116,27 +116,40 @@ function createClient(config: SupabaseConfig, options: SupabaseOptions) // 두 �
         const provider: AccountProvider = user.app_metadata?.provider === "google" ? "google" : user.app_metadata?.provider === "kakao" ? "kakao" : "email"; // 로그인 방법
         return { accountId: user.id.toLowerCase(), name: (given.trim() || email?.split("@")[0] || "member").slice(0, 60), email, provider, signedInAt: new Date(issuedAt).toISOString() }; // 계정 세션
     }; // 함수 종료
-    const refresh = async (): Promise<string | null> => // 출입증 새로 받기(안 되면 없음)
+    const refresh = async (): Promise<string | null> => // 출입증 새로 받기(서버가 잠시 받지 못하면 없음. 로그인이 끝났으면 SignedOutError)
     { // 함수 시작
         const tokens = readTokens(options.storage); // 지금 출입증
-        if (tokens === null) // 로그인하지 않음
+        if (tokens === null) // 출입증이 없음
         { // 조건 시작
-            return null; // 없음
+            throw new SignedOutError(); // 로그인이 끝남
         } // 조건 종료
         const result = await call("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: tokens.refreshToken } }); // 새로 받기
-        return result.status === 200 && saveSession(result.body) !== null ? readTokens(options.storage)?.accessToken ?? null : null; // 새 출입증
+        if (result.status === 200 && saveSession(result.body) !== null) // 새로 받음
+        { // 조건 시작
+            return readTokens(options.storage)?.accessToken ?? null; // 새 출입증
+        } // 조건 종료
+        if (result.status === 400 || result.status === 401 || result.status === 403) // 서버가 이 출입증을 더는 받지 않음(다른 곳에서 로그아웃했거나 오래돼 끝남)
+        { // 조건 시작
+            options.storage.removeItem(SUPABASE_TOKENS_KEY); // 쓸 수 없는 출입증은 지움(맞출 때마다 서버에 다시 묻지 않게)
+            throw new SignedOutError(); // 로그인이 끝남
+        } // 조건 종료
+        return null; // 서버가 잠시 받지 못함(너무 잦은 요청·서버 오류). 출입증은 두고 다음에 다시
     }; // 함수 종료
     const accessToken = async (): Promise<string | null> => // 쓸 수 있는 출입증(곧 끝나면 새로 받음)
     { // 함수 시작
         const tokens = readTokens(options.storage); // 지금 출입증
-        return tokens === null ? null : tokens.expiresAt - now() > REFRESH_MARGIN_MS ? tokens.accessToken : refresh(); // 남은 시간이 넉넉하면 그대로
+        if (tokens === null) // 출입증이 없음
+        { // 조건 시작
+            throw new SignedOutError(); // 로그인이 끝남
+        } // 조건 종료
+        return tokens.expiresAt - now() > REFRESH_MARGIN_MS ? tokens.accessToken : refresh(); // 남은 시간이 넉넉하면 그대로
     }; // 함수 종료
     const authed = async (path: string, init: { method?: string; body?: unknown; prefer?: string } = {}): Promise<{ status: number; body: unknown }> => // 출입증을 붙인 요청(끝난 출입증이면 한 번 새로 받아 다시)
     { // 함수 시작
-        const token = await accessToken(); // 출입증
-        if (token === null) // 로그인하지 않음
+        const token = await accessToken(); // 출입증(로그인이 끝났으면 여기서 SignedOutError)
+        if (token === null) // 새 출입증을 지금은 받지 못함
         { // 조건 시작
-            throw new Error("not signed in"); // 요청하지 못함
+            throw new Error("token refresh unavailable"); // 요청하지 못함(연결 실패로 처리)
         } // 조건 종료
         const first = await call(path, { ...init, token }); // 요청
         const renewed = first.status === 401 ? await refresh() : null; // 출입증이 끝났으면 새로 받기
@@ -340,9 +353,9 @@ export function createSupabaseSnapshotStore(config: SupabaseConfig, options: Sup
                 } // 조건 종료
                 return result.status === 409 || (result.status === 200 && Array.isArray(result.body) && result.body.length === 0) ? conflict(accountId) : { ok: false, reason: "unavailable" }; // 번호가 달라 바뀐 줄이 없으면 겹침
             } // 시도 종료
-            catch // 로그인하지 않았거나 서버에 닿지 못함
+            catch (error) // 로그인이 끝났거나 서버에 닿지 못함
             { // 실패 시작
-                return { ok: false, reason: "unavailable" }; // 저장하지 못함
+                return { ok: false, reason: error instanceof SignedOutError ? "signed-out" : "unavailable" }; // 로그인이 끝났으면 그렇게 알리고, 아니면 저장하지 못함
             } // 실패 종료
         }, // 함수 종료
     }; // 구현 반환

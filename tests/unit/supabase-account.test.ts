@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"; // 테스트 도구
 import { readAccountServiceConfig } from "@/lib/account/account-config"; // 계정 서비스 설정
+import { SignedOutError } from "@/lib/account/snapshot-store"; // 로그인이 끝났다는 표시
 import { createSupabaseAuthAdapter, createSupabaseSnapshotStore, SUPABASE_TOKENS_KEY, SUPABASE_VERIFIER_KEY } from "@/lib/account/supabase-account"; // Supabase 연결
 
 const config = { mode: "supabase" as const, url: "https://demo.supabase.co", anonKey: "public-anon-key" }; // 시험용 설정(가짜 주소와 공개 키)
@@ -16,6 +17,7 @@ class FakeSupabase // 가짜 Supabase(로그인과 저장본 표만 흉내 냄)
     public refreshes = 0; // 출입증을 새로 받은 횟수
     public deleteReady = true; // 계정 지우기 함수를 데이터베이스에 만들어 두었는지
     public deleted = false; // 계정이 지워졌는지
+    public refreshStatus: number | null = null; // 출입증을 새로 받을 때 돌려줄 오류 상태(없으면 평소대로)
 
     private session(email: string, provider = "email", name?: string): Record<string, unknown> // 로그인 결과
     { // 함수 시작
@@ -49,6 +51,10 @@ class FakeSupabase // 가짜 Supabase(로그인과 저장본 표만 흉내 냄)
         if (url.endsWith("/auth/v1/token?grant_type=refresh_token")) // 출입증 새로 받기
         { // 조건 시작
             this.refreshes += 1; // 횟수
+            if (this.refreshStatus !== null) // 서버가 잠시 받지 못하는 경우
+            { // 조건 시작
+                return json(this.refreshStatus, { message: "temporarily unavailable" }); // 오류 응답
+            } // 조건 종료
             this.accessToken = `access-${this.refreshes + 1}`; // 새 출입증
             return record?.refresh_token === "refresh-1" ? json(200, this.session("soha@example.com")) : json(400, { error_code: "refresh_token_not_found" }); // 결과
         } // 조건 종료
@@ -303,8 +309,25 @@ describe("Supabase 저장본", () => // 저장본 묶음
         expect(await store().pull(userId)).toBeNull(); // 받기
         expect(server.refreshes).toBe(1); // 새로 받음
         expect(JSON.parse(localStorage.getItem(SUPABASE_TOKENS_KEY) ?? "{}").accessToken).toBe("access-2"); // 새 출입증 보관
-        localStorage.removeItem(SUPABASE_TOKENS_KEY); // 로그인하지 않음
-        await expect(store().pull(userId)).rejects.toThrow(); // 받지 못함(맞추기 도구가 연결 실패로 처리)
-        expect(await store().push(userId, "{}", null, "device-a")).toEqual({ ok: false, reason: "unavailable" }); // 올리지 못함
+        localStorage.removeItem(SUPABASE_TOKENS_KEY); // 출입증이 없음(로그인이 끝남)
+        await expect(store().pull(userId)).rejects.toBeInstanceOf(SignedOutError); // 받지 못함(다시 로그인해야 한다고 알림)
+        expect(await store().push(userId, "{}", null, "device-a")).toEqual({ ok: false, reason: "signed-out" }); // 올리지 못함(다시 로그인해야 함)
+    }); // 검증 종료
+
+    it("출입증을 새로 받는 일을 서버가 거절하면 로그인이 끝난 것으로 알리고, 서버가 잠시 받지 못하는 것과는 구별한다", async () => // 로그인 끝남 검증
+    { // 검증 시작
+        clock += 3590 * 1000; // 출입증이 10초 뒤 끝남
+        server.refreshStatus = 503; // 서버가 잠시 받지 못함
+        await expect(store().pull(userId)).rejects.not.toBeInstanceOf(SignedOutError); // 연결 실패로 봄(다시 로그인하라고 하지 않음)
+        expect(localStorage.getItem(SUPABASE_TOKENS_KEY)).not.toBeNull(); // 출입증은 그대로 둠(다음에 다시 시도)
+        expect(await store().push(userId, "{}", null, "device-a")).toEqual({ ok: false, reason: "unavailable" }); // 올리기도 연결 실패
+        server.refreshStatus = null; // 서버가 다시 받음
+        const tokens = JSON.parse(localStorage.getItem(SUPABASE_TOKENS_KEY) ?? "{}") as Record<string, unknown>; // 지금 출입증
+        localStorage.setItem(SUPABASE_TOKENS_KEY, JSON.stringify({ ...tokens, refreshToken: "refresh-revoked" })); // 다른 곳에서 로그아웃해 더는 쓸 수 없는 출입증
+        await expect(store().pull(userId)).rejects.toBeInstanceOf(SignedOutError); // 로그인이 끝남
+        expect(localStorage.getItem(SUPABASE_TOKENS_KEY)).toBeNull(); // 쓸 수 없는 출입증은 지움(계속 다시 묻지 않게)
+        const before = server.calls.length; // 지금까지의 요청 수
+        expect(await store().push(userId, "{}", null, "device-a")).toEqual({ ok: false, reason: "signed-out" }); // 올리기도 로그인이 끝났다고 알림
+        expect(server.calls.length).toBe(before); // 서버에 다시 묻지 않음
     }); // 검증 종료
 }); // 묶음 종료

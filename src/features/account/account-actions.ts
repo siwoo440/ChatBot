@@ -49,7 +49,7 @@ export async function completeResetAndEnter(adapter: AuthAdapter, params: URLSea
     return result; // 결과 반환(실패하면 화면이 이유를 보여 줌)
 } // 함수 종료
 
-export async function signOutAndLeave(adapter: AuthAdapter, navigate: Navigate = reloadTo): Promise<void> // 로그아웃하고 손님 화면으로 돌아가기
+export async function signOutAndLeave(adapter: AuthAdapter, navigate: Navigate = reloadTo, href = "/"): Promise<void> // 로그아웃하고 손님 화면으로 돌아가기(다시 로그인할 때는 로그인 화면으로)
 { // 함수 시작
     const session = readAccountSession(window.localStorage); // 지금 세션
     if (session !== null) // 로그인해 있음
@@ -57,7 +57,7 @@ export async function signOutAndLeave(adapter: AuthAdapter, navigate: Navigate =
         await adapter.signOut(session).catch(() => undefined); // 서비스 쪽 정리(실패해도 이 기기에서는 로그아웃)
     } // 조건 종료
     writeAccountSession(window.localStorage, null); // 세션 지움
-    navigate("/"); // 손님 데이터로 새로 열기
+    navigate(href); // 손님 데이터로 새로 열기
 } // 함수 종료
 
 export async function clearDeviceDataAndLeave(adapter: AuthAdapter, navigate: Navigate = reloadTo): Promise<void> // 이 기기에 있는 계정 데이터를 지우고 로그아웃하기(서버 저장본은 그대로라 다시 로그인하면 받아 옴)

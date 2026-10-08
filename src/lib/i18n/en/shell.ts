@@ -271,4 +271,10 @@ export const shell: Record<string, string> = {
     "되돌릴 수 없다는 것을 확인했어요": "I understand this can't be undone",
     "계정 지우기": "Delete account",
     "계정을 지우지 못했어요. 잠시 뒤 다시 시도해 주세요.": "Couldn't delete your account. Please try again in a moment.",
+    "로그인 안내": "Sign-in notice",
+    "로그인이 끝났어요": "You have been signed out",
+    "바꾼 내용은 이 기기에는 계속 저장돼요. 다시 로그인하면 서버에도 이어서 저장하고 다른 기기에서도 볼 수 있어요.": "Your changes are still saved on this device. Sign in again to keep saving to the server and see them on other devices.",
+    "다시 로그인": "Sign in again",
+    "나중에": "Later",
+    "로그인이 끝났어요. 다시 로그인하면 서버에 이어서 저장해요.": "You have been signed out. Sign in again to keep saving to the server.",
 };
