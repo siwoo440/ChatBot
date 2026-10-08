@@ -67,3 +67,33 @@ test("새 스토리를 만들어 공개 저장하고 상세에서 바로 시작�
     await page.goto("/stories"); // 스토리 모드 이동
     await expect(page.getByRole("link", { name: /옥상 위 마지막 공연/ }).first()).toBeVisible(); // 목록 노출 확인
 }); // 테스트 종료
+
+for (const width of [390, 820, 1440]) // 세 가지 너비
+{ // 순회 시작
+    test(`${width}px 스토리 모드의 정렬과 필터는 목록을 바꾸고, 다른 화면에 다녀와도 남으며, 가로로 넘치지 않는다`, async ({ page }) => // 정렬·필터 흐름
+    { // 테스트 시작
+        await page.setViewportSize({ width, height: 900 }); // 화면 크기
+        await seedClosedPanels(page); // 패널 닫은 상태 준비
+        await page.goto("/stories"); // 스토리 모드
+        const bar = page.getByRole("region", { name: "정렬과 필터" }); // 정렬과 필터 막대
+        const titles = page.getByRole("article").getByRole("heading"); // 카드 제목
+        await expect(titles.first()).toHaveText("비 그친 밤의 기록관"); // 처음에는 인기순
+        const total = await titles.count(); // 전체 스토리 수
+        await bar.getByLabel("인원").selectOption("solo"); // 한 명과
+        await bar.getByLabel("정렬").selectOption("name"); // 이름순
+        await expect(bar.getByRole("status")).toContainText("조건 1개"); // 걸린 조건 수
+        const narrowed = await titles.allTextContents(); // 좁힌 목록
+        expect(narrowed.length).toBeGreaterThan(0); // 결과 있음
+        expect(narrowed.length).toBeLessThan(total); // 줄어듦
+        expect(narrowed).toEqual([...narrowed].sort((left, right) => left.localeCompare(right, "ko"))); // 가나다순
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); // 넘침 없음
+        await page.getByRole("article").first().getByRole("link").first().click(); // 첫 카드의 상세로 이동
+        await expect(page).toHaveURL(/\/stories\/story-/); // 상세 주소
+        await page.goBack(); // 목록으로 돌아옴
+        await expect(bar.getByLabel("인원")).toHaveValue("solo"); // 조건이 남아 있음
+        await expect(titles).toHaveCount(narrowed.length); // 목록도 그대로
+        await bar.getByRole("button", { name: "조건 지우기" }).click(); // 조건 지우기
+        await expect(titles).toHaveCount(total); // 전체로 돌아옴
+        await expect(titles.first()).toHaveText("비 그친 밤의 기록관"); // 인기순으로 돌아옴
+    }); // 테스트 종료
+} // 순회 종료
