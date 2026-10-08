@@ -37,7 +37,7 @@
 | 방침의 내용 | 실제 동작이 있는 곳 | 확인한 것 |
 | --- | --- | --- |
 | 이메일 가입·로그인, Google 로그인에서 받는 항목 | `src/lib/account/supabase-account.ts` | 이메일, 비밀번호, Google이 준 이름을 읽는다. 프로필 사진 주소는 앱이 쓰지 않지만 Supabase에 저장된다 |
-| 서버에 보관하는 계정 데이터 | `supabase/account-setup.sql`의 `mv_snapshots`, `src/lib/account/account-sync.ts` | 앱 상태를 통째로 한 벌 저장한다. 항목은 `src/features/core/types.ts`의 `AppState` |
+| 서버에 보관하는 계정 데이터 | `supabase/account-setup.sql`의 `mv_snapshots`·`mv_blobs`, `src/lib/account/state-parts.ts`, `account-sync.ts` | 앱 상태 전체를 조각으로 나눠 저장한다(보관하는 항목은 같고 두는 모양만 나뉨). 항목은 `src/features/core/types.ts`의 `AppState` |
 | 자기 데이터만 읽고 쓰기 | `supabase/account-setup.sql`의 권한 규칙 | 시험용 데이터베이스와 실제 프로젝트의 읽기 요청으로 확인(`HANDOFF.md` 39절) |
 | 탈퇴하면 바로 지움 | `mv_delete_account` 함수, `src/features/settings/AccountManagement.tsx` | 계정을 지우면 저장본도 함께 지워진다. 실제 프로젝트에서는 아직 돌려 보지 않음 |
 | 데이터 내려받기 | `src/features/settings/DataManagement.tsx` | JSON 내보내기 |

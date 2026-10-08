@@ -33,7 +33,7 @@
 1. Supabase 프로젝트 화면 왼쪽에서 `SQL Editor`를 연다.
 2. 저장소의 `supabase/account-setup.sql` 파일을 열어 내용을 모두 복사한다.
 3. SQL Editor에 붙여 넣고 `Run`을 누른다. `Success`가 나오면 된다.
-4. 왼쪽 `Table Editor`에서 `mv_snapshots` 표가 생겼는지 본다.
+4. 왼쪽 `Table Editor`에서 `mv_snapshots`와 `mv_blobs` 두 표가 생겼는지 본다.
 
 이 설정이 하는 일: 계정마다 앱 데이터 한 벌을 두는 표를 만들고, 로그인한 사람이 **자기 줄만** 읽고 쓸 수 있게 막는다. 여러 번 실행해도 같은 결과가 된다.
 
@@ -118,7 +118,7 @@ NEXT_PUBLIC_ACCOUNT_SERVICE=supabase
 1. `http://localhost:3002/login`을 연다. 이름 입력 대신 **이메일과 비밀번호** 칸이 보이면 스위치가 켜진 것이다.
 2. `회원가입`으로 바꿔 내 이메일로 가입한다. 확인 메일이 오면 메일의 버튼을 누른다. 앱이 열리면서 **바로 로그인된다**(가입한 브라우저가 아니어도 된다). `로그인하지 못했어요`와 함께 링크가 만료됐다는 안내가 나오면, 확인은 이미 됐을 수 있으니 로그인 화면에서 이메일과 비밀번호로 로그인해 본다.
 3. 로그인하면 오른쪽 사용자 패널에 계정 이름과 `서버에 저장됨`이 보인다.
-4. Supabase의 `Table Editor → mv_snapshots`에 줄이 하나 생겼는지 본다.
+4. Supabase의 `Table Editor → mv_snapshots`에 줄이 하나, `mv_blobs`에 줄이 여러 개(앱 데이터를 나눈 조각) 생겼는지 본다.
 5. 다른 브라우저(또는 시크릿 창)에서 같은 계정으로 로그인해, 앞에서 바꾼 내용(예: 보관한 캐릭터)이 그대로 보이는지 확인한다.
 6. Google 로그인을 켰다면 `Google로 계속하기` 버튼이 보인다. 눌러서 로그인되는지 확인한다.
 7. 탈퇴까지 확인하려면 시험용으로 만든 계정으로 로그인해 `개인정보 및 보안 → 계정 관리 → 계정 지우기(탈퇴)`를 누른다. 손님 화면으로 돌아오면 Supabase의 `Authentication → Users`에서 그 계정이, `Table Editor → mv_snapshots`에서 그 줄이 사라졌는지 본다. 되돌릴 수 없으니 쓰던 계정으로 하지 않는다.
@@ -132,6 +132,7 @@ NEXT_PUBLIC_ACCOUNT_SERVICE=supabase
 | --- | --- | --- |
 | `GET /auth/v1/settings` | 200. `external.email`이 `true` | 주소와 공개 키가 맞다. `external.google`로 Google 로그인이 켜졌는지, `mailer_autoconfirm`으로 확인 메일이 필요한지도 본다 |
 | `GET /rest/v1/mv_snapshots?select=user_id&limit=1` | 401, 코드 `42501`(`permission denied`) | 표가 있고, 로그인하지 않으면 읽지 못한다. 404(`PGRST205`)면 2단계의 SQL을 실행하지 않은 것 |
+| `GET /rest/v1/mv_blobs?select=hash&limit=1` | 401, 코드 `42501`(`permission denied`) | 조각 표가 있고, 로그인하지 않으면 읽지 못한다. 404(`PGRST205`)면 SQL을 가장 최근 파일로 다시 실행해야 한다 |
 | `GET /auth/v1/authorize?provider=google&redirect_to=…`(따라가지 않음) | 302로 `accounts.google.com`에 넘어가고 `redirect_uri`가 `<프로젝트 주소>/auth/v1/callback` | Google 로그인이 켜져 있다. 400(`provider is not enabled`)이면 꺼져 있는 것 |
 
 `Redirect URLs`에 넣은 돌아올 주소는 밖에서 볼 수 없다. 실제로 Google 로그인을 해 봐야 안다.
@@ -143,7 +144,7 @@ NEXT_PUBLIC_ACCOUNT_SERVICE=supabase
 | 로그인 화면이 여전히 이름만 묻는다 | `.env.local`의 세 값이 모두 있는지, 주소 칸에 안내문 글자가 남아 있지 않은지, 스위치 줄이 두 번 있지 않은지(아래쪽 줄이 적용됨), 스위치가 `supabase`인지, 서버를 다시 켰는지 |
 | `지금은 로그인할 수 없어요` | Project URL이 맞는지, 공개 키가 맞는지, 인터넷 연결 |
 | `받은 메일의 확인 버튼을 누른 뒤 로그인해 주세요` | 메일함(스팸함 포함). Supabase 기본 메일은 한 시간에 보낼 수 있는 수가 적다 |
-| 사용자 패널에 `서버에 저장하지 못했어요` | 2단계의 SQL을 실행했는지(`mv_snapshots` 표가 있는지) |
+| 사용자 패널에 `서버에 저장하지 못했어요` | 2단계의 SQL을 **가장 최근 파일로** 실행했는지(`mv_snapshots`와 `mv_blobs` 두 표가 모두 있는지). 표를 더한 뒤에 받은 코드라면 SQL을 한 번 더 실행한다 |
 | 화면 아래에 `로그인이 끝났어요` 안내 | 다른 기기에서 로그아웃했거나 오래 쓰지 않아 로그인이 끝난 것이다. `다시 로그인`을 눌러 같은 계정으로 로그인하면 이 기기의 데이터로 이어서 쓴다 |
 | 탈퇴할 때 `계정을 지우지 못했어요` | 2단계의 SQL을 최신 파일로 다시 실행했는지(`mv_delete_account` 함수가 있어야 한다. Supabase 화면의 `Database → Functions`에서 볼 수 있다) |
 | 메일의 링크를 눌렀는데 열리지 않거나 다른 사이트가 열린다 | `Authentication → URL Configuration`의 `Site URL`이 지금 쓰는 개발 서버 주소인지(3단계 아래의 「메일의 링크가 돌아올 주소 넣기」) |
@@ -160,5 +161,5 @@ NEXT_PUBLIC_ACCOUNT_SERVICE=supabase
 - 「이 기기에서 계정 데이터 지우기」는 이 브라우저에 있는 계정 데이터만 지우고 로그아웃한다. 서버의 저장본은 그대로라 다시 로그인하면 받아 온다.
 - 무료 요금제의 프로젝트는 한동안 쓰지 않으면 멈출 수 있다. 멈췄으면 Supabase 화면에서 다시 켠다.
 - 비밀번호 다시 정하기(메일 요청, 메일의 링크로 들어와 새 비밀번호 정하기)도 가짜 서버로만 확인했다. **실제 프로젝트에서는 아직 돌려 보지 않았다.** 6단계의 8번으로 처음 확인한다. 메일의 링크는 주소 뒤에 출입증을 붙여 돌아오고, 앱은 그 값을 읽자마자 주소 칸에서 지운다.
-- 앱 데이터는 계정마다 통째로 한 벌 저장한다. 토큰 잔액도 그 안에 있어 브라우저가 정한 값을 그대로 믿는다. 다른 사람에게 열기 전에 바꿔야 한다.
+- 앱 데이터는 조각으로 나눠 `mv_blobs`에 두고, 조각 목록 한 줄을 `mv_snapshots`에 둔다(바뀐 조각만 올리고 받는다. `HANDOFF.md` 43절). 토큰 잔액도 그 안에 있어 브라우저가 정한 값을 그대로 믿는다. 다른 사람에게 열기 전에 바꿔야 한다.
 - 다른 사람에게 여는 일(공개 주소, 개인정보처리방침, 이용약관)은 이 문서의 범위가 아니다.
