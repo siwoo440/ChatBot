@@ -5,6 +5,7 @@
 - 대화 응답과 이미지는 기본이 **연습용(Mock)** 입니다. 실제 AI 대화는 내 컴퓨터에서 혼자 시험할 때만 켤 수 있습니다(아래 「실제 AI로 대화하기」).
 - 기본 설정에서는 캐릭터·대화·토큰이 **지금 쓰는 브라우저에만** 저장됩니다(`localStorage`). 연습용 계정별로 데이터를 나눠 쓰며, Supabase를 설정하면 실제 이메일 로그인과 계정 데이터 동기화를 사용할 수 있습니다. 실제 프로젝트에서 가입·두 기기 복원까지의 확인은 아직 남아 있습니다.
 - 화면 언어는 한국어와 영어를 지원합니다.
+- 토큰 이용 내역에서 사용한 한국 날짜·시간과 채팅방을 확인하고 해당 대화로 이동할 수 있습니다. 실제 계정의 서버 지갑·차감·보상·영속 한도 연결은 [서버 지갑 설정](docs/WALLET-SETUP.md)을 따릅니다. 현재 원격 프로젝트 검증은 남아 있습니다.
 
 ## 빠른 시작
 
@@ -29,6 +30,7 @@ npm run dev
 | `npm run lint` | 문법·규칙 검사 |
 | `npm run test:run` | 단위·통합 테스트(Vitest) |
 | `npm run test:account-check` | 연결 점검 도구의 HTTP·민감 정보 보호 검사 |
+| `npm run test:wallet-db` | 로컬 PostgreSQL에서 서버 지갑 SQL·권한·차감·보상·재시작 검사 |
 | `npm run check:account` | 설정 값을 출력하지 않는 읽기 전용 계정 연결 점검 |
 | `npm run build -- --webpack` | 배포용 빌드 |
 | `npm run test:e2e -- --project=chromium --workers=1` | 실제 브라우저 테스트(Playwright) |

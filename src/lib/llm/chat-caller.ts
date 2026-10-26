@@ -80,7 +80,7 @@ function bearerToken(request: Request): string | null // 요청 머리말의 출
 
 export async function identifyCaller(request: Request, env: Record<string, string | undefined> = process.env, verifier: TokenVerifier | null | undefined = undefined): Promise<ChatCaller> // 요청한 사람 가리기
 { // 함수 시작
-    if (isLocalHost(request.headers.get("host")) && env.NEXT_PUBLIC_ACCOUNT_SERVICE !== "supabase") // 연습 모드의 로컬 요청
+    if (isLocalHost(request.headers.get("host")) && env.NEXT_PUBLIC_ACCOUNT_SERVICE !== "supabase" && env.CHAT_ALLOW_PUBLIC !== "true") // 비공개 연습 모드의 로컬 요청
     { // 조건 시작
         return { kind: "local" }; // 혼자 시험
     } // 조건 종료

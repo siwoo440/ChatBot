@@ -62,6 +62,13 @@ describe("서버 지갑과 채팅 연결", () => // 검증 묶음
         expect(await identifyCaller(request("/api/chat", undefined, false))).toMatchObject({ kind: "refused", code: "login-required" }); // 로그인 필요
     }); // 검증 종료
 
+    it("공개 모드는 로컬 Host를 붙여도 로그인 우회 불가", async () => // Host 위조 경계
+    { // 검증 시작
+        vi.stubEnv("CHAT_ALLOW_PUBLIC", "true"); // 공개 환경 모형
+        vi.stubEnv("NEXT_PUBLIC_ACCOUNT_SERVICE", "practice"); // 잘못된 계정 설정 모형
+        expect(await identifyCaller(request("/api/chat", undefined, false))).toMatchObject({ kind: "refused", code: "login-required" }); // 로컬 Host 우회 차단
+    }); // 검증 종료
+
     it("지갑 조회는 로그인 필수이며 서버에서 확인한 계정만 사용", async () => // 조회 인증
     { // 검증 시작
         expect((await readWallet(request("/api/wallet", undefined, false))).status).toBe(401); // 손님 차단

@@ -20,7 +20,7 @@ async function seed(page: Page): Promise<void> // 패널을 닫은 초기 상태
     }, { key: stateKey, guard: seedKey, value: JSON.stringify(state) }); // 인자
 } // 함수 종료
 
-test("대화와 출석으로 쓴 토큰과 받은 토큰이 토큰 이용 내역에 남고 새로고침 뒤에도 보인다", async ({ page }) => // 기록 흐름 검증
+test("대화와 출석으로 쓴 토큰과 받은 토큰이 토큰 이용 내역에 남고 새로고침 뒤에도 보인다", async ({ page }, testInfo) => // 기록 흐름 검증
 { // 테스트 시작
     await seed(page); // 준비
     await page.goto("/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 리안 대화(버전까지 적은 주소: 주소를 정리하느라 화면을 다시 만드는 사이에 보낸 말이 사라지지 않게)
@@ -41,6 +41,12 @@ test("대화와 출석으로 쓴 토큰과 받은 토큰이 토큰 이용 내역
     await expect(page.getByRole("listitem").filter({ hasText: "새벽 도서관의 리안" })).toContainText("−1"); // 대화 기록
     await page.reload(); // 새로고침
     await expect(page.getByRole("group", { name: "기록 종류" }).getByRole("button", { name: "전체 2" })).toBeVisible(); // 기록 유지
+    const usage = page.getByRole("listitem").filter({ hasText: "새벽 도서관의 리안" }); // 채팅 사용 내역
+    await expect(usage.locator("time")).toHaveText(/\d{4}\.\s*\d{2}\.\s*\d{2}\.\s*\d{2}:\d{2}:\d{2}/); // 한국 날짜와 초 단위 시각
+    await page.screenshot({ path: testInfo.outputPath("token-history.png"), fullPage: true }); // 이용 내역 시각 검토
+    await usage.getByRole("link").click(); // 사용한 채팅방 열기
+    await expect(page).toHaveURL(/\/chat\/rian\?conversation=conversation-rian&version=/); // 해당 채팅방 경로
+    await expect(page.getByText("오늘도 왔어", { exact: true })).toBeVisible(); // 사용한 메시지 확인
 }); // 테스트 종료
 
 for (const width of [390, 820, 1440]) // 화면 너비 순회

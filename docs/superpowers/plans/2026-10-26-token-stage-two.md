@@ -35,20 +35,20 @@
 
 **Interfaces:** TokenRecord에 optional conversationId/conversationTitle/characterId/versionId 추가. TokenHistory는 conversations 목록으로 현재 존재 여부 확인.
 
-- [ ] 날짜·시간·링크·삭제·옛 기록 테스트 작성, 실패 확인.
-- [ ] 차감 시 채팅 메타데이터 저장, 안전한 링크와 한국 시각 표시.
-- [ ] 해당 단위·통합 테스트 통과 확인 후 커밋.
+- [x] 날짜·시간·링크·삭제·옛 기록 테스트 작성, 실패 확인.
+- [x] 차감 시 채팅 메타데이터 저장, 안전한 링크와 한국 시각 표시.
+- [x] 해당 단위·통합 테스트 통과 확인 후 커밋.
 
 ---
 ### Task 2: 영속 서버 원장과 권한
 
-**Files:** supabase/wallet-setup.sql, src/lib/wallet/types.ts, src/lib/wallet/server.ts, tests/unit/server-wallet.test.ts, tests/database/wallet.test.ts
+**Files:** supabase/wallet-setup.sql, src/lib/wallet/types.ts, src/lib/wallet/server.ts, tests/unit/server-wallet.test.ts, tests/database/wallet.test.mjs
 
 **Interfaces:** WalletSnapshot { wallet, records, rewards, revision }. 서비스 전용 mv_wallet_command(user_id,command,data) → JSON. 명령 read/reserve/settle/refund/assist/reward.
 
-- [ ] 실제 SQL 실행 테스트를 먼저 작성, 권한·잔액·중복·재시작·보상·경쟁 실패 확인.
-- [ ] 표·RLS·권한·원자적 RPC와 REST 어댑터 구현.
-- [ ] SQL과 어댑터 테스트 통과 확인 후 커밋.
+- [x] 실제 SQL 실행 테스트를 먼저 작성, 권한·잔액·중복·재시작·보상·경쟁 실패 확인.
+- [x] 표·RLS·권한·원자적 RPC와 REST 어댑터 구현.
+- [x] SQL과 어댑터 테스트 통과 확인 후 커밋.
 
 ---
 ### Task 3: 실제 호출과 화면 연결
@@ -57,9 +57,9 @@
 
 **Interfaces:** GET /api/wallet → WalletSnapshot, POST /api/wallet { reward }. 요청 headers에 x-wallet-request-id와 채팅 메타데이터, API 비용 계산은 검증한 ChatRequest만 사용. 서버 지갑 변경 후 wallet refresh 이벤트.
 
-- [ ] 인증·비밀 키 누락·중복 요청·빈 응답·환불·스냅샷 덮어쓰기 테스트 실패 확인.
-- [ ] API 예약/확정/반환, 보조 한도, 실제 계정의 화면 전용 지갑과 보상 연결.
-- [ ] 관련 단위·통합 테스트 통과 확인 후 커밋.
+- [x] 인증·비밀 키 누락·중복 요청·빈 응답·환불·스냅샷 덮어쓰기 테스트 실패 확인.
+- [x] API 예약/확정/반환, 보조 한도, 실제 계정의 화면 전용 지갑과 보상 연결.
+- [x] 관련 단위·통합 테스트 통과 확인 후 커밋.
 
 ---
 ### Task 4: 통합 검증과 전달
@@ -68,6 +68,6 @@
 
 **Interfaces:** 운영 설정 SERVER_WALLET_ENABLED와 SUPABASE_SECRET_KEY(서버 전용), 기존 한도 환경 변수 유지.
 
-- [ ] 실제 SQL·전체 Vitest·typecheck·lint·production build·관련 E2E 실행.
+- [x] 실제 SQL·전체 Vitest·typecheck·lint·production build·관련 E2E 실행.
 - [ ] 새 리뷰어의 전체 변경 검토, 중요한 지적 회귀 테스트와 수정.
 - [ ] 남은 외부 설정 및 미검증 항목 기록, main에 통합·푸시와 원격 해시 확인.
