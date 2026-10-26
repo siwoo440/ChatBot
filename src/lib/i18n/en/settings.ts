@@ -351,5 +351,8 @@ export const settings: Record<string, string> = {
     "로그인하지 않음 · 이 브라우저에만 저장돼요": "Not logged in · saved only in this browser",
     "{0} · 연습용 계정(이 브라우저 안에서만 나뉘어요)": "{0} · practice account (separated only inside this browser)",
     "{0} · 로그인함": "{0} · logged in",
-    "서버 데이터 받기 전": "Before taking server data",
+    "서버 데이터 받기 전": "Before taking server data", // 동기화 백업
+    "채팅방 정보 없음": "Chat information unavailable", // 옛 기록
+    "삭제된 채팅방": "Deleted chat", // 삭제 안내
+    "시각 정보 없음": "Time unavailable", // 시각 오류
 };

@@ -37,7 +37,7 @@ export function TokenSettings() // 토큰 이용 내역 화면
                 <p>{t("답변 길이를 늘리면 등급마다 정해진 만큼 더 들고, 유저 노트를 {0}자 넘게 적으면 메시지당 {1}토큰이 더 들어요. 지금 대화의 비용은 입력창 옆 등급 버튼에서 볼 수 있어요.", [USER_NOTE_LIMIT, USER_NOTE_EXTENDED_COST])}</p> {/* 추가 비용 안내 */}
                 <p>{t("응답을 중간에 멈춰도 요청 1회로 계산되고, 재시도와 다시 생성은 각각 새 요청으로 계산됩니다.")}</p> {/* 계산 규칙 */}
             </section> {/* 비용표 종료 */}
-            <TokenHistory records={state.tokenRecords} /> {/* 최근 7일 그래프와 이용 기록 */}
+            <TokenHistory records={state.tokenRecords} conversations={state.conversations} /> {/* 채팅방별 이용 기록 */}
             <section className={styles.card} aria-labelledby="token-reward-title"> {/* 받은 토큰 */}
                 <h2 id="token-reward-title">{t("토큰 받기")}</h2> {/* 제목 */}
                 <p>{t("출석과 미션, 친구 초대로 지금까지")} {state.rewards.totalEarned.toLocaleString()}{t("토큰을 받았어요.")} <Link href={"/rewards" as Route}>{t("출석과 미션 열기")}</Link></p> {/* 받은 토큰 안내 */}

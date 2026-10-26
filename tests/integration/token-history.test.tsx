@@ -40,6 +40,24 @@ function Probe() // 최신 토큰 기록 표시
 
 describe("토큰 이용 내역", () => // 화면 묶음
 { // 묶음 시작
+    it("사용 당시 채팅방 이름과 한국 날짜·초 단위 시각 및 채팅방 링크를 남긴다", () => // 채팅방·시각 검증
+    { // 검증 시작
+        const state = withRecords([{ ...records[0], conversationId: "conversation-rian", conversationTitle: "퇴근 후 대화", characterId: "rian", versionId: "conversation-rian-version-1", createdAt: "2026-10-25T15:04:05.000Z" }]); // 자정 이후 기록
+        state.conversations[0].title = "이름을 바꾼 대화"; // 현재 이름 변경
+        renderWithApp(<TokenSettings />, state); // 내역 화면
+        expect(screen.getByRole("link", { name: "퇴근 후 대화" })).toHaveAttribute("href", "/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 당시 이름과 경로
+        expect(screen.getByText("2026. 10. 26. 00:04:05")).toHaveAttribute("datetime", "2026-10-25T15:04:05.000Z"); // 한국 날짜와 시각
+    }); // 검증 종료
+
+    it("삭제한 채팅방과 식별자가 없는 옛 기록을 잘못된 방으로 연결하지 않는다", () => // 삭제·이전 기록 검증
+    { // 검증 시작
+        const state = withRecords([{ ...records[0], conversationId: "deleted-room", conversationTitle: "지운 대화", characterId: "rian" }, { ...records[0], id: "legacy" }]); // 삭제·이전 기록
+        renderWithApp(<TokenSettings />, state); // 내역 화면
+        expect(screen.getByText("삭제된 채팅방")).toBeVisible(); // 삭제 안내
+        expect(screen.getByText("채팅방 정보 없음")).toBeVisible(); // 옛 기록 안내
+        expect(screen.queryByRole("link", { name: "지운 대화" })).toBeNull(); // 잘못된 링크 차단
+    }); // 검증 종료
+
     it("최근 7일 그래프와 날짜별 이용 기록을 보여 주고 받음·사용으로 거른다", async () => // 그래프·목록
     { // 검증 시작
         const user = userEvent.setup(); // 사용자 도구

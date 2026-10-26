@@ -84,7 +84,7 @@ function recordChatSpend(state: AppState, conversation: Conversation, after: Tok
         if (amount > 0) // 쓴 토큰 있음
         { // 조건 시작
             balance -= amount; // 잔액 차감
-            records = addTokenRecord(records, { id: `spend-${source}-${conversation.id}-${after.updatedAt}`, direction: "spend", source, label, work, amount, balance, createdAt: after.updatedAt }); // 기록 추가
+            records = addTokenRecord(records, { id: `spend-${source}-${conversation.id}-${after.updatedAt}`, direction: "spend", source, label, work, conversationId: conversation.id, conversationTitle: conversation.title, characterId: conversation.characterId, versionId: conversation.currentVersionId, amount, balance, createdAt: after.updatedAt }); // 채팅방과 사용 시각 기록
         } // 조건 종료
     } // 순회 종료
     return records; // 기록 반환

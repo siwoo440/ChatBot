@@ -484,6 +484,10 @@ export interface TokenRecord // 토큰 기록(받음·사용, 최근 순)
     source: TokenRecordSource; // 출처
     label: string; // 표시 이름
     work?: string; // 쓴 곳(작품 이름·이미지 설명, 받은 기록에는 없음)
+    conversationId?: string; // 사용한 채팅방 식별자
+    conversationTitle?: string; // 사용 당시 채팅방 이름
+    characterId?: string; // 연결 캐릭터 식별자
+    versionId?: string; // 사용한 대화 버전 식별자
     amount: number; // 토큰 수
     balance: number; // 기록 뒤 잔액
     createdAt: string; // 기록 시각

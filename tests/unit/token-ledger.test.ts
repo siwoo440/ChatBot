@@ -56,7 +56,7 @@ describe("쓴 토큰 기록", () => // 사용 기록 묶음
         const chat = structuredClone(state); // 채팅 상태
         chat.wallet = trySpendAmount(chat.wallet, 3, "chat", "2026-10-03T03:00:00.000Z").wallet; // 플러스챗 3토큰
         const merged = merge(state, chat); // 병합
-        expect(merged.tokenRecords).toEqual([{ id: "spend-chat-conversation-rian-2026-10-03T03:00:00.000Z", direction: "spend", source: "chat", label: "대화", work: "새벽 도서관의 리안", amount: 3, balance: state.wallet.balance - 3, createdAt: "2026-10-03T03:00:00.000Z" }]); // 대화 기록
+        expect(merged.tokenRecords).toEqual([{ id: "spend-chat-conversation-rian-2026-10-03T03:00:00.000Z", direction: "spend", source: "chat", label: "대화", work: "새벽 도서관의 리안", conversationId: "conversation-rian", conversationTitle: state.conversations.find((item) => item.id === "conversation-rian")!.title, characterId: "rian", versionId: "conversation-rian-version-1", amount: 3, balance: state.wallet.balance - 3, createdAt: "2026-10-03T03:00:00.000Z" }]); // 채팅방을 포함한 대화 기록
         expect(merge(merged, structuredClone(merged)).tokenRecords).toHaveLength(1); // 쓴 토큰이 없으면 기록하지 않음
     }); // 검증 종료
 

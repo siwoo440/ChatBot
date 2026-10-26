@@ -598,7 +598,7 @@ export function isRewardState(value: unknown): boolean // 출석·미션 판정 
 
 export function isTokenRecord(value: unknown): boolean // 토큰 기록 판정 함수
 { // 함수 시작
-    return isRecord(value) && isString(value.id) && value.id.length > 0 && isOneOf(value.direction, ["earn", "spend"]) && isOneOf(value.source, tokenRecordSources) && isString(value.label) && (value.work === undefined || isString(value.work)) && isCount(value.amount) && isFiniteNumber(value.balance) && isString(value.createdAt); // 기록 반환
+    return isRecord(value) && isString(value.id) && value.id.length > 0 && isOneOf(value.direction, ["earn", "spend"]) && isOneOf(value.source, tokenRecordSources) && isString(value.label) && [value.work, value.conversationId, value.conversationTitle, value.characterId, value.versionId].every((item) => item === undefined || isString(item)) && isCount(value.amount) && isFiniteNumber(value.balance) && isString(value.createdAt); // 옛 기록과 채팅방 정보 검사
 } // 함수 종료
 
 export function hasSchemaFifteenFields(value: Record<string, unknown>): boolean // 스키마 15 필드 판정 함수(출석·미션, 토큰 기록)
