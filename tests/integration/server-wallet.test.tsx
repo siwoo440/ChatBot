@@ -4,6 +4,10 @@ import { AppProvider, useAppStore } from "@/features/core/AppProvider"; // 전�
 import { createInitialState } from "@/features/core/initial-state"; // 기본 상태
 import { TokenSettings } from "@/features/settings/TokenSettings"; // 지갑 화면
 import { RewardsScreen } from "@/features/rewards/RewardsScreen"; // 보상 화면
+import { ChatScreen } from "@/features/chat/ChatScreen"; // 채팅 화면
+import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // 응답 대역
+import { MockImageAdapter } from "@/lib/adapters/mock-image-adapter"; // 이미지 대역
+import { WALLET_CHANGED_EVENT } from "@/lib/wallet/events"; // 사용 완료 갱신
 import type { AccountSession } from "@/lib/account/account-session"; // 계정 타입
 
 const config = vi.hoisted(() => ({ mode: "supabase", url: "https://test.supabase.co", anonKey: "public" })); // 실제 계정 모형
@@ -11,6 +15,7 @@ const session = vi.hoisted(() => ({ current: { accountId: "user-one", name: "사
 vi.mock("@/lib/account/account-config", () => ({ getAccountServiceConfig: () => config })); // 외부 설정 대체
 vi.mock("@/features/account/use-account-session", () => ({ useAccountSession: () => session.current })); // 현재 계정 대체
 vi.mock("@/lib/account/access-token", () => ({ getAccessTokenHeaders: async () => ({ authorization: "Bearer verified" }) })); // 출입증 대체
+vi.mock("next/navigation", () => ({ usePathname: () => "/chat/rian", useSearchParams: () => new URLSearchParams("conversation=conversation-rian&version=conversation-rian-version-1"), useRouter: () => ({ replace: () => undefined, push: () => undefined }) })); // 채팅 경로 대역
 const initial = createInitialState(); // 시험 지갑 포함 상태
 const snapshot = { revision: 2, wallet: { ...initial.wallet, balance: 7 }, records: [], rewards: initial.rewards }; // 서버 지갑
 const repository = { load: () => structuredClone(initial), save: vi.fn() }; // 로컬 저장 대역
@@ -34,6 +39,19 @@ afterEach(() => // 대역 정리
 
 describe("실제 계정 지갑 화면", () => // 검증 묶음
 { // 묶음 시작
+    it("채팅 진입 후 조회·차감된 서버 잔액과 부족 안내를 즉시 반영", async () => // 채팅 잔액 회귀
+    { // 검증 시작
+        let balance = 7; // 처음 서버 잔액
+        vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ...snapshot, revision: 10 - balance, wallet: { ...snapshot.wallet, balance } }))); // 갱신 서버
+        const llm = Object.assign(new MockLLMAdapter({ delayMs: 0 }), { serverWallet: true }); // 서버 지갑 응답
+        render(<AppProvider repository={repository}><ChatScreen characterId="rian" llm={llm} images={new MockImageAdapter()} /></AppProvider>); // 대기 잔액으로 진입
+        await waitFor(() => expect(screen.getByText(/^7 토큰$/)).toBeVisible()); // 초기 서버 조회 반영
+        balance = 0; // 실제 사용 뒤 잔액
+        act(() => window.dispatchEvent(new Event(WALLET_CHANGED_EVENT))); // 차감 완료 갱신
+        await waitFor(() => expect(screen.getByText(/^0 토큰$/)).toBeVisible()); // 최신 잔액 표시
+        expect(screen.getByText("토큰 부족")).toBeVisible(); // 비용 판단도 최신 잔액
+    }); // 검증 종료
+
     it("서버 잔액을 표시하고 백업 복원으로 잔액을 변경하지 못함", async () => // 권한 분리
     { // 검증 시작
         render(<AppProvider repository={repository}><Probe /></AppProvider>); // 상태 공급

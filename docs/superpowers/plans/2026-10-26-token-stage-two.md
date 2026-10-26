@@ -69,5 +69,5 @@
 **Interfaces:** 운영 설정 SERVER_WALLET_ENABLED와 SUPABASE_SECRET_KEY(서버 전용), 기존 한도 환경 변수 유지.
 
 - [x] 실제 SQL·전체 Vitest·typecheck·lint·production build·관련 E2E 실행.
-- [ ] 새 리뷰어의 전체 변경 검토, 중요한 지적 회귀 테스트와 수정.
+- [x] 새 리뷰어의 전체 변경 검토, 중요한 지적 회귀 테스트와 수정.
 - [ ] 남은 외부 설정 및 미검증 항목 기록, main에 통합·푸시와 원격 해시 확인.

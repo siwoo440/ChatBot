@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test"; // 브라우저 테스트 도구
 import { createInitialState } from "../../src/features/core/initial-state"; // 초기 상태 생성기
+import { createStoryConversation } from "../../src/features/story/story-model"; // 스토리 방 생성
 
 const stateKey = "mateverse:v1:state"; // 로컬 저장 키
 const seedKey = "mateverse:e2e:tokens-seeded"; // 테스트 준비 키
 
-async function seed(page: Page): Promise<void> // 패널을 닫은 초기 상태 준비
+async function seed(page: Page, state = createInitialState()): Promise<void> // 검증 상태 준비
 { // 함수 시작
-    const state = createInitialState(); // 초기 상태
     state.settings.leftPanelOpen = false; // 왼쪽 패널 닫기
     state.settings.rightPanelOpen = false; // 오른쪽 패널 닫기
     await page.addInitScript(({ key, guard, value }) => // 초기 저장
@@ -47,6 +47,28 @@ test("대화와 출석으로 쓴 토큰과 받은 토큰이 토큰 이용 내역
     await usage.getByRole("link").click(); // 사용한 채팅방 열기
     await expect(page).toHaveURL(/\/chat\/rian\?conversation=conversation-rian&version=/); // 해당 채팅방 경로
     await expect(page.getByText("오늘도 왔어", { exact: true })).toBeVisible(); // 사용한 메시지 확인
+}); // 테스트 종료
+
+test("스토리 사용 기록과 보관 방 복구는 사용한 원래 채팅방으로 이동", async ({ page }) => // 경로 회귀 검증
+{ // 테스트 시작
+    const started = createStoryConversation(createInitialState(), "story-moonlit-archive", "2026-10-26T00:00:00.000Z"); // 스토리 방
+    const room = started.conversation; // 스토리 대화 식별자
+    const state = started.state; // 두 종류의 방이 있는 상태
+    state.conversations.find((item) => item.id === "conversation-rian")!.archivedAt = new Date().toISOString(); // 일반 방 보관
+    state.tokenRecords = [ // 사용한 방의 원장
+        { id: "story-spend", direction: "spend", source: "chat", label: "대화", amount: 1, balance: 1239, conversationId: room.id, conversationTitle: "기록 속 스토리 방", characterId: room.characterId, versionId: room.currentVersionId, createdAt: new Date().toISOString() }, // 스토리 원장
+        { id: "archived-spend", direction: "spend", source: "chat", label: "대화", amount: 1, balance: 1238, conversationId: "conversation-rian", conversationTitle: "보관한 리안 대화", characterId: "rian", versionId: "conversation-rian-version-1", createdAt: new Date().toISOString() }, // 보관 방 원장
+    ]; // 원장 종료
+    await seed(page, state); // 상태 저장
+    await page.goto("/settings/tokens"); // 이용 내역
+    await page.getByRole("link", { name: "기록 속 스토리 방" }).click(); // 스토리 원장 이동
+    await expect(page).toHaveURL((url) => url.pathname === "/stories/story-moonlit-archive/chat" && url.searchParams.get("conversation") === room.id && url.searchParams.get("version") === room.currentVersionId); // 인코딩된 식별자의 원래 값 확인
+    await page.goto("/settings/tokens"); // 이용 내역 복귀
+    await expect(page.getByText("보관된 채팅방")).toBeVisible(); // 보관 상태 안내
+    await expect(page.getByRole("link", { name: "보관한 리안 대화" })).toHaveCount(0); // 잘못된 링크 없음
+    await page.getByRole("button", { name: "보관한 리안 대화 채팅방 복구" }).click(); // 원래 방 복구
+    await page.getByRole("link", { name: "보관한 리안 대화" }).click(); // 복구한 방 이동
+    await expect(page).toHaveURL(/\/chat\/rian\?conversation=conversation-rian&version=conversation-rian-version-1/); // 원래 일반 방
 }); // 테스트 종료
 
 for (const width of [390, 820, 1440]) // 화면 너비 순회

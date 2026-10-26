@@ -6,6 +6,7 @@ import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태 훅
 import { createInitialState } from "@/features/core/initial-state"; // 초기 상태
 import type { AppState, TokenRecord } from "@/features/core/types"; // 상태 타입
 import { RewardsScreen } from "@/features/rewards/RewardsScreen"; // 출석과 미션 화면
+import { createStoryConversation, createSessionHref } from "@/features/story/story-model"; // 스토리 대화 경로
 import { TokenSettings } from "@/features/settings/TokenSettings"; // 토큰 이용 내역 화면
 import { MockImageAdapter } from "@/lib/adapters/mock-image-adapter"; // 이미지 어댑터
 import { MockLLMAdapter } from "@/lib/adapters/mock-llm-adapter"; // Mock 대화 어댑터
@@ -40,6 +41,27 @@ function Probe() // 최신 토큰 기록 표시
 
 describe("토큰 이용 내역", () => // 화면 묶음
 { // 묶음 시작
+    it("스토리 이용 기록은 사용한 스토리 채팅방으로 연결", () => // 스토리 경로 회귀
+    { // 검증 시작
+        const started = createStoryConversation(createInitialState(), "story-moonlit-archive", "2026-10-26T00:00:00.000Z"); // 스토리 방 생성
+        const conversation = started.conversation; // 사용한 스토리 방
+        const state = { ...started.state, tokenRecords: [{ ...records[0], conversationId: conversation.id, conversationTitle: "기록 속 스토리 방", characterId: conversation.characterId, versionId: conversation.currentVersionId }] }; // 스토리 사용 내역
+        renderWithApp(<TokenSettings />, state); // 이용 내역 화면
+        expect(screen.getByRole("link", { name: "기록 속 스토리 방" })).toHaveAttribute("href", createSessionHref(conversation)); // 스토리 라우터 유지
+    }); // 검증 종료
+
+    it("보관한 채팅방은 복구한 뒤 정확한 원래 방으로 연결", async () => // 보관 경로 회귀
+    { // 검증 시작
+        const user = userEvent.setup(); // 사용자 도구
+        const state = withRecords([{ ...records[0], conversationId: "conversation-rian", conversationTitle: "퇴근 후 대화", characterId: "rian", versionId: "conversation-rian-version-1" }]); // 사용 기록
+        state.conversations.find((item) => item.id === "conversation-rian")!.archivedAt = new Date().toISOString(); // 보관 상태
+        renderWithApp(<TokenSettings />, state); // 이용 내역
+        expect(screen.queryByRole("link", { name: "퇴근 후 대화" })).toBeNull(); // 잘못된 이동 차단
+        expect(screen.getByText("보관된 채팅방")).toBeVisible(); // 보관 안내
+        await user.click(screen.getByRole("button", { name: "퇴근 후 대화 채팅방 복구" })); // 원래 방 복구
+        expect(screen.getByRole("link", { name: "퇴근 후 대화" })).toHaveAttribute("href", "/chat/rian?conversation=conversation-rian&version=conversation-rian-version-1"); // 정확한 방 링크
+    }); // 검증 종료
+
     it("사용 당시 채팅방 이름과 한국 날짜·초 단위 시각 및 채팅방 링크를 남긴다", () => // 채팅방·시각 검증
     { // 검증 시작
         const state = withRecords([{ ...records[0], conversationId: "conversation-rian", conversationTitle: "퇴근 후 대화", characterId: "rian", versionId: "conversation-rian-version-1", createdAt: "2026-10-25T15:04:05.000Z" }]); // 자정 이후 기록

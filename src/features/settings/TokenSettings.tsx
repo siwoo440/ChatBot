@@ -20,9 +20,13 @@ function formatDateTime(value: string): string // 시각 표시
 
 export function TokenSettings() // 토큰 이용 내역 화면
 { // 함수 시작
-    const { state, walletMode } = useAppStore(); // 앱과 지갑 권한
+    const { state, walletMode, dispatch } = useAppStore(); // 앱과 지갑 권한
     const wallet = state.wallet; // 토큰 지갑
     const daily = getDailyUsage(wallet, new Date()); // 오늘 사용량(날짜가 바뀌면 0)
+    const restoreConversation = (conversationId: string) => // 보관한 채팅방 복구
+    { // 함수 시작
+        dispatch({ type: "restore-conversation", conversationId }); // 원래 방을 활성 목록으로
+    }; // 함수 종료
     return ( // 화면 반환
         <> {/* 토큰 화면 */}
             <SettingsPageHeader kicker="ACCOUNT · TOKENS" title={t("토큰 이용 내역")} description={t("토큰 잔액과 항목별 비용, 어디에 얼마를 받고 썼는지 확인합니다.")} /> {/* 페이지 머리말 */}
@@ -40,7 +44,7 @@ export function TokenSettings() // 토큰 이용 내역 화면
                 <p>{t("응답을 중간에 멈춰도 요청 1회로 계산되고, 재시도와 다시 생성은 각각 새 요청으로 계산됩니다.")}</p> {/* 계산 규칙 */}
                 {walletMode === "server" ? <p>{t("응답 시작 전 시스템 오류는 토큰을 반환해요. 응답 시작 후 중단은 사용으로 남아요. 연습 응답은 실제 계정 토큰을 차감하지 않아요.")}</p> : null} {/* 실제 계정 반환 기준 */}
             </section> {/* 비용표 종료 */}
-            <TokenHistory records={state.tokenRecords} conversations={state.conversations} /> {/* 채팅방별 이용 기록 */}
+            <TokenHistory records={state.tokenRecords} conversations={state.conversations} onRestore={restoreConversation} /> {/* 채팅방별 이용 기록과 복구 */}
             <section className={styles.card} aria-labelledby="token-reward-title"> {/* 받은 토큰 */}
                 <h2 id="token-reward-title">{t("토큰 받기")}</h2> {/* 제목 */}
                 <p>{t("출석과 미션, 친구 초대로 지금까지")} {state.rewards.totalEarned.toLocaleString()}{t("토큰을 받았어요.")} <Link href={"/rewards" as Route}>{t("출석과 미션 열기")}</Link></p> {/* 받은 토큰 안내 */}

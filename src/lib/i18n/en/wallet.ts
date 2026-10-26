@@ -4,6 +4,9 @@ export const wallet: Record<string, string> = // 서버 지갑 번역
     "서버 계정 지갑": "Server account wallet", // 지갑 제목
     "잔액 새로고침": "Refresh balance", // 다시 조회
     "토큰 반환": "Token refund", // 반환 출처
+    "보관된 채팅방": "Archived chat", // 보관 상태
+    "채팅방 복구": "Restore chat", // 원래 방 복구
+    "{0} 채팅방 복구": "Restore chat {0}", // 복구 접근성 이름
     "응답 전 실패 토큰 반환": "Refund before response", // 반환 설명
     "로그인하면 계정의 토큰 잔액을 확인할 수 있어요.": "Sign in to see your account token balance.", // 로그인 안내
     "서버 토큰을 확인하고 있어요.": "Checking your server wallet.", // 조회 대기

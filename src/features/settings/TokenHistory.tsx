@@ -4,6 +4,7 @@ import { useState } from "react"; // 리액트 상태
 import Link from "next/link"; // 채팅방 이동
 import type { Route } from "next"; // 경로 타입
 import type { Conversation, TokenRecord } from "@/features/core/types"; // 기록과 채팅방 타입
+import { createSessionHref } from "@/features/story/story-model"; // 대화 종류별 경로
 import { filterTokenRecords, filterTokenRecordsByPeriod, groupTokenRecords, summarizeTokenDays, TOKEN_RECORD_LIMIT, tokenSourceLabels, tokenRecordLabel, type TokenDaySummary, type TokenPeriod, type TokenPeriodId, type TokenRecordFilter } from "@/lib/story/token-ledger"; // 토큰 기록 규칙
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
@@ -74,7 +75,7 @@ function TokenWeekChart({ days }: { days: TokenDaySummary[] }) // 최근 7일 �
     ); // 반환 종료
 } // 함수 종료
 
-function ConversationRecord({ record, conversations }: { record: TokenRecord; conversations: Conversation[] }) // 사용한 채팅방
+function ConversationRecord({ record, conversations, onRestore }: { record: TokenRecord; conversations: Conversation[]; onRestore?: (id: string) => void }) // 사용한 채팅방
 { // 함수 시작
     if (record.source !== "chat" && record.source !== "scene-image" && record.conversationId === undefined) // 채팅 외 기록
     { // 조건 시작
@@ -85,11 +86,15 @@ function ConversationRecord({ record, conversations }: { record: TokenRecord; co
     { // 조건 시작
         return <small>{record.conversationTitle === undefined ? null : `${record.conversationTitle} · `}<span>{t(record.conversationId === undefined ? "채팅방 정보 없음" : "삭제된 채팅방")}</span></small>; // 상태 안내
     } // 조건 종료
-    const query = new URLSearchParams({ conversation: conversation.id }); // 안전한 대화 식별자
-    return <small><Link href={`/chat/${encodeURIComponent(conversation.characterId)}?${query}&version=${encodeURIComponent(record.versionId ?? conversation.currentVersionId)}` as Route}>{record.conversationTitle ?? conversation.title}</Link></small>; // 사용 당시 채팅방 이름과 이동
+    const title = record.conversationTitle ?? conversation.title; // 사용 당시 채팅방 이름
+    if (conversation.archivedAt !== null) // 보관한 방의 잘못된 라우팅 방지
+    { // 조건 시작
+        return <><small>{title} · <span>{t("보관된 채팅방")}</span></small>{onRestore === undefined ? null : <button className={styles.secondary} type="button" aria-label={t("{0} 채팅방 복구", [title])} onClick={() => onRestore(conversation.id)}>{t("채팅방 복구")}</button>}</>; // 명시적으로 복구한 뒤 이동
+    } // 조건 종료
+    return <small><Link href={createSessionHref(conversation, record.versionId ?? conversation.currentVersionId) as Route}>{title}</Link></small>; // 일반·스토리별 정확한 경로
 } // 함수 종료
 
-export function TokenHistory({ records, conversations = [] }: { records: TokenRecord[]; conversations?: Conversation[] }) // 토큰 이용 기록과 채팅방
+export function TokenHistory({ records, conversations = [], onRestore }: { records: TokenRecord[]; conversations?: Conversation[]; onRestore?: (id: string) => void }) // 토큰 이용 기록과 복구
 { // 함수 시작
     const [filter, setFilter] = useState<TokenRecordFilter>("all"); // 기록 종류
     const [visible, setVisible] = useState(PAGE_SIZE); // 보여 줄 기록 수
@@ -130,7 +135,7 @@ export function TokenHistory({ records, conversations = [] }: { records: TokenRe
                     <section key={group.dateKey} className={styles.recordGroup} aria-label={t(group.label)}> {/* 날짜 묶음 */}
                         <h3>{t(group.label)}<small>{t("받음 +")}{group.earned} {t("· 사용 −")}{group.spent}</small></h3> {/* 날짜와 합계 */}
                         <ol className={styles.recordList}> {/* 기록 목록 */}
-                            {group.records.map((record) => <li key={record.id} data-direction={record.direction}><div><strong>{tokenRecordLabel(record)}</strong><small>{record.work ?? t(tokenSourceLabels[record.source])}</small><ConversationRecord record={record} conversations={conversations} /><small><time dateTime={record.createdAt}>{formatTime(record.createdAt)}</time> {t("· 잔액")} {record.balance.toLocaleString()}</small></div><b>{record.direction === "earn" ? "+" : "−"}{record.amount}</b></li>)} {/* 시각·채팅방·비용 기록 */}
+                            {group.records.map((record) => <li key={record.id} data-direction={record.direction}><div><strong>{tokenRecordLabel(record)}</strong><small>{record.work ?? t(tokenSourceLabels[record.source])}</small><ConversationRecord record={record} conversations={conversations} onRestore={onRestore} /><small><time dateTime={record.createdAt}>{formatTime(record.createdAt)}</time> {t("· 잔액")} {record.balance.toLocaleString()}</small></div><b>{record.direction === "earn" ? "+" : "−"}{record.amount}</b></li>)} {/* 시각·채팅방·비용 기록 */}
                         </ol> {/* 목록 종료 */}
                     </section> // 묶음 종료
                 ))} {/* 순회 종료 */}
