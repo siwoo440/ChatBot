@@ -19,6 +19,7 @@ export const tokenSourceLabels: Readonly<Record<TokenRecordSource, string>> = //
     chat: "대화", // 대화
     "scene-image": "장면 이미지", // 장면 이미지
     "studio-image": "이미지 스튜디오", // 이미지 스튜디오
+    refund: "토큰 반환", // 응답 전 실패 반환
 }; // 이름 종료
 
 export interface TokenRecordGroup // 날짜별 기록 묶음

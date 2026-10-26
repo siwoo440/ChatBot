@@ -24,7 +24,7 @@ export type NotificationKind = "notice" | "image" | "memory" | "reward" | "event
 export type StoryEventCondition = "stat-min" | "stat-max" | "turn"; // 이벤트 조건(스탯 이상·스탯 이하·턴)
 export type MissionId = "send-messages" | "start-conversation" | "favorite-work"; // 오늘의 미션 식별자
 export type WeeklyMissionId = "weekly-messages" | "weekly-attendance" | "weekly-conversations"; // 주간 미션 식별자
-export type TokenRecordSource = "attendance" | "mission" | "mission-bonus" | "invite-welcome" | "invite-friend" | "chat" | "scene-image" | "studio-image"; // 토큰 기록 출처(받음: 출석·미션·친구 초대, 사용: 대화·장면 이미지·이미지 스튜디오)
+export type TokenRecordSource = "attendance" | "mission" | "mission-bonus" | "invite-welcome" | "invite-friend" | "chat" | "scene-image" | "studio-image" | "refund"; // 지급·사용·반환 출처
 export type StatMode = "rule" | "ai" | "both"; // 스탯 수치를 정하는 방법(규칙·AI 판단·둘 다)
 export type StatScope = "each" | "shared"; // 스탯 적용 대상(인물마다 따로·하나만)
 
