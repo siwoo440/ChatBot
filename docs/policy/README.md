@@ -41,6 +41,7 @@
 | 자기 데이터만 읽고 쓰기 | `supabase/account-setup.sql`의 권한 규칙 | 시험용 데이터베이스와 실제 프로젝트의 읽기 요청으로 확인(`HANDOFF.md` 39절) |
 | 탈퇴하면 바로 지움 | `mv_delete_account` 함수, `src/features/settings/AccountManagement.tsx` | 계정을 지우면 저장본도 함께 지워진다. 실제 프로젝트에서는 아직 돌려 보지 않음 |
 | 데이터 내려받기 | `src/features/settings/DataManagement.tsx` | JSON 내보내기 |
+| 개발용 연결 준비 점검 | `scripts/account-check.mjs`, `account-check-cli.mjs` | 로그인 설정과 반환 행이 없는 익명 GET만 확인. 키·주소·원시 응답 출력, 계정 생성, 쓰기·삭제·메일 발송 없음. 실제 사용자 검증은 별도 |
 | 생년월일을 저장하지 않음 | `src/features/adult/AdultVerificationDialog.tsx` | 확인 뒤 입력값을 비우고 결과(방식, 시각, 만료)만 저장 |
 | 문의를 서버로 보내지 않음 | `src/features/support/SupportScreen.tsx` | 문의 글과 진단 정보를 복사만 한다 |
 | 실제 AI로 넘어가는 내용, 서버에 저장하지 않음 | `src/lib/llm/prompt-builder.ts`, `src/app/api/chat/` | 요청을 AI 회사로 전달하고 기록을 남기지 않는다. 요청 수 제한은 접속 주소를 쓰지 않는다. 공개했을 때는 로그인한 사람의 계정 구분값별 횟수를 서버 메모리에서만 세고 저장하지 않는다(`src/lib/llm/chat-gate.ts`. 함께 쓰는 저장소로 옮기면 방침의 표를 고친다) |

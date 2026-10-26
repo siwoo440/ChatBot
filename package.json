@@ -10,11 +10,14 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:run": "vitest run",
+    "test:account-check": "node --test tests/scripts/account-check.test.mjs",
+    "check:account": "node scripts/account-check-cli.mjs",
     "test:e2e": "playwright test"
   },
   "keywords": [],
   "type": "module",
   "dependencies": {
+    "@next/env": "16.3.8",
     "next": "^16.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

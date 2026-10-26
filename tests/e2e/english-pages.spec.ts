@@ -151,10 +151,13 @@ test.describe("영어 화면 전체 점검", () => // 영어 화면 묶음
                 await page.goto(route); // 화면 열기
                 await expect(page.locator("html")).toHaveAttribute("lang", "en"); // 문서 언어
                 await expect(page.locator("main").first()).toBeVisible(); // 화면이 그려짐
-                await page.waitForLoadState("networkidle"); // 늦게 오는 내용까지 기다림
+                await page.evaluate(async () => // 화면 배치 준비 대기
+                { // 대기 시작
+                    await document.fonts.ready; // 글꼴 준비 확인
+                }); // 대기 종료
+                await expect.poll(() => koreanLeft(page)).toEqual([]); // 복원 뒤 화면 번역 확인
                 await expectFits(page); // 넘침 없음
             } // 순회 종료
-            expect(await koreanLeft(page)).toEqual([]); // 영어로 바뀌지 않은 화면 글자 없음
         }); // 테스트 종료
     } // 순회 종료
 
