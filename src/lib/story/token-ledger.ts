@@ -2,10 +2,27 @@
 import type { TokenRecord, TokenRecordSource, TokenWallet } from "@/features/core/types"; // 도메인 타입
 import { getDailyUsage, tokenCosts } from "@/lib/story/token-policy"; // 오늘 사용량·비용표
 import { getDateKey, getDateParts } from "@/lib/time/date-key"; // 한국 시간 날짜
-import { getActiveLocale } from "@/lib/i18n"; // 화면 언어
+import { getActiveLocale, t } from "@/lib/i18n"; // 화면 언어와 기록 번역
 
 export const TOKEN_RECORD_LIMIT = 300; // 토큰 기록 보관 수(받음·사용 합쳐 최근 순)
 export const TOKEN_SUMMARY_DAYS = 7; // 그래프에 보여 줄 날 수
+
+export function tokenRecordLabel(record: TokenRecord): string // 서버에서 받은 보상 이름 번역
+{ // 함수 시작
+    const attendance = /^출석 ([1-7])일차$/.exec(record.label); // 서버 출석 칸
+    if (attendance !== null) // 출석 기록
+    { // 조건 시작
+        return t("출석 {0}일차", [attendance[1]]); // 현재 언어 출석 이름
+    } // 조건 종료
+    for (const prefix of ["주간 미션: ", "미션: "]) // 서버 미션 이름
+    { // 반복 시작
+        if (record.label.startsWith(prefix)) // 미션 기록
+        { // 조건 시작
+            return t(`${prefix}{0}`, [record.label.slice(prefix.length)]); // 현재 언어 미션 이름
+        } // 조건 종료
+    } // 반복 종료
+    return t(record.label); // 일반 기록 이름
+} // 함수 종료
 
 export type TokenRecordFilter = "all" | "earn" | "spend"; // 기록 종류 필터
 

@@ -44,6 +44,7 @@ export interface SummaryInput // 요약 입력
 
 export interface LLMAdapter // 대화 어댑터
 { // 구조 시작
+    readonly serverWallet?: boolean; // 서버 차감 사용 여부
     streamReply(input: LLMInput, signal?: AbortSignal): AsyncIterable<string>; // 중단 가능 응답 스트림
     summarizeConversation(input: SummaryInput): Promise<string>; // 대화 요약
     judgeStats?(input: StatJudgeInput, signal?: AbortSignal): Promise<StatChange[]>; // AI가 정하는 스탯 변화(없으면 규칙만 적용)

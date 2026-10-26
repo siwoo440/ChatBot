@@ -17,7 +17,7 @@ import { getTierOption } from "@/features/chat/chat-tiers"; // 등급별 설정 
 
 export type SendResult = { ok: true } | { ok: false; reason: "empty" | "too-long" | "busy" | "cancelled" | "insufficient-token" | "missing-conversation" | "missing-message" }; // 전송 결과
 export type EditMessageResult = { ok: true; versionId: string } | { ok: false; reason: "empty" | "unchanged" | "too-long" | "busy" | "cancelled" | "insufficient-token" | "missing-message" | "version-limit" | "storage-failed" }; // 수정 결과
-export type SceneResult = { ok: true; path: string } | { ok: false; reason: "busy" | "insufficient-token" | "missing-conversation" }; // 장면 결과
+export type SceneResult = { ok: true; path: string } | { ok: false; reason: "busy" | "insufficient-token" | "missing-conversation" | "image-unavailable" }; // 장면 결과
 export type ChatProgressPhase = "user" | "assistant" | "complete"; // 진행 단계
 
 export interface ChatProgress // 채팅 진행 상태
@@ -95,7 +95,7 @@ export class ChatController // 채팅 제어기
 
     private spendChat() // 대화 비용 차감 후보(등급·길이·생각·유저 노트 확장)
     { // 함수 시작
-        return trySpendAmount(this.state.wallet, getMessageCost(this.context.settings), "chat"); // 차감 결과
+        return this.options.llm.serverWallet === true ? { ok: true, cost: 0, wallet: this.state.wallet } : trySpendAmount(this.state.wallet, getMessageCost(this.context.settings), "chat"); // 실제 계정의 로컬 중복 차감 차단
     } // 함수 종료
 
     private statusTemplateFor(conversation: Conversation, character: Character): StatusTemplate | undefined // 작품 상태창 형식(스토리는 스토리 기준)
@@ -637,6 +637,10 @@ export class ChatController // 채팅 제어기
         if (version === null) // 버전 부재 판정
         { // 조건 시작
             return { ok: false, reason: "missing-conversation" }; // 버전 오류
+        } // 조건 종료
+        if (this.options.llm.serverWallet === true) // 실제 계정 이미지 연결 전
+        { // 조건 시작
+            return { ok: false, reason: "image-unavailable" }; // 미연결 이미지 차감 차단
         } // 조건 종료
         const spending = trySpend(this.state.wallet, "manual-image"); // 이미지 차감
         if (!spending.ok) // 잔액 부족

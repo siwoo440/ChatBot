@@ -1,7 +1,8 @@
 // 서버 통로: 브라우저와 AI 회사 사이에 서서 열쇠를 숨기고, 지시문을 조립해 보내고, 답을 글자 조각으로 흘려보낸다. 열쇠가 없거나 꺼져 있으면 브라우저가 연습용 AI로 답한다.
 import { getChatTier } from "@/features/chat/chat-tiers"; // 채팅 등급
 import { identifyCaller } from "@/lib/llm/chat-caller"; // 요청한 사람 확인
-import { readChatBody, refuse, refuseProviderFailure, takeUsage } from "@/lib/llm/chat-request"; // 통로 공통
+import { readChatBody, refuse, refuseProviderFailure } from "@/lib/llm/chat-request"; // 통로 공통
+import { refundChat, reserveChat, settleChat } from "@/lib/wallet/chat-billing"; // 서버 사용 예약
 import { getLocalModelNames, getTierAvailability, isRealChatEnabled, resolveModel } from "@/lib/llm/model-catalog"; // 모델 목록
 import { buildChatPrompt, parseChatRequest } from "@/lib/llm/prompt-builder"; // 지시문 만들기
 import { streamProviderReply } from "@/lib/llm/providers"; // AI 회사 연결
@@ -40,19 +41,36 @@ export async function POST(request: Request): Promise<Response> // 답변 받기
     { // 조건 시작
         return refuse(503, "no-key"); // 연습용으로
     } // 조건 종료
-    const limited = takeUsage(body.caller, "message"); // 사용량 세기(내 컴퓨터는 서버 전체로, 로그인한 사람은 사람마다)
-    if (limited !== null) // 한도 도달
+    const reservation = await reserveChat(request, body.caller, chat, body.payload); // 잔액·요청 중복·영속 한도 검사
+    if (!reservation.ok) // 예약 실패
     { // 조건 시작
-        return limited; // 너무 자주 보냈거나 오늘 한도를 다 씀
+        return reservation.response; // 실제 호출 전 거절
     } // 조건 종료
-    const iterator = streamProviderReply(model, buildChatPrompt(chat), fetch, request.signal)[Symbol.asyncIterator](); // 답 흐름
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(120000)]); // 요청 중단과 2분 제한
+    const iterator = streamProviderReply(model, buildChatPrompt(chat), fetch, signal)[Symbol.asyncIterator](); // 답 흐름
     let first: IteratorResult<string>; // 첫 조각
     try // 첫 조각 받기(여기서 실패하면 오류 코드로 알릴 수 있음)
     { // 시도 시작
-        first = await iterator.next(); // 첫 조각
+        do // 빈 조각 건너뛰기
+        { // 반복 시작
+            first = await iterator.next(); // 첫 유효 조각
+        } while (first.done !== true && first.value.trim().length === 0); // 공백 조각 제외
+        if (first.done === true || signal.aborted) // 응답 전 실패·중단
+        { // 조건 시작
+            throw new Error("empty or cancelled reply"); // 반환 경로
+        } // 조건 종료
+        const denied = await settleChat(reservation.billing); // 응답 직전 차감 확정
+        if (denied !== null) // 확정 실패·반환된 예약
+        { // 조건 시작
+            await iterator.return?.(); // 회사 흐름 닫기
+            await refundChat(reservation.billing); // 남은 미확정 예약 반환
+            return denied; // 무료 응답 방지
+        } // 조건 종료
     } // 시도 종료
     catch (error) // 회사 오류
     { // 실패 시작
+        await iterator.return?.().catch(() => undefined); // 응답 전 흐름 정리
+        await refundChat(reservation.billing); // 응답 전 비용 반환
         return refuseProviderFailure(error, model.provider === "local"); // 이유 알림
     } // 실패 종료
     const encoder = new TextEncoder(); // 글자 변환
@@ -62,7 +80,7 @@ export async function POST(request: Request): Promise<Response> // 답변 받기
         { // 함수 시작
             try // 보내기 시도
             { // 시도 시작
-                for (let result = first; result.done !== true; result = await iterator.next()) // 조각 순회
+                for (let result: IteratorResult<string> = first; result.done !== true; result = await iterator.next()) // 조각 순회
                 { // 순회 시작
                     controller.enqueue(encoder.encode(result.value)); // 조각 보냄
                 } // 순회 종료

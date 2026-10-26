@@ -76,7 +76,7 @@ describe("영어 화면에 남아 있던 한국어", () => // 번역 누락 묶�
         const now = new Date().toISOString(); // 지금
         state.localReports = [{ id: "report-1", characterId: "rian", reason: "spam", createdAt: now }]; // 신고 한 건
         renderWithApp(<><TokenHistory records={[{ id: "record-1", direction: "earn", source: "attendance", label: "출석 보상", amount: 10, balance: 1250, createdAt: now }]} /><PrivacySettings /></>, state); // 두 화면
-        expect(screen.getByText(/^Check-in · /)).toBeInTheDocument(); // 출처 번역
+        expect(screen.getByText(/^Check-in$/)).toBeInTheDocument(); // 별도 줄의 출처 번역
         expect(screen.getByText(/^Spam or repeated content · /)).toBeInTheDocument(); // 사유 번역
     }); // 검증 종료
 

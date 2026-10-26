@@ -195,4 +195,15 @@ describe("서버 지갑 실제 SQL", () => // 검증 묶음
         assert.equal((await command("read")).snapshot.wallet.balance, 5); // 잔액 보존
         assert.equal((await command("read")).snapshot.records.length, 1); // 원장 보존
     }); // 검증 종료
+
+    it("대화 없이 무료 보조 AI를 반복 호출하지 못하고 대화당 두 번으로 제한", async () => // 무료 호출 우회 방지
+    { // 검증 시작
+        assert.equal((await command("assist", { perMinute: 20 })).error, "daily-limit"); // 대화 실적 필요
+        await command("reward", { reward: "attendance" }); // 잔액 준비
+        await command("reserve", reserve()); // 대화 요청
+        await command("settle", { requestId }); // 실제 응답
+        assert.equal((await command("assist", { perMinute: 20 })).ok, true); // 스탯 판단
+        assert.equal((await command("assist", { perMinute: 20 })).ok, true); // 대화 요약
+        assert.equal((await command("assist", { perMinute: 20 })).error, "daily-limit"); // 임의 반복 차단
+    }); // 검증 종료
 }); // 묶음 종료

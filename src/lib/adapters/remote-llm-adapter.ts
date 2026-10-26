@@ -8,8 +8,11 @@ import { deriveDisplayName } from "@/features/story/story-model"; // 짧은 이�
 import type { StatChange, StatJudgeInput } from "@/features/chat/stat-model"; // 스탯 판단 형식
 import type { ChatTierId, ContentRating } from "@/features/core/types"; // 도메인 타입
 import type { ChatRequest } from "@/lib/llm/prompt-builder"; // 서버 통로 요청
+import { getAccountServiceConfig } from "@/lib/account/account-config"; // 실제 계정 구분
+import { notifyWalletChanged } from "@/lib/wallet/events"; // 이용 후 잔액 갱신
+import type { WalletMetadata } from "@/lib/wallet/types"; // 사용한 채팅방
 
-export type ChatServiceCode = "bad-key" | "rate-limited" | "daily-limit" | "service-limit" | "login-required" | "auth-unavailable" | "provider-busy" | "provider-error" | "model-offline" | "model-missing" | "local-only" | "bad-request" | "too-large" | "unknown"; // 실패 이유
+export type ChatServiceCode = "bad-key" | "rate-limited" | "daily-limit" | "service-limit" | "login-required" | "auth-unavailable" | "provider-busy" | "provider-error" | "model-offline" | "model-missing" | "local-only" | "bad-request" | "too-large" | "wallet-unavailable" | "insufficient-token" | "duplicate-request" | "request-conflict" | "request-closed" | "unknown"; // 실패 이유
 
 export class ChatServiceError extends Error // 실제 AI 실패(이유 코드 포함)
 { // 클래스 시작
@@ -36,14 +39,14 @@ function recentMessages(messages: ChatRequest["messages"]): ChatRequest["message
     } // 반복 종료
     return recent; // 최근 대화 반환
 } // 함수 종료
-const knownCodes = new Set<ChatServiceCode>(["bad-key", "rate-limited", "daily-limit", "service-limit", "login-required", "auth-unavailable", "provider-busy", "provider-error", "model-offline", "model-missing", "local-only", "bad-request", "too-large"]); // 화면에 알리는 이유
+const knownCodes = new Set<ChatServiceCode>(["bad-key", "rate-limited", "daily-limit", "service-limit", "login-required", "auth-unavailable", "provider-busy", "provider-error", "model-offline", "model-missing", "local-only", "bad-request", "too-large", "wallet-unavailable", "insufficient-token", "duplicate-request", "request-conflict", "request-closed"]); // 화면에 알리는 이유
 
 export function isMatureInput(input: Pick<LLMInput, "character" | "contentRating">): boolean // 19세 작품 여부(외부 AI 등급은 약관 때문에 연습용으로 답하고, 직접 돌리는 공개 모델 등급만 실제로 답함)
 { // 함수 시작
     return input.character.contentRating === "mature" || input.contentRating === "mature"; // 캐릭터·작품 등급
 } // 함수 종료
 
-export function toChatRequest(input: LLMInput, options: ChatReplyOptions): ChatRequest // 서버 통로에 보낼 요청 만들기(지시문은 서버가 조립)
+export function toChatRequest(input: LLMInput, options: ChatReplyOptions): ChatRequest & { wallet: WalletMetadata } // 서버 대화와 채팅방 표시 정보
 { // 함수 시작
     const { character, story } = input; // 캐릭터와 스토리
     return { // 요청
@@ -52,16 +55,36 @@ export function toChatRequest(input: LLMInput, options: ChatReplyOptions): ChatR
         story: story === undefined ? null : { title: story.title, synopsis: story.synopsis, userRole: story.userRole, cast: story.cast.map((member) => ({ displayName: member.displayName, role: member.role, personality: story.castNotes?.find((note) => note.displayName === member.displayName)?.personality ?? "", sample: story.castNotes?.find((note) => note.displayName === member.displayName)?.sample ?? "" })) }, // 스토리(등장인물의 성격과 말투 예 포함)
         messages: recentMessages(input.messages.flatMap((message) => message.role === "user" || message.role === "assistant" ? [{ role: message.role, content: message.content }] : [])), // 대화(안내 메시지 제외, 최근 것만)
         options, // 응답 조건
+        wallet: { conversationId: input.conversation.id, conversationTitle: input.conversation.title, characterId: input.conversation.characterId, versionId: input.version.id }, // 사용 당시 채팅방 정보
     }; // 요청 반환
 } // 함수 종료
 
 export class RemoteLLMAdapter implements LLMAdapter // 실제 AI 어댑터
 { // 클래스 시작
+    public get serverWallet(): boolean // 차감 주체
+    { // 조회 시작
+        return getAccountServiceConfig().mode === "supabase"; // 실제 계정은 서버 권한
+    } // 조회 종료
     public constructor(private readonly fallback: LLMAdapter = new MockLLMAdapter(), private readonly fetcher: typeof fetch = (...args) => fetch(...args), private readonly status: () => Promise<ModelStatus> = () => loadModelStatus(), private readonly authHeaders: AuthHeaders = getAccessTokenHeaders) // 연습용 AI·요청 함수·상태 읽기
     { // 생성자 시작
     } // 생성자 종료
 
     public async *streamReply(input: LLMInput, signal?: AbortSignal): AsyncIterable<string> // 답변 흐름
+    { // 함수 시작
+        try // 응답 처리
+        { // 시도 시작
+            yield* this.streamRemoteReply(input, signal); // 실제·연습 응답
+        } // 시도 종료
+        finally // 실패·중단·성공 공통
+        { // 정리 시작
+            if (this.serverWallet) // 실제 계정
+            { // 조건 시작
+                notifyWalletChanged(); // 서버 잔액 다시 읽기
+            } // 조건 종료
+        } // 정리 종료
+    } // 함수 종료
+
+    private async *streamRemoteReply(input: LLMInput, signal?: AbortSignal): AsyncIterable<string> // 서버 응답 처리
     { // 함수 시작
         const options = input.options; // 응답 조건
         const status = await this.status(); // 실제 AI 상태
@@ -70,7 +93,7 @@ export class RemoteLLMAdapter implements LLMAdapter // 실제 AI 어댑터
             yield* this.fallback.streamReply(input, signal); // 연습용 AI
             return; // 종료
         } // 조건 종료
-        const response = await this.fetcher("/api/chat", { method: "POST", headers: await this.requestHeaders(), body: JSON.stringify(toChatRequest(input, options)), signal }); // 서버 통로 요청(로그인해 있으면 출입증을 붙임)
+        const response = await this.fetcher("/api/chat", { method: "POST", headers: { ...await this.requestHeaders(), "x-wallet-request-id": crypto.randomUUID() }, body: JSON.stringify(toChatRequest(input, options)), signal }); // 요청별 고유 번호와 인증
         if (!response.ok || response.body === null) // 거절
         { // 조건 시작
             const body = await response.json().catch(() => null) as { error?: unknown; detail?: unknown } | null; // 이유

@@ -9,6 +9,7 @@ import { isStorageQuotaError, LocalStorageGateway, type BackupReason, type LoadR
 import { getAppStorage } from "@/lib/account/scoped-storage"; // 로그인한 계정의 저장 칸
 import { resolveLocale, setActiveLocale, t } from "@/lib/i18n"; // 화면 글자 번역·화면 언어
 import { useDocumentLanguage } from "@/features/core/use-document-language"; // 문서 언어·탭 제목 맞추기
+import { useServerWallet } from "@/features/tokens/use-server-wallet"; // 서버 권한 지갑
 
 export const NARROW_FIRST_VISIT_WIDTH = 760; // 처음 방문 때 패널을 닫고 시작하는 화면 너비(전체 틀의 모바일 기준과 같음)
 const STATE_STORAGE_KEY = "mateverse:v1:state"; // 앱 상태 저장 키(저장된 것이 없으면 첫 방문)
@@ -45,6 +46,12 @@ export interface StorageNotice // 저장소 안내
 
 interface AppStore // 앱 저장소
 { // 구조 시작
+    walletMode: "practice" | "server"; // 지갑 권한 위치
+    walletStatus: string; // 서버 연결 상태
+    walletNotice: string; // 서버 처리 안내
+    walletBusy: boolean; // 서버 보상 처리
+    refreshWallet(): Promise<void>; // 서버 지갑 새로 읽기
+    claimReward(reward: string): Promise<boolean>; // 서버 보상 수령
     state: AppState; // 현재 상태
     dispatch: Dispatch<AppAction>; // 동작 전달
     storageError: string | null; // 저장 오류
@@ -84,6 +91,7 @@ function storeReducer(state: AppState, entry: TimedAction): AppState // 저장�
 export function AppProvider({ children, initialState = createInitialState(), repository }: AppProviderProps) // 앱 공급자
 { // 함수 시작
     const [state, dispatchTimed] = useReducer(storeReducer, initialState); // 상태 리듀서
+    const remoteWallet = useServerWallet(); // 앱 저장본과 분리한 실제 지갑
     const dispatch = useCallback<Dispatch<AppAction>>((action) => dispatchTimed({ action, now: new Date().toISOString() }), []); // 동작 전달(시각 붙임)
     const [storageError, setStorageError] = useState<string | null>(null); // 저장 오류 상태
     const [storageNotice, setStorageNotice] = useState<StorageNotice | null>(null); // 저장소 안내 상태
@@ -213,7 +221,8 @@ export function AppProvider({ children, initialState = createInitialState(), rep
         } // 실패 종료
     }, [dispatch, repository]); // 함수 종료
     const dismissStorageNotice = useCallback(() => setStorageNotice(null), []); // 안내 닫기 함수
-    const value = useMemo(() => ({ state, dispatch, storageError, storageNotice, dismissStorageNotice, createBackup, commitState }), [commitState, createBackup, dismissStorageNotice, dispatch, state, storageError, storageNotice]); // 문맥 값
+    const shownState = useMemo(() => remoteWallet.managed ? { ...state, wallet: remoteWallet.snapshot.wallet, tokenRecords: remoteWallet.snapshot.records, rewards: remoteWallet.snapshot.rewards } : state, [remoteWallet.managed, remoteWallet.snapshot, state]); // 백업·동기화가 서버 잔액을 덮지 못하는 표시 상태
+    const value = { state: shownState, dispatch, storageError, storageNotice, dismissStorageNotice, createBackup, commitState, walletMode: remoteWallet.managed ? "server" as const : "practice" as const, walletStatus: remoteWallet.walletStatus, walletNotice: remoteWallet.walletNotice, walletBusy: remoteWallet.walletBusy, refreshWallet: remoteWallet.refreshWallet, claimReward: remoteWallet.claimReward }; // 지갑과 앱 문맥
     const locale = restored ? resolveLocale(state.settings.language, typeof navigator === "undefined" ? undefined : navigator.language) : "ko"; // 화면 언어(저장된 설정을 읽은 뒤에 정함, 그 전에는 서버와 같은 한국어)
     setActiveLocale(locale); // 아래 화면을 그리기 전에 언어를 정함
     useDocumentLanguage(locale); // 문서 언어 표시와 브라우저 탭 제목을 화면 언어로

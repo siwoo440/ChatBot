@@ -6,6 +6,7 @@ import { chatTiers, USER_NOTE_EXTENDED_COST, USER_NOTE_LIMIT } from "@/features/
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import { TokenHistory } from "@/features/settings/TokenHistory"; // 이용 기록
+import { ServerWalletNotice } from "@/features/tokens/ServerWalletNotice"; // 실제 지갑 연결 안내
 import { getDailyUsage, tokenActionLabels, tokenCosts, type TokenAction } from "@/lib/story/token-policy"; // 토큰 비용표
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
@@ -19,12 +20,13 @@ function formatDateTime(value: string): string // 시각 표시
 
 export function TokenSettings() // 토큰 이용 내역 화면
 { // 함수 시작
-    const { state } = useAppStore(); // 앱 상태 조회
+    const { state, walletMode } = useAppStore(); // 앱과 지갑 권한
     const wallet = state.wallet; // 토큰 지갑
     const daily = getDailyUsage(wallet, new Date()); // 오늘 사용량(날짜가 바뀌면 0)
     return ( // 화면 반환
         <> {/* 토큰 화면 */}
             <SettingsPageHeader kicker="ACCOUNT · TOKENS" title={t("토큰 이용 내역")} description={t("토큰 잔액과 항목별 비용, 어디에 얼마를 받고 썼는지 확인합니다.")} /> {/* 페이지 머리말 */}
+            <ServerWalletNotice /> {/* 서버 잔액 확인과 다시 시도 */}
             <section className={styles.statGrid} aria-label={t("토큰 요약")}> {/* 토큰 요약 */}
                 <div className={styles.stat}><span>{t("보유 토큰")}</span><strong>{wallet.balance.toLocaleString()}</strong><small>{t("마지막 변경")} {formatDateTime(wallet.updatedAt)}</small></div> {/* 잔액 */}
                 <div className={styles.stat}><span>{t("오늘 사용")}</span><strong>{daily.chat.toLocaleString()}</strong><small>{t("대화 토큰 · 이미지")} {daily.image}{t("회")}</small></div> {/* 오늘 사용량 */}
@@ -36,6 +38,7 @@ export function TokenSettings() // 토큰 이용 내역 화면
                 <table className={styles.table} aria-label={t("항목별 비용")}><thead><tr><th scope="col">{t("항목")}</th><th scope="col">{t("비용")}</th></tr></thead><tbody>{chatTiers.map((tier) => <tr key={tier.id}><td><strong>{t(tier.label)}</strong><small>{t("메시지 보내기, 다시 생성, 메시지 수정 후 응답")} {t("· 기본 길이 기준")}</small></td><td><span className={styles.cost}>{tier.baseCost} {t("토큰")}</span></td></tr>)}{costOrder.map((action) => <tr key={action}><td><strong>{t(tokenActionLabels[action].label)}</strong><small>{t(tokenActionLabels[action].description)}</small></td><td><span className={styles.cost}>{tokenCosts[action]} {t("토큰")}</span></td></tr>)}</tbody></table>
                 <p>{t("답변 길이를 늘리면 등급마다 정해진 만큼 더 들고, 유저 노트를 {0}자 넘게 적으면 메시지당 {1}토큰이 더 들어요. 지금 대화의 비용은 입력창 옆 등급 버튼에서 볼 수 있어요.", [USER_NOTE_LIMIT, USER_NOTE_EXTENDED_COST])}</p> {/* 추가 비용 안내 */}
                 <p>{t("응답을 중간에 멈춰도 요청 1회로 계산되고, 재시도와 다시 생성은 각각 새 요청으로 계산됩니다.")}</p> {/* 계산 규칙 */}
+                {walletMode === "server" ? <p>{t("응답 시작 전 시스템 오류는 토큰을 반환해요. 응답 시작 후 중단은 사용으로 남아요. 연습 응답은 실제 계정 토큰을 차감하지 않아요.")}</p> : null} {/* 실제 계정 반환 기준 */}
             </section> {/* 비용표 종료 */}
             <TokenHistory records={state.tokenRecords} conversations={state.conversations} /> {/* 채팅방별 이용 기록 */}
             <section className={styles.card} aria-labelledby="token-reward-title"> {/* 받은 토큰 */}

@@ -7,5 +7,6 @@ import { discovery } from "@/lib/i18n/en/discovery"; // 메인·탐색·성인 �
 import { more } from "@/lib/i18n/en/more"; // 이미지 스튜디오·보관함·초대·출석과 미션·스토리 모드·Text-Play
 import { settings } from "@/lib/i18n/en/settings"; // 설정 페이지·고객 지원
 import { shell } from "@/lib/i18n/en/shell"; // 공통 메뉴·기본 화면
+import { wallet } from "@/lib/i18n/en/wallet"; // 서버 지갑
 
-export const en: Record<string, string> = { ...shell, ...discovery, ...character, ...chat, ...settings, ...more, ...data, ...ai }; // 영어 사전
+export const en: Record<string, string> = { ...shell, ...discovery, ...character, ...chat, ...settings, ...more, ...data, ...ai, ...wallet }; // 영어 사전

@@ -3,6 +3,7 @@ import { GET, POST } from "@/app/api/chat/route"; // 서버 통로
 import { createTokenVerifier, identifyCaller, resetCallerCache, VERIFY_CACHE_MS, type TokenVerifier } from "@/lib/llm/chat-caller"; // 요청한 사람 확인
 import { DEFAULT_USER_MESSAGES_PER_DAY, DEFAULT_USER_REQUESTS_PER_MINUTE, getSeoulDayKey, readUsageLimits, resetChatSlots, resetUserSlots, takeTotalSlot, takeUserSlot } from "@/lib/llm/chat-gate"; // 문지기
 import type { ChatRequest } from "@/lib/llm/prompt-builder"; // 서버 통로 요청
+import { createInitialState } from "@/features/core/initial-state"; // 서버 지갑 대역 상태
 
 const encoder = new TextEncoder(); // 글자 변환
 const supabaseEnv = { NEXT_PUBLIC_ACCOUNT_SERVICE: "supabase", NEXT_PUBLIC_SUPABASE_URL: "https://demo.supabase.co", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "public-key" }; // 계정 서비스 설정(가짜 주소와 공개 키)
@@ -113,7 +114,7 @@ describe("요청한 사람 확인", () => // 확인 묶음
 describe("공개 주소의 서버 통로", () => // 공개 통로 묶음
 { // 묶음 시작
     const host = "mateverse.example"; // 공개 주소
-    const post = (token?: string) => POST(new Request(`http://${host}/api/chat`, { method: "POST", headers: { host, "content-type": "application/json", ...(token === undefined ? {} : { authorization: `Bearer ${token}` }) }, body: JSON.stringify(request) })); // 요청 보내기
+    const post = (token?: string) => POST(new Request(`http://${host}/api/chat`, { method: "POST", headers: { host, "content-type": "application/json", "x-wallet-request-id": crypto.randomUUID(), ...(token === undefined ? {} : { authorization: `Bearer ${token}` }) }, body: JSON.stringify({ ...request, wallet: { conversationId: "room", conversationTitle: "대화", characterId: "rian" } }) })); // 서버 예약 번호와 채팅방
     const status = async (token?: string) => await (await GET(ask(host, token))).json() as { enabled: boolean; loginRequired?: boolean; tiers: Record<string, boolean> }; // 상태 묻기
     const reason = async (response: Response) => (await response.json() as { error: string }).error; // 거절 이유
 
@@ -123,9 +124,27 @@ describe("공개 주소의 서버 통로", () => // 공개 통로 묶음
         vi.stubEnv("ANTHROPIC_API_KEY", "key-a"); // Claude 열쇠
         vi.stubEnv("CHAT_ALLOW_PUBLIC", "true"); // 공개 켬
         vi.stubEnv("CHAT_USER_MESSAGES_PER_DAY", "2"); // 하루 두 번
+        vi.stubEnv("SERVER_WALLET_ENABLED", "true"); // 서버 지갑 연결
+        vi.stubEnv("SUPABASE_SECRET_KEY", "sb_secret_test-only"); // 서버 키 대역
         Object.entries(supabaseEnv).forEach(([name, value]) => vi.stubEnv(name, value)); // 계정 서비스 설정
         vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => // 가짜 바깥 서비스
         { // 함수 시작
+            if (String(input).endsWith("/rpc/mv_wallet_command")) // 영속 저장소 대역
+            { // 조건 시작
+                const { p_user: userId, p_command: command, p_data: data } = JSON.parse(init.body as string); // 서버 명령
+                if (command === "reserve") // 사용 예약
+                { // 조건 시작
+                    const limits = { perMinute: data.perMinute, perDay: data.perDay, totalPerDay: data.totalPerDay }; // 전달한 운영 한도
+                    const allowed = takeUserSlot(userId, "message", limits); // 사용자 제한 대역
+                    const error = !allowed.ok ? allowed.reason === "day" ? "daily-limit" : "rate-limited" : !takeTotalSlot(limits.totalPerDay) ? "service-limit" : null; // DB 판정 대역
+                    if (error !== null) // 한도 도달
+                    { // 조건 시작
+                        return Response.json({ ok: false, error }); // RPC 거절
+                    } // 조건 종료
+                } // 조건 종료
+                const state = createInitialState(); // 표시 결과
+                return Response.json({ ok: true, snapshot: { wallet: state.wallet, records: [], rewards: state.rewards, revision: 1 } }); // 서버 상태 대역
+            } // 조건 종료
             if (String(input).endsWith("/auth/v1/user")) // 출입증 확인
             { // 조건 시작
                 const authorization = (init.headers as Record<string, string>).authorization; // 출입증

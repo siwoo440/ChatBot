@@ -5,6 +5,8 @@ import Link from "next/link"; // 내부 경로 링크
 import { useState } from "react"; // 리액트 상태
 import { useAppStore } from "@/features/core/AppProvider"; // 앱 상태
 import { InviteSection } from "@/features/rewards/InviteSection"; // 친구 초대 칸
+import { ServerWalletNotice } from "@/features/tokens/ServerWalletNotice"; // 서버 보상 안내
+import { tokenRecordLabel } from "@/lib/story/token-ledger"; // 서버 보상 이름 번역
 import { ATTENDANCE_CYCLE, attendanceRewards, getAttendanceView, getBonusView, getClaimableTokens, getMissionViews, type MissionView } from "@/features/rewards/reward-model"; // 출석·미션 규칙
 import { SettingsPageHeader } from "@/features/settings/SettingsShell"; // 페이지 머리말
 import settings from "@/features/settings/SettingsScreen.module.css"; // 설정 공통 스타일
@@ -21,7 +23,7 @@ function formatDateTime(value: string): string // 시각 표시
 
 export function RewardsScreen() // 출석과 미션 화면
 { // 함수 시작
-    const { state, dispatch } = useAppStore(); // 앱 상태
+    const { state, dispatch, walletMode, walletBusy, walletStatus, claimReward } = useAppStore(); // 앱과 서버 보상
     const [notice, setNotice] = useState(""); // 받은 안내
     const today = new Date(); // 지금
     const attendance = getAttendanceView(state.rewards.attendance, today); // 출석 상태
@@ -32,32 +34,67 @@ export function RewardsScreen() // 출석과 미션 화면
     const earned = state.tokenRecords.filter((record) => record.direction === "earn"); // 받은 기록(쓴 기록은 토큰 이용 내역에서)
     const weekly = getWeeklyViews(state.rewards, today); // 주간 미션 상태
     const weekDaysLeft = getWeekDaysLeft(today); // 이번 주 남은 날
-    const claimWeekly = (view: WeeklyMissionView) => // 주간 미션 보상 받기
+    const claimWeekly = async (view: WeeklyMissionView) => // 주간 미션 보상 받기
     { // 함수 시작
-        dispatch({ type: "claim-weekly-mission", missionId: view.definition.id, now: new Date().toISOString() }); // 보상 지급
+        if (walletMode === "server" && !await claimReward(view.definition.id)) // 서버 지급 실패
+        { // 조건 시작
+            return; // 성공 안내 생략
+        } // 조건 종료
+        if (walletMode === "practice") // 연습 보상
+        { // 조건 시작
+            dispatch({ type: "claim-weekly-mission", missionId: view.definition.id, now: new Date().toISOString() }); // 시험 지급
+        } // 조건 종료
         setNotice(t("‘{0}’ 보상 {1}토큰을 받았습니다.", [view.definition.title, view.definition.reward])); // 안내
     }; // 함수 종료
-    const stamp = () => // 출석하기
+    const stamp = async () => // 출석하기
     { // 함수 시작
-        dispatch({ type: "check-attendance", now: new Date().toISOString() }); // 도장과 보상
+        if (walletMode === "server" && !await claimReward("attendance")) // 서버 출석 실패
+        { // 조건 시작
+            return; // 성공 안내 생략
+        } // 조건 종료
+        if (walletMode === "practice") // 연습 출석
+        { // 조건 시작
+            dispatch({ type: "check-attendance", now: new Date().toISOString() }); // 시험 도장과 보상
+        } // 조건 종료
         setNotice(t("출석 {0}일차 도장을 찍고 {1}토큰을 받았습니다.", [attendance.nextDay, attendance.nextReward])); // 안내
     }; // 함수 종료
-    const claim = (view: MissionView) => // 미션 보상 받기
+    const claim = async (view: MissionView) => // 미션 보상 받기
     { // 함수 시작
-        dispatch({ type: "claim-mission", missionId: view.definition.id, now: new Date().toISOString() }); // 보상 지급
+        if (walletMode === "server" && !await claimReward(view.definition.id)) // 서버 실적 검사
+        { // 조건 시작
+            return; // 실패 성공 안내 차단
+        } // 조건 종료
+        if (walletMode === "practice") // 시험 보상
+        { // 조건 시작
+            dispatch({ type: "claim-mission", missionId: view.definition.id, now: new Date().toISOString() }); // 시험 지급
+        } // 조건 종료
         setNotice(t("‘{0}’ 보상 {1}토큰을 받았습니다.", [view.definition.title, view.definition.reward])); // 안내
     }; // 함수 종료
     const claimBonus = () => // 보너스 받기
     { // 함수 시작
+        if (walletMode === "server") // 서버 검증 미연결 보너스
+        { // 조건 시작
+            return; // 로컬 실적 지급 차단
+        } // 조건 종료
         dispatch({ type: "claim-mission-bonus", now: new Date().toISOString() }); // 보너스 지급
         setNotice(t("미션을 모두 끝낸 보너스 {0}토큰을 받았습니다.", [bonus.reward])); // 안내
     }; // 함수 종료
-    const claimAll = () => // 받을 수 있는 미션 보상 모두 받기
+    const claimAll = async () => // 받을 수 있는 미션 보상 모두 받기
     { // 함수 시작
         const now = new Date().toISOString(); // 받은 시각
         const ready = missions.filter((view) => view.claimable); // 받을 미션
-        ready.forEach((view) => dispatch({ type: "claim-mission", missionId: view.definition.id, now })); // 미션 보상
-        if (bonus.claimable) // 보너스 판정
+        for (const view of ready) // 받을 미션 순회
+        { // 반복 시작
+            if (walletMode === "server" && !await claimReward(view.definition.id)) // 실제 지급 실패
+            { // 조건 시작
+                return; // 실패 이후 성공 안내 차단
+            } // 조건 종료
+            if (walletMode === "practice") // 시험 보상
+            { // 조건 시작
+                dispatch({ type: "claim-mission", missionId: view.definition.id, now }); // 시험 지급
+            } // 조건 종료
+        } // 반복 종료
+        if (bonus.claimable && walletMode === "practice") // 연습 보너스 판정
         { // 조건 시작
             dispatch({ type: "claim-mission-bonus", now }); // 보너스
         } // 조건 종료
@@ -66,6 +103,8 @@ export function RewardsScreen() // 출석과 미션 화면
     return ( // 화면 반환
         <> {/* 출석과 미션 */}
             <SettingsPageHeader kicker="ACCOUNT · REWARDS" title={t("출석과 미션")} description={t("매일 출석 도장을 찍고 오늘의 미션을 채우면 토큰을 조금씩 받을 수 있어요. 친구를 초대하면 친구도 환영 토큰을 받아요.")} /> {/* 페이지 머리말 */}
+            <ServerWalletNotice /> {/* 실제 보상 처리 상태 */}
+            {walletMode === "server" ? <p className={settings.note}>{t("실제 계정은 출석과 서버 대화 실적 보상을 제공해요. 좋아요·모두 완료·초대 보상은 서버 검증 연결을 준비 중이에요.")}</p> : null} {/* 제공 범위 안내 */}
             <section className={settings.statGrid} aria-label={t("보상 요약")}> {/* 요약 */}
                 <div className={settings.stat}><span>{t("보유 토큰")}</span><strong>{state.wallet.balance.toLocaleString()}</strong><small>{waiting > 0 ? t("지금 {0}토큰을 받을 수 있어요", [waiting]) : t("오늘 받을 보상을 모두 받았어요")}</small></div> {/* 잔액 */}
                 <div className={settings.stat}><span>{t("이번 도장판")}</span><strong>{attendance.stamped}/{ATTENDANCE_CYCLE}</strong><small>{t("누적 출석")} {attendance.totalDays}{t("일")}</small></div> {/* 출석 */}
@@ -84,7 +123,7 @@ export function RewardsScreen() // 출석과 미션 화면
                         return <li key={day} data-state={status} data-final={day === ATTENDANCE_CYCLE ? "true" : undefined} aria-label={t("{0}일차, {1}토큰, {2}", [day, reward, statusLabel])}><span>{day}{t("일차")}</span><strong aria-hidden="true">{status === "done" ? "✓" : `+${reward}`}</strong></li>; // 칸
                     })} {/* 순회 종료 */}
                 </ol> {/* 도장판 종료 */}
-                <button type="button" className={settings.primary} disabled={!attendance.canCheck} onClick={stamp}>{attendance.canCheck ? t("출석하기 · +{0}토큰", [attendance.nextReward]) : t("오늘 출석 완료")}</button> {/* 출석 버튼 */}
+                <button type="button" className={settings.primary} disabled={!attendance.canCheck || walletBusy || (walletMode === "server" && walletStatus !== "ready")} onClick={stamp}>{attendance.canCheck ? t("출석하기 · +{0}토큰", [attendance.nextReward]) : t("오늘 출석 완료")}</button> {/* 서버 확인 뒤 출석 */}
             </section> {/* 출석 종료 */}
             <section className={settings.card} aria-labelledby="rewards-mission-title"> {/* 미션 */}
                 <h2 id="rewards-mission-title">{t("오늘의 미션")}</h2> {/* 제목 */}
@@ -118,12 +157,12 @@ export function RewardsScreen() // 출석과 미션 화면
                     ))} {/* 순회 종료 */}
                 </ul> {/* 미션 목록 종료 */}
             </section> {/* 주간 미션 종료 */}
-            <InviteSection /> {/* 친구 초대 */}
+            {walletMode === "practice" ? <InviteSection /> : null} {/* 검증된 초대 연결 전 연습 기능 */}
             <section className={settings.card} aria-labelledby="rewards-record-title"> {/* 받은 기록 */}
                 <h2 id="rewards-record-title">{t("받은 기록")}</h2> {/* 제목 */}
                 {earned.length === 0 ? <p>{t("아직 받은 토큰이 없어요. 출석 도장부터 찍어 보세요.")}</p> : ( // 기록 판정
                     <ol className={styles.records} aria-label={t("받은 토큰 기록")}> {/* 기록 목록 */}
-                        {earned.slice(0, RECORD_PREVIEW).map((record) => <li key={record.id}><div><strong>{t(record.label)}</strong><small>{formatDateTime(record.createdAt)} {t("· 잔액")} {record.balance.toLocaleString()}</small></div><b>+{record.amount}</b></li>)} {/* 기록 */}
+                        {earned.slice(0, RECORD_PREVIEW).map((record) => <li key={record.id}><div><strong>{tokenRecordLabel(record)}</strong><small>{formatDateTime(record.createdAt)} {t("· 잔액")} {record.balance.toLocaleString()}</small></div><b>+{record.amount}</b></li>)} {/* 기록 */}
                     </ol> // 기록 목록 종료
                 )} {/* 기록 판정 종료 */}
                 <p className={settings.note}>{t("출석과 미션 기록은 지금 사용하는 브라우저에만 저장돼요. 계정 로그인이 연결되면 다른 기기에서도 이어집니다.")}</p> {/* 저장 안내 */}

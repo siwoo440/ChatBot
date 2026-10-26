@@ -10,6 +10,7 @@ create table if not exists public.mv_wallets -- 사용자별 권한 지갑
     recent timestamptz[] not null default '{}', -- 최근 요청 시각
     usage_day date not null default (now() at time zone 'Asia/Seoul')::date, -- 한도 기준 날짜
     day_messages integer not null default 0, -- 오늘 요청 횟수
+    day_assists integer not null default 0, -- 오늘 보조 요청 수
     day_tokens integer not null default 0, -- 오늘 대화 토큰
     attendance_date date, -- 마지막 출석일
     cycle_day integer not null default 0, -- 연속 출석 칸
@@ -48,8 +49,12 @@ create table if not exists public.mv_wallet_entries -- 변경 이력 원장
 create table if not exists public.mv_wallet_usage -- 서비스 전체 한도
 ( -- 표 시작
     day date primary key, -- 한국 날짜
-    messages integer not null default 0 check (messages >= 0) -- 전체 요청 수
+    messages integer not null default 0 check (messages >= 0), -- 전체 요청 수
+    assists integer not null default 0 check (assists >= 0) -- 전체 보조 요청 수
 ); -- 표 종료
+
+alter table public.mv_wallets add column if not exists day_assists integer not null default 0; -- 초기 설치본 보조 한도 확장
+alter table public.mv_wallet_usage add column if not exists assists integer not null default 0; -- 초기 집계표 확장
 
 create index if not exists mv_wallet_entries_user_time on public.mv_wallet_entries(user_id, entry_id desc); -- 최근 내역 조회
 create index if not exists mv_wallet_requests_user_time on public.mv_wallet_requests(user_id, settled_at) where status = 'charged'; -- 보상 실적 조회
@@ -128,6 +133,8 @@ declare -- 지역 변수
     day_limit integer := coalesce((p_data->>'perDay')::integer, 300); -- 일 한도
     total_limit integer := coalesce((p_data->>'totalPerDay')::integer, 0); -- 서비스 한도
     global_messages integer; -- 전체 요청 수
+    global_assists integer; -- 전체 보조 수
+    assist_max integer; -- 완료 대화에 따른 보조 한도
     cost integer; -- 서버 비용
     metadata jsonb; -- 표시용 정보
     reward text := p_data->>'reward'; -- 보상 종류
@@ -144,7 +151,7 @@ begin -- 함수 시작
     insert into public.mv_wallets(user_id) values (p_user) on conflict do nothing; -- 최초 지갑 생성
     select * into w from public.mv_wallets where user_id = p_user for update; -- 계정 단위 잠금
     if w.usage_day <> d then -- 한국 날짜 변경
-        update public.mv_wallets set usage_day = d, day_messages = 0, day_tokens = 0 where user_id = p_user; -- 오늘 한도 초기화
+        update public.mv_wallets set usage_day = d, day_messages = 0, day_assists = 0, day_tokens = 0 where user_id = p_user; -- 오늘 한도 초기화
     end if; -- 날짜 조건 종료
     for expired in select request_id from public.mv_wallet_requests where user_id = p_user and status = 'pending' and created_at <= now() - interval '10 minutes' loop -- 서버 중단 예약 회수
         perform public.mv_wallet_release(p_user, expired.request_id); -- 중복 없는 반환
@@ -180,15 +187,26 @@ begin -- 함수 시작
         if p_command = 'reserve' and w.day_messages >= day_limit then -- 개인 하루 한도
             return jsonb_build_object('ok', false, 'error', 'daily-limit'); -- 거절
         end if; -- 개인 검사 종료
+        if p_command = 'assist' then -- 무료 보조 호출 제한
+            select least(day_limit, count(*)::integer) * 2 into assist_max from public.mv_wallet_requests where user_id = p_user and status = 'charged' and (settled_at at time zone 'Asia/Seoul')::date = d; -- 완료 대화당 스탯·요약 두 번
+            if w.day_assists >= assist_max then -- 당일 보조 한도
+                return jsonb_build_object('ok', false, 'error', 'daily-limit'); -- 독립 무료 호출 차단
+            end if; -- 보조 검사 종료
+        end if; -- 보조 한도 종료
+        insert into public.mv_wallet_usage(day) values (d) on conflict do nothing; -- 오늘 집계 생성
+        select messages, assists into global_messages, global_assists from public.mv_wallet_usage where day = d for update; -- 전체 집계 잠금
         if p_command = 'reserve' then -- 전체 요청 한도
-            insert into public.mv_wallet_usage(day) values (d) on conflict do nothing; -- 오늘 집계 생성
-            select messages into global_messages from public.mv_wallet_usage where day = d for update; -- 전체 집계 잠금
             if total_limit > 0 and global_messages >= total_limit then -- 서비스 한도
                 return jsonb_build_object('ok', false, 'error', 'service-limit'); -- 거절
             end if; -- 서비스 검사 종료
             update public.mv_wallet_usage set messages = messages + 1 where day = d; -- 전체 횟수 기록
+        else -- 보조 서비스 한도
+            if total_limit > 0 and global_assists >= total_limit * 2 then -- 전체 보조 한도
+                return jsonb_build_object('ok', false, 'error', 'service-limit'); -- 비용 우회 차단
+            end if; -- 전체 보조 검사 종료
+            update public.mv_wallet_usage set assists = assists + 1 where day = d; -- 전체 보조 기록
         end if; -- 전체 한도 종료
-        update public.mv_wallets set recent = array_append(recent_times, now()), day_messages = day_messages + case when p_command = 'reserve' then 1 else 0 end where user_id = p_user; -- 영속 요청 횟수
+        update public.mv_wallets set recent = array_append(recent_times, now()), day_messages = day_messages + case when p_command = 'reserve' then 1 else 0 end, day_assists = day_assists + case when p_command = 'assist' then 1 else 0 end where user_id = p_user; -- 영속 요청 횟수
     end if; -- 한도 분기 종료
     if p_command = 'reserve' then -- 원자적 예약 차감
         metadata := jsonb_strip_nulls(jsonb_build_object('conversationId', left(p_data->>'conversationId', 160), 'conversationTitle', left(p_data->>'conversationTitle', 160), 'characterId', left(p_data->>'characterId', 160), 'versionId', left(p_data->>'versionId', 160), 'work', left(p_data->>'work', 160))); -- 허용한 표시 정보만 저장

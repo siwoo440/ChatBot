@@ -1,7 +1,8 @@
 // 보조 통로: 답변 말고 실제 AI에 맡기는 작은 일(대화 요약, 스탯 판단)을 받아, 답을 끝까지 모아 정리한 뒤 한 번에 돌려준다. 실패하면 브라우저가 연습용 규칙으로 넘어간다.
 import { getChatTier } from "@/features/chat/chat-tiers"; // 채팅 등급
 import { ASSIST_TIMEOUT_MS, buildStatsPrompt, buildSummaryPrompt, cleanSummary, parseAssistRequest, parseStatDeltas } from "@/lib/llm/assist-builder"; // 보조 지시문
-import { readChatBody, refuse, refuseProviderFailure, takeUsage } from "@/lib/llm/chat-request"; // 통로 공통
+import { readChatBody, refuse, refuseProviderFailure } from "@/lib/llm/chat-request"; // 통로 공통
+import { takeAssistUsage } from "@/lib/wallet/chat-billing"; // 영속 보조 한도
 import { resolveModel } from "@/lib/llm/model-catalog"; // 모델 목록
 import { collectReply, streamProviderReply } from "@/lib/llm/providers"; // AI 회사 연결
 
@@ -29,7 +30,7 @@ export async function POST(request: Request): Promise<Response> // 보조 일 �
     { // 조건 시작
         return refuse(503, "no-key"); // 연습용으로
     } // 조건 종료
-    const limited = takeUsage(body.caller, "assist"); // 사용량 세기(보조 요청은 1분 한도에만 듦)
+    const limited = await takeAssistUsage(body.caller); // 계정별 영속 분 한도
     if (limited !== null) // 한도 도달
     { // 조건 시작
         return limited; // 잠시 뒤 다시

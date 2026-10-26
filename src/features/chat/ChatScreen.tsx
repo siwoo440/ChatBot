@@ -59,6 +59,18 @@ interface ChatScreenProps // 채팅 화면 속성
 
 function describeChatServiceError(code: ChatServiceCode): string // 실제 AI 실패 이유를 쉬운 말로
 { // 함수 시작
+    if (code === "wallet-unavailable") // 서버 지갑 장애
+    { // 조건 시작
+        return t("서버 토큰을 확인하지 못해 요청을 중단했어요. 토큰 이용 내역에서 잔액을 새로 확인해 주세요."); // 설정·연결 안내
+    } // 조건 종료
+    if (code === "insufficient-token") // 서버 잔액 부족
+    { // 조건 시작
+        return t("토큰이 부족합니다."); // 부족 안내
+    } // 조건 종료
+    if (["duplicate-request", "request-conflict", "request-closed"].includes(code)) // 중복·종료 요청
+    { // 조건 시작
+        return t("이미 처리했거나 종료된 요청이에요. 토큰 이용 내역을 확인한 뒤 새 메시지로 다시 시도해 주세요."); // 중복 차감 방지 안내
+    } // 조건 종료
     if (code === "bad-key") // 열쇠 문제
     { // 조건 시작
         return t("AI 열쇠가 맞지 않아요. .env.local의 열쇠를 확인한 뒤 서버를 다시 켜 주세요."); // 열쇠 안내
@@ -507,7 +519,7 @@ function ChatConversationScreen({ characterId: requestedCharacterId, storyId, in
         const result = await controller.generateManualScene(); // 장면 생성
         sync(); // 상태 동기화
         const made = latestGlobalState.current.settings.showSceneImages ? t("새 장면을 만들었습니다.") : t("새 장면을 만들었습니다. ‘상황 이미지 보기’를 켜면 대화에서 볼 수 있어요."); // 만든 그림은 마지막 응답 아래에 붙음(숨김이면 켜는 방법 안내)
-        setNotice(result.ok ? made : result.reason === "insufficient-token" ? t("이미지를 만들 토큰이 부족합니다.") : t("장면을 만들지 못했습니다.")); // 안내 갱신
+        setNotice(result.ok ? made : result.reason === "image-unavailable" ? t("실제 계정의 이미지 생성은 서버 연결을 준비 중이에요. 토큰은 차감하지 않았어요.") : result.reason === "insufficient-token" ? t("이미지를 만들 토큰이 부족합니다.") : t("장면을 만들지 못했습니다.")); // 안내 갱신
     }; // 함수 종료
     const storyMode = conversation.mode === "story"; // 스토리 모드 여부
     const story = storyMode ? snapshot.stories.find((item) => item.id === conversation.storyId) : undefined; // 연결 스토리

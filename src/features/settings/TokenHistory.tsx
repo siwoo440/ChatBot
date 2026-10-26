@@ -4,7 +4,7 @@ import { useState } from "react"; // 리액트 상태
 import Link from "next/link"; // 채팅방 이동
 import type { Route } from "next"; // 경로 타입
 import type { Conversation, TokenRecord } from "@/features/core/types"; // 기록과 채팅방 타입
-import { filterTokenRecords, filterTokenRecordsByPeriod, groupTokenRecords, summarizeTokenDays, TOKEN_RECORD_LIMIT, tokenSourceLabels, type TokenDaySummary, type TokenPeriod, type TokenPeriodId, type TokenRecordFilter } from "@/lib/story/token-ledger"; // 토큰 기록 규칙
+import { filterTokenRecords, filterTokenRecordsByPeriod, groupTokenRecords, summarizeTokenDays, TOKEN_RECORD_LIMIT, tokenSourceLabels, tokenRecordLabel, type TokenDaySummary, type TokenPeriod, type TokenPeriodId, type TokenRecordFilter } from "@/lib/story/token-ledger"; // 토큰 기록 규칙
 import styles from "@/features/settings/SettingsScreen.module.css"; // 설정 스타일
 import { localeTag, t } from "@/lib/i18n"; // 화면 글자 번역·날짜와 숫자 형식
 
@@ -130,7 +130,7 @@ export function TokenHistory({ records, conversations = [] }: { records: TokenRe
                     <section key={group.dateKey} className={styles.recordGroup} aria-label={t(group.label)}> {/* 날짜 묶음 */}
                         <h3>{t(group.label)}<small>{t("받음 +")}{group.earned} {t("· 사용 −")}{group.spent}</small></h3> {/* 날짜와 합계 */}
                         <ol className={styles.recordList}> {/* 기록 목록 */}
-                            {group.records.map((record) => <li key={record.id} data-direction={record.direction}><div><strong>{t(record.label)}</strong><small>{record.work ?? t(tokenSourceLabels[record.source])}</small><ConversationRecord record={record} conversations={conversations} /><small><time dateTime={record.createdAt}>{formatTime(record.createdAt)}</time> {t("· 잔액")} {record.balance.toLocaleString()}</small></div><b>{record.direction === "earn" ? "+" : "−"}{record.amount}</b></li>)} {/* 시각·채팅방·비용 기록 */}
+                            {group.records.map((record) => <li key={record.id} data-direction={record.direction}><div><strong>{tokenRecordLabel(record)}</strong><small>{record.work ?? t(tokenSourceLabels[record.source])}</small><ConversationRecord record={record} conversations={conversations} /><small><time dateTime={record.createdAt}>{formatTime(record.createdAt)}</time> {t("· 잔액")} {record.balance.toLocaleString()}</small></div><b>{record.direction === "earn" ? "+" : "−"}{record.amount}</b></li>)} {/* 시각·채팅방·비용 기록 */}
                         </ol> {/* 목록 종료 */}
                     </section> // 묶음 종료
                 ))} {/* 순회 종료 */}

@@ -25,7 +25,7 @@ const studioCost = tokenCosts["studio-image"]; // 생성 비용
 
 export function ImageStudio() // 이미지 스튜디오
 { // 함수 시작
-    const { state, dispatch, createBackup } = useAppStore(); // 앱 상태
+    const { state, dispatch, createBackup, walletMode } = useAppStore(); // 앱과 지갑 권한
     const [prompt, setPrompt] = useState(""); // 장면 설명
     const [style, setStyle] = useState<ImageStyle>("anime"); // 그림체
     const [aspect, setAspect] = useState<ImageAspect>("portrait"); // 비율
@@ -45,6 +45,11 @@ export function ImageStudio() // 이미지 스튜디오
     const visibleImages = searchBy(filteredImages, query, (image) => image.contentRating === "mature" && !showMature ? [] : [image.prompt, t(imageStyleLabels[image.style])]); // 검색 결과(잠긴 19세 이미지는 설명을 숨기므로 찾지 않음)
     const generate = () => // 이미지 만들기
     { // 함수 시작
+        if (walletMode === "server") // 실제 이미지 연결 전
+        { // 조건 시작
+            setError(t("실제 계정의 이미지 생성은 서버 연결을 준비 중이에요. 토큰은 차감하지 않았어요.")); // 연결 안내
+            return; // 임의 차감 방지
+        } // 조건 종료
         setNotice(""); // 안내 초기화
         const check = checkImageRequest({ prompt, contentRating: rating }); // 금지 검사
         if (!check.ok) // 거부 판정
@@ -120,7 +125,8 @@ export function ImageStudio() // 이미지 스튜디오
                         </ul> {/* 목록 종료 */}
                         {showMature ? null : <p className={styles.muted}>{t("19세 이용가는 성인 인증 후 헤더의 19+를 켜면 고를 수 있어요.")}</p>} {/* 19세 안내 */}
                     </div> {/* 규칙 종료 */}
-                    <button type="submit" className={styles.generate}>{t("이미지 만들기 ·")} {studioCost} {t("토큰")}</button> {/* 생성 버튼 */}
+                    {walletMode === "server" ? <p role="status">{t("실제 계정의 이미지 생성은 서버 연결을 준비 중이에요. 토큰은 차감하지 않았어요.")}</p> : null} {/* 제공 범위 안내 */}
+                    <button type="submit" className={styles.generate} disabled={walletMode === "server"}>{t("이미지 만들기 ·")} {studioCost} {t("토큰")}</button> {/* 생성 버튼 */}
                     {error.length === 0 ? null : <p className={styles.error} role="alert">{error}</p>} {/* 오류 안내 */}
                     <p className={styles.notice} role="status" aria-label={t("생성 상태")}>{notice}</p> {/* 성공 안내 */}
                 </form> {/* 양식 종료 */}
